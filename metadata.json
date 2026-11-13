@@ -1,0 +1,6 @@
+{
+  "name": "ClipForge AI",
+  "description": "Open-source, local-first AI video clipping studio. Automatically detects viral highlights, generates synced captions, and exports watermark-free vertical and landscape clips.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
