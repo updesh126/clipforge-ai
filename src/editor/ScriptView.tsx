@@ -22,6 +22,38 @@ The good news? Restored wetlands can cut flood damage by up to 40 percent.
 
 The future of our rivers depends on what we do in the next ten years.`;
 
+/** The structure from docs/STORY_SCRIPT_GUIDE.md: one paragraph = one scene; place + 1-3 visible things each. */
+const STORY_TEMPLATE = `Every summer night, a tiny village in Kerala glows with fireflies.
+
+The village sits beside a quiet river, under tall coconut trees. At dusk, the fishermen pull their boats onto the sand.
+
+Meera is a girl with a lantern who loves the fireflies more than anything.
+
+Each night she walks to the river bank and counts them, one by one.
+
+One evening, the river bank is dark. Not a single firefly rises from the grass.
+
+Meera asks the old fisherman why. He points at the new bright lamps on the bridge.
+
+"Fireflies need the dark to find each other," he says.
+
+So Meera and the villagers switch off the bridge lamps after sunset.
+
+The next night, more than 1,000 fireflies return to the river bank.
+
+Sometimes, to see the light, we just have to turn ours off.`;
+
+/** Hindi sample in the same one-paragraph-per-scene structure. */
+const HINDI_TEMPLATE = `हर गर्मी की रात, केरल का एक छोटा-सा गाँव जुगनुओं से जगमगा उठता है।
+
+मीरा एक लालटेन वाली लड़की है, जिसे जुगनू सबसे ज़्यादा पसंद हैं।
+
+एक शाम नदी का किनारा अँधेरा था। घास से एक भी जुगनू नहीं उड़ा।
+
+मीरा ने बूढ़े मछुआरे से पूछा क्यों। उसने पुल पर लगी नई तेज़ बत्तियों की ओर इशारा किया।
+
+अगली रात, एक हज़ार से ज़्यादा जुगनू लौट आए, और मीरा ख़ुशी से नाच उठी।`;
+
 // Draft + running job survive a page reload or server restart
 const DRAFT_KEY = 'clipforge.scriptDraft';
 const JOB_KEY = 'clipforge.scriptJob';
@@ -50,6 +82,7 @@ interface Draft {
   aspect: string;
   style: string;
   voice: string;
+  language?: 'en' | 'hi';
   captions: string;
   mode: 'story' | 'graphics';
 }
@@ -61,6 +94,15 @@ export function ScriptView({ engines, onCreated }: Props) {
   const [aspect, setAspect] = useState(draft?.aspect ?? '9:16');
   const [style, setStyle] = useState(draft?.style ?? 'auto');
   const [voice, setVoice] = useState(draft?.voice ?? 'af_heart');
+  const [language, setLanguage] = useState<'en' | 'hi'>(draft?.language ?? 'en');
+  // voices for the chosen language (Kokoro "h…" ids and Windows "os:" voices with a hi-* locale are Hindi)
+  const isHindiVoice = (v: { id: string; language: string }) => /^h[fm]_/.test(v.id) || /^hi/i.test(v.language);
+  const langVoices = (engines?.voices ?? []).filter((v) => (language === 'hi' ? isHindiVoice(v) : !isHindiVoice(v)));
+  // keep the selected voice valid when the language changes
+  useEffect(() => {
+    if (langVoices.length && !langVoices.some((v) => v.id === voice)) setVoice(langVoices[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, engines?.voices.length]);
   const [captions, setCaptions] = useState(draft?.captions ?? 'karaoke');
   const [mode, setMode] = useState<'story' | 'graphics'>(draft?.mode ?? 'story');
   const [busy, setBusy] = useState(false);
@@ -73,8 +115,8 @@ export function ScriptView({ engines, onCreated }: Props) {
 
   // save the draft as you type
   useEffect(() => {
-    store.set(DRAFT_KEY, { script, title, aspect, style, voice, captions, mode });
-  }, [script, title, aspect, style, voice, captions, mode]);
+    store.set(DRAFT_KEY, { script, title, aspect, style, voice, language, captions, mode });
+  }, [script, title, aspect, style, voice, language, captions, mode]);
 
   /** Follow a job by id until it reports its finished edit (works after a reload too). */
   const follow = async (jobId: string) => {
@@ -127,7 +169,7 @@ export function ScriptView({ engines, onCreated }: Props) {
     const jobId = newJobId();
     store.set(JOB_KEY, { jobId, at: Date.now() });
     // start the job; the result is picked up by polling, so a reload mid-run doesn't lose it
-    postJson('/api/script-video', { script, title, aspect, style, voice, captions, mode, jobId }).catch(() => {
+    postJson('/api/script-video', { script, title, aspect, style, voice, language, captions, mode, jobId }).catch(() => {
       /* errors are reported through the job */
     });
     await follow(jobId);
@@ -167,6 +209,11 @@ export function ScriptView({ engines, onCreated }: Props) {
               {words} words · ~{Math.floor(estSeconds / 60)}:{String(estSeconds % 60).padStart(2, '0')}
             </div>
           </div>
+          {!script && (
+            <button type="button" onClick={() => setScript(STORY_TEMPLATE)} className="mt-2 mr-4 text-xs text-accent hover:underline cursor-pointer" title="One paragraph per scene: a place + 1-3 things we can see. Full guide: docs/STORY_SCRIPT_GUIDE.md">
+              Use the story template
+            </button>
+          )}
           {!script && (
             <button type="button" onClick={() => setScript(SAMPLE)} className="mt-2 text-xs text-accent hover:underline cursor-pointer">
               Use a sample script
@@ -244,9 +291,25 @@ export function ScriptView({ engines, onCreated }: Props) {
             <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
               <Mic className="h-3.5 w-3.5" /> Voice-over
             </h2>
-            {engines?.tts ? (
+            <div className="grid grid-cols-2 gap-1 rounded-lg border border-zinc-800 bg-surface p-1" role="radiogroup" aria-label="Voice-over language">
+              {([['en', 'English'], ['hi', 'हिन्दी Hindi']] as const).map(([id, label]) => (
+                <button key={id} type="button" role="radio" aria-checked={language === id} onClick={() => setLanguage(id)} className={`rounded-md py-1.5 text-xs cursor-pointer ${language === id ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {language === 'hi' && !script.trim() && (
+              <button type="button" onClick={() => setScript(HINDI_TEMPLATE)} className="text-xs text-accent hover:underline cursor-pointer">
+                Use a Hindi sample script
+              </button>
+            )}
+            {language === 'hi' && !langVoices.length ? (
+              <p className="rounded-lg border border-zinc-800 bg-surface px-3 py-2 text-[11px] leading-relaxed text-zinc-400">
+                No Hindi voice yet. Natural Hindi AI voices: <code className="font-mono text-zinc-300">pip install kokoro-onnx soundfile</code> — or add the free Windows voice: Settings → Time &amp; language → Speech → Add voices → Hindi (India). Then reload this page.
+              </p>
+            ) : langVoices.length ? (
               <select value={voice} onChange={(e) => setVoice(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-surface px-2 py-2 text-xs text-zinc-200 focus:outline-none focus:border-accent">
-                {engines.voices.map((v) => (
+                {langVoices.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.label} · {v.language} · {v.gender}
                   </option>

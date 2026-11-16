@@ -16,6 +16,7 @@ import type { ClipCandidate, ClipLengthPreset, TranscriptSegment, VideoMetadata,
 import { renderDemoMp4FromAudio } from './media.ts';
 import { DATA_DIR, TEMP_DIR } from './store.ts';
 import { hyperframesInstalled, listVoices, transcribeWords, ttsAvailable } from './hyperframes.ts';
+import { KOKORO_HINDI_VOICES, windowsVoices } from './tts.ts';
 import type { ProgressFn } from './progress.ts';
 import { speak } from './tts.ts';
 
@@ -71,13 +72,19 @@ function hyperframesWhisperUsable(): boolean {
 }
 
 export async function getEngineStatus(): Promise<EngineStatus> {
-  const [ffmpeg, whisper, tags, tts, voices] = await Promise.all([
+  const [ffmpeg, whisper, tags, tts, kokoroVoices, osVoices] = await Promise.all([
     hasBinary('ffmpeg', ['-version']),
     hasBinary(WHISPER_BIN, ['--help']),
     ollamaTags(),
     ttsAvailable(),
     listVoices(),
+    windowsVoices(),
   ]);
+  // Kokoro voices (English list from HyperFrames + the Hindi set) and Windows Hindi voices ("os:<name>")
+  const voices = [
+    ...(tts ? [...kokoroVoices, ...KOKORO_HINDI_VOICES] : []),
+    ...osVoices.filter((v) => /^hi/i.test(v.language)).map((v) => ({ id: `os:${v.name}`, label: `${v.name} (Windows)`, language: v.language, gender: v.gender })),
+  ];
   const base = OLLAMA_MODEL.includes(':') ? OLLAMA_MODEL : `${OLLAMA_MODEL}:latest`;
   const { ffmpegHasFilter } = await import('./media.ts');
   return {
@@ -151,13 +158,13 @@ export function wordsToSegments(words: WordTiming[]): TranscriptSegment[] {
 
 const cleanWord = (t: string) => t.replace(/\[.*?\]|\(.*?\)/g, '').trim();
 
-async function whisperCliWords(wav: string, outBase: string): Promise<WordTiming[]> {
+async function whisperCliWords(wav: string, outBase: string, language = WHISPER_LANG): Promise<WordTiming[]> {
   const modelPath = await ensureWhisperModel();
   const threads = String(Math.max(2, Math.min(8, os.cpus().length - 1)));
   // -ml 1 -sow → one entry per word, giving word-level timestamps for karaoke captions
   await execFileAsync(
     WHISPER_BIN,
-    ['-m', modelPath, '-f', wav, '-l', WHISPER_LANG, '-t', threads, '-ml', '1', '-sow', '-oj', '-of', outBase],
+    ['-m', modelPath, '-f', wav, '-l', language, '-t', threads, '-ml', '1', '-sow', '-oj', '-of', outBase],
     { maxBuffer: 1024 * 1024 * 64, timeout: 1000 * 60 * 60 * 3, windowsHide: true }
   );
   const json = JSON.parse(fs.readFileSync(`${outBase}.json`, 'utf-8')) as {
@@ -188,7 +195,8 @@ function hyperframesModel(): string {
   return m.startsWith('large') ? 'large-v3' : english ? `${m}.en` : m;
 }
 
-export async function transcribeLocal(videoPath: string, jobId: string): Promise<TranscriptSegment[]> {
+/** language: 'auto' (default, from WHISPER_LANG) or a code such as 'hi' when we know what was spoken. */
+export async function transcribeLocal(videoPath: string, jobId: string, language = WHISPER_LANG): Promise<TranscriptSegment[]> {
   const wav = path.join(TEMP_DIR, `${jobId}.wav`);
   const outBase = path.join(TEMP_DIR, `${jobId}_whisper`);
   const hfDir = path.join(TEMP_DIR, `${jobId}_hf_transcribe`);
@@ -196,11 +204,11 @@ export async function transcribeLocal(videoPath: string, jobId: string): Promise
     await extractWav16k(videoPath, wav);
     let words: WordTiming[];
     if (await hasBinary(WHISPER_BIN, ['--help'])) {
-      words = await whisperCliWords(wav, outBase);
+      words = await whisperCliWords(wav, outBase, language);
     } else if (hyperframesWhisperUsable()) {
       console.log('[clipforge] whisper-cli not found — transcribing through HyperFrames (Whisper)');
       fs.mkdirSync(hfDir, { recursive: true });
-      words = (await transcribeWords(wav, hfDir, hyperframesModel(), WHISPER_LANG)).map((w) => ({ ...w, text: cleanWord(w.text) }));
+      words = (await transcribeWords(wav, hfDir, language === 'en' || WHISPER_LANG === 'en' ? hyperframesModel() : 'small', language)).map((w) => ({ ...w, text: cleanWord(w.text) }));
     } else {
       throw new Error('No speech-to-text engine: install whisper.cpp (whisper-cli) or run npm install for HyperFrames.');
     }

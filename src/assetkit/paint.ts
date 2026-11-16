@@ -95,6 +95,14 @@ export function painter(style: string): Paint {
       return { ...base, fill: (c) => nearest(c, PALETTES.miniature), stroke: '#3B2A1A', sw: 2.5, bg: (c) => nearest(c, PALETTES.miniature), gold: '#D4A537' };
     case 'anime':
       return { ...base, fill: (c) => nearest(c, PALETTES.anime), stroke: '#2A1E2E', sw: 5, bg: (c) => mix(nearest(c, PALETTES.anime), '#FFFFFF', 0.15) };
+    case 'cartoon':
+      return { ...base, fill: (c) => mix(c, '#FFFFFF', 0.04), stroke: '#1D1B1F', sw: 7 };
+    case 'storybook':
+      return { ...base, fill: (c) => mix(c, '#F3E3C3', 0.15), stroke: '#6B4A35', sw: 3 };
+    case 'handDrawn':
+      return { ...base, fill: (c) => mix(c, '#FFFFFF', 0.25), stroke: '#2A2622', sw: 3.5, blur: true };
+    case 'flatVector':
+      return { ...base, stroke: 'none', sw: 0 };
     default:
       // "flat": clean modern vector look
       return { ...base, stroke: '#2B2B2B', sw: 3 };

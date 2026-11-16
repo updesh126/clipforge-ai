@@ -149,3 +149,7 @@ data/
 assets/library/generated/
 assets/library/index.json
 assets/library/inbox/
+
+# procedural vector engine: renders are cached by content hash (regenerated on demand)
+assets/library/vector/cache/
+assets/library/vector/demo/

@@ -139,6 +139,11 @@ export interface AssetEntry {
   licence?: string;
   licenceStatus?: 'ok' | 'check' | 'restricted';
   animated?: boolean; // Lottie JSON animation
+  /** from the AI object database (assets/library/objects.json) */
+  label?: string; // what the picture actually shows, e.g. "firefly"
+  kind?: string; // person | animal | bird | insect | tree | …
+  where?: 'ground' | 'sky' | 'water' | 'back';
+  description?: string;
 }
 
 /** Licences that are clear for commercial client work. Anything else needs checking before a paid project. */

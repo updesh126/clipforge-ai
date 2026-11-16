@@ -114,6 +114,21 @@ export const RECIPES: Recipe[] = [
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
+/** Rough English singular: fireflies → firefly, foxes → fox, trees → tree (leaves "grass", "bus" alone). */
+export function singular(w: string): string {
+  return w
+    .split(' ')
+    .map((x) => {
+      if (x.length <= 3 || /(ss|us|is)$/.test(x)) return x;
+      if (/ies$/.test(x)) return x.slice(0, -3) + 'y';
+      if (/(ch|sh|x|z)es$/.test(x)) return x.slice(0, -2);
+      if (/ves$/.test(x)) return x.slice(0, -3) + 'f';
+      if (/s$/.test(x)) return x.slice(0, -1);
+      return x;
+    })
+    .join(' ');
+}
+
 /** Best recipe for a phrase like "a little girl" or "the Himalayas". */
 export function findRecipe(phrase: string, type?: AssetType): Recipe | null {
   const q = norm(phrase).replace(/^(a|an|the|some|two|three|many)\s+/, '');
@@ -126,9 +141,10 @@ export function findRecipe(phrase: string, type?: AssetType): Recipe | null {
     for (const t of rc.tags) {
       const tn = norm(t);
       let s = 0;
-      if (tn === q) s = 100;
-      else if (q.includes(tn) && tn.length > 2) s = 50 + tn.length;
-      else if (words.some((w) => w.length > 2 && (w === tn || w === `${tn}s` || `${w}s` === tn))) s = 40;
+      if (tn === q || singular(tn) === singular(q)) s = 100;
+      // whole words only — "fir" must not match "firefly"
+      else if (tn.length > 2 && ` ${words.map(singular).join(' ')} `.includes(` ${singular(tn)} `)) s = 50 + tn.length;
+      else if (words.some((w) => w.length > 2 && singular(w) === singular(tn))) s = 40;
       if (s > score) [best, score] = [rc, s];
     }
   }

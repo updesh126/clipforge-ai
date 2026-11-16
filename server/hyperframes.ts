@@ -142,7 +142,7 @@ export function wordPages(words: WordTiming[], maxWords: number, maxChars: numbe
       cur = [];
     }
     cur.push(w);
-    if (/[.!?…]$/.test(w.text)) {
+    if (/[.!?…।॥]$/.test(w.text)) {
       pages.push(cur);
       cur = [];
     }

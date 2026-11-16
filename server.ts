@@ -34,6 +34,11 @@ import { scriptToVideo, voiceFilesOf } from './server/scriptVideo.ts';
 import { importFolder } from './server/importer.ts';
 import { ASSETS_DIR, INBOX_DIR, cleanSpec, creditsFor, ensureAsset, ensureAssetDirs, importUserPng, licenceIssues, processInbox, searchAssets, setLicence } from './server/assets.ts';
 import type { AssetType } from './src/assetkit/types.ts';
+import { castFor, getCast, listCast, planStorySpecs, referenceSheet, renderCharacter, renderEnvironment, saveCast, updateCast } from './server/vector.ts';
+import { EXPRESSIONS, normaliseCharacter, type CharacterSpec, type Expression } from './src/vector/character.ts';
+import { POSES, type Pose } from './src/vector/skeleton.ts';
+import { ENV_KINDS, normaliseEnv, type EnvSpec } from './src/vector/environment.ts';
+import { isTheme, THEME_IDS, type ThemeId } from './src/vector/theme.ts';
 import type { EditProject } from './src/editor/types.ts';
 import { refreshWindowsPath } from './scripts/win-path.mjs';
 
@@ -714,6 +719,69 @@ app.get('/api/assets', (req, res) => {
 });
 
 // Draw (or reuse) an asset in a style: built-in recipe, or a new one designed by the local LLM
+// ---------------------------------------------------------------- procedural vector engine
+// characters (cast), poses, expressions, environments → SVG + transparent PNG, all cached
+app.get('/api/vector/cast', (_req, res) => {
+  res.json({ cast: listCast(), themes: THEME_IDS, poses: POSES, expressions: EXPRESSIONS, environments: ENV_KINDS });
+});
+
+app.post('/api/vector/cast', async (req, res) => {
+  const b = (req.body ?? {}) as Record<string, unknown>;
+  const name = String(b.name ?? '').trim().slice(0, 60);
+  if (!name) {
+    res.status(400).json({ error: 'Give the character a name.' });
+    return;
+  }
+  const spec = normaliseCharacter({ ...((b.spec as Partial<CharacterSpec>) ?? {}), name, description: typeof b.description === 'string' ? b.description.slice(0, 400) : undefined });
+  const entry = saveCast(spec, Array.isArray(b.aliases) ? b.aliases.map(String) : [name.toLowerCase()]);
+  const reference = await referenceSheet(entry.spec.id, isTheme(b.theme) ? b.theme : 'storybook');
+  res.status(201).json({ character: entry, reference });
+});
+
+app.put('/api/vector/cast/:id', async (req, res) => {
+  const entry = updateCast(req.params.id, (req.body ?? {}) as Partial<CharacterSpec> & { aliases?: string[] });
+  if (!entry) {
+    res.status(404).json({ error: 'No such character.' });
+    return;
+  }
+  const reference = await referenceSheet(entry.spec.id, isTheme(req.body?.theme) ? req.body.theme : 'storybook');
+  res.json({ character: entry, reference });
+});
+
+app.post('/api/vector/character', async (req, res) => {
+  const b = (req.body ?? {}) as Record<string, unknown>;
+  const entry = typeof b.id === 'string' ? getCast(b.id) : typeof b.name === 'string' ? castFor(b.name, typeof b.description === 'string' ? b.description : undefined) : null;
+  if (!entry) {
+    res.status(404).json({ error: 'Give an existing character id or a name.' });
+    return;
+  }
+  try {
+    const out = await renderCharacter(entry.spec, { pose: b.pose as Pose, expression: b.expression as Expression, theme: b.theme as ThemeId, size: Number(b.size) || 1024, flip: Boolean(b.flip), phase: typeof b.phase === 'number' ? b.phase : undefined });
+    res.json({ character: entry, ...out });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not draw the character.' });
+  }
+});
+
+app.post('/api/vector/environment', async (req, res) => {
+  const b = (req.body ?? {}) as Record<string, unknown>;
+  const spec = normaliseEnv({ ...((b.spec as Partial<EnvSpec>) ?? {}), place: typeof b.place === 'string' ? b.place.slice(0, 120) : undefined });
+  try {
+    res.json({ environment: spec, ...(await renderEnvironment(spec, isTheme(b.theme) ? b.theme : 'storybook', Number(b.width) || 1080, Number(b.height) || 1920)) });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not draw the place.' });
+  }
+});
+
+app.post('/api/vector/plan', async (req, res) => {
+  const text = String(req.body?.text ?? '').slice(0, 8000);
+  if (!text.trim()) {
+    res.status(400).json({ error: 'Paste the story text.' });
+    return;
+  }
+  res.json(await planStorySpecs(text));
+});
+
 app.post('/api/assets/generate', async (req, res) => {
   const b = (req.body ?? {}) as Record<string, unknown>;
   const name = String(b.name ?? '').trim().slice(0, 60);
@@ -790,7 +858,7 @@ app.post('/api/script-video', async (req, res) => {
   }
   try {
     const edit = await scriptToVideo(
-      { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story' },
+      { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, language: b.language === 'hi' ? 'hi' : b.language === 'en' ? 'en' : undefined, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story' },
       progressFor(b.jobId)
     );
     finishJob(b.jobId, { editId: edit.id }); // lets a reloaded page open the result

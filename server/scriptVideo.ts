@@ -16,6 +16,9 @@ import { transcribeLocal } from './ai.ts';
 import { UPLOADS_DIR } from './store.ts';
 import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
+import { planStorySpecs } from './vector.ts';
+import { isTheme } from '../src/vector/theme.ts';
+import { languageOf } from './tts.ts';
 import { buildStoryScene, heuristicStory, llmStory, transitionAt, type StoryPlan } from './storyScenes.ts';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
@@ -25,6 +28,10 @@ export type Visual = 'card' | 'stat' | 'chart' | 'highlight' | 'quote' | 'banner
 const VISUALS: Visual[] = ['card', 'stat', 'chart', 'highlight', 'quote', 'banner'];
 
 const STYLE_ACCENT: Record<string, string> = {
+  storybook: '#E07A5F',
+  cartoon: '#FFE14D',
+  flatVector: '#E9C46A',
+  handDrawn: '#2A2622',
   madhubani: '#F4B400',
   inkWash: '#B3261E',
   shadowPuppet: '#FFB347',
@@ -42,7 +49,8 @@ export interface ScriptVideoOptions {
   title?: string;
   aspect?: string; // 9:16 | 1:1 | 4:5 | 16:9
   style?: string; // art style id, 'auto' or 'mix'
-  voice?: string; // Kokoro voice id
+  voice?: string; // Kokoro voice id, or "os:<Windows voice name>"
+  language?: 'en' | 'hi'; // voice-over language (auto-detected from Devanagari when omitted)
   captions?: CaptionLook | 'off';
   mode?: 'story' | 'graphics'; // story = changing places + animated characters; graphics = art backdrops + infographics
 }
@@ -65,11 +73,11 @@ export function splitScenes(script: string): string[] {
   const paragraphs = clean.split(/\n\s*\n+/).map((p) => p.replace(/\n/g, ' ').trim()).filter(Boolean);
   const scenes: string[] = [];
   for (const p of paragraphs) {
-    const sentences = p.match(/[^.!?…]+[.!?…]+["')\]]*|[^.!?…]+$/g)?.map((s) => s.trim()).filter(Boolean) ?? [p];
+    const sentences = p.match(/[^.!?…।॥]+[.!?…।॥]+["')\]]*|[^.!?…।॥]+$/g)?.map((s) => s.trim()).filter(Boolean) ?? [p];
     let cur = '';
     for (const s of sentences) {
       // ~1-2 sentences per scene, max ~220 chars (≈ 12-15 s of speech)
-      if (cur && (cur.length + s.length > 220 || cur.split(/[.!?…]/).filter((x) => x.trim()).length >= 2)) {
+      if (cur && (cur.length + s.length > 220 || cur.split(/[.!?…।॥]/).filter((x) => x.trim()).length >= 2)) {
         scenes.push(cur);
         cur = '';
       }
@@ -117,6 +125,8 @@ Each numbered scene is narrated exactly as written. For every scene choose ONE o
 - banner: caption banner over an illustrated backdrop. needs "title" (max 8 words)
 Vary the visuals; start with a card; use stat/chart only for real numbers from the scene.
 ${styleChoice === 'auto' ? `Also pick ONE art style that suits the topic from: ${ART_STYLE_OPTIONS.join(', ')}.` : ''}
+
+Write every title, label, highlight and quote in the SAME language and script as the narration (Hindi narration → Devanagari Hindi). Keep actor names, place, motion and other field values in plain English.
 
 SCENES:
 ${list}
@@ -175,7 +185,7 @@ Reply with ONLY JSON: {${styleChoice === 'auto' ? '"style":"<art style>",' : ''}
 /** The sentence of the scene that shares the most words with the model's phrase. */
 function closestSentence(text: string, phrase: string): string {
   const want = new Set(phrase.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
-  const sentences = text.split(/(?<=[.!?…])\s+/).map((s) => s.replace(/[.!?…]+$/, '').trim()).filter(Boolean);
+  const sentences = text.split(/(?<=[.!?…।॥])\s+/).map((s) => s.replace(/[.!?…।॥]+$/, '').trim()).filter(Boolean);
   let best = sentences[0] ?? text;
   let score = -1;
   for (const s of sentences) {
@@ -312,6 +322,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
   const choice = opts.style === 'auto' || opts.style === 'mix' || ART_STYLE_OPTIONS.includes(String(opts.style)) ? String(opts.style) : 'auto';
 
   const mode = opts.mode === 'graphics' ? 'graphics' : 'story';
+  const lang = languageOf(opts.script, opts.language ?? (opts.voice && /^h[fm]_/.test(opts.voice) ? 'hi' : undefined));
   progress('plan', `Planning ${scenes.length} scenes with ${PLAN_MODEL}`, 3);
   const planned = await llmPlan(scenes, choice === 'mix' ? 'paperCutout' : choice);
   const baseStyle = planned?.style ?? (choice === 'auto' || choice === 'mix' ? 'paperCutout' : choice);
@@ -321,6 +332,11 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
   if (mode === 'story') {
     progress('plan', 'Storyboarding places, characters and camera moves', 5);
     story = (await llmStory(scenes)) ?? heuristicStory(scenes);
+    // procedural themes: fix every person's identity once (face, hair, clothes) before drawing any scene
+    if (isTheme(opts.style)) {
+      progress('plan', 'Casting characters (same look in every scene)', 7);
+      await planStorySpecs(opts.script);
+    }
   }
   const frame = { width: FRAME_SIZES[aspect][0], height: FRAME_SIZES[aspect][1] };
 
@@ -337,7 +353,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
     progress('voice', `Voicing scene ${i + 1} of ${plans.length}`, 8 + (80 * i) / plans.length);
     const fileName = `vo_${stamp}_${String(i + 1).padStart(2, '0')}.wav`;
     const wavPath = path.join(UPLOADS_DIR, fileName);
-    await speak(plan.text.replace(/'@/g, "'"), wavPath, opts.voice);
+    await speak(plan.text.replace(/'@/g, "'"), wavPath, opts.voice, lang);
     const voDur = Math.max(0.6, await audioDuration(wavPath));
     const sceneStart = i === 0 ? 0 : t;
     const voStart = sceneStart + (i === 0 ? lead : 0.15);
@@ -348,7 +364,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
     if (look) {
       progress('voice', `Timing words for scene ${i + 1} of ${plans.length}`, 8 + (80 * (i + 0.5)) / plans.length);
       try {
-        const segs = await transcribeLocal(wavPath, `vo_${stamp}_${i}`);
+        const segs = await transcribeLocal(wavPath, `vo_${stamp}_${i}`, lang === 'hi' ? 'hi' : undefined);
         const heard = segs.flatMap((s) => s.words ?? []);
         // captions always show the script's exact words; Whisper only provides the timing
         words = alignScript(plan.text, heard, voDur);

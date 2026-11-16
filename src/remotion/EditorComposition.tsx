@@ -7,6 +7,7 @@ import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, cancelRender, conti
 import { Lottie, type LottieAnimationData } from '@remotion/lottie';
 import type { CaptionsItem, CompositionProps, EditItem, EffectItem, ImageItem, VideoItem } from '../editor/types.ts';
 import { TEMPLATE_COMPONENTS } from './templates.tsx';
+import { styleLook } from './artStyles.tsx';
 
 const FONT = '"Arial Black", "Segoe UI", Arial, Helvetica, sans-serif';
 
@@ -219,6 +220,7 @@ function ImageLayer({ item, base }: { item: ImageItem; base: string }) {
       transformOrigin: item.anchor === 'bottom' ? '50% 100%' : '50% 50%',
       transform: `translate(${m.dx}px, ${m.dy}px) rotate(${m.rot}deg) scale(${m.sx}, ${m.sy})`,
       opacity: m.opacity,
+      ...styleLook(item.look, !full),
     };
     return (
       <AbsoluteFill style={{ overflow: 'visible' }}>
@@ -232,7 +234,7 @@ function ImageLayer({ item, base }: { item: ImageItem; base: string }) {
         src={url(base, item.src)}
         style={
           full
-            ? { width: '100%', height: '100%', objectFit: item.fit, opacity: p }
+            ? { width: '100%', height: '100%', objectFit: item.fit, opacity: p, ...styleLook(item.look, false) }
             : {
                 position: 'absolute',
                 left: `${item.x}%`,

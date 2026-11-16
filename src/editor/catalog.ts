@@ -2,7 +2,7 @@
 import type { EffectId, TemplateId } from './types.ts';
 
 /** Art styles for the art templates (ids must match src/remotion/artStyles.tsx). */
-export const ART_STYLE_OPTIONS = ['madhubani', 'inkWash', 'shadowPuppet', 'paperCutout', 'stainedGlass', 'anime', 'warli', 'blueprint', 'ukiyoe', 'miniature'];
+export const ART_STYLE_OPTIONS = ['storybook', 'cartoon', 'flatVector', 'handDrawn', 'madhubani', 'inkWash', 'shadowPuppet', 'paperCutout', 'stainedGlass', 'anime', 'warli', 'blueprint', 'ukiyoe', 'miniature'];
 export const ART_STYLE_LABELS: Record<string, string> = {
   madhubani: 'Madhubani',
   inkWash: 'Ink wash',
@@ -14,6 +14,10 @@ export const ART_STYLE_LABELS: Record<string, string> = {
   blueprint: 'Blueprint',
   ukiyoe: 'Ukiyo-e',
   miniature: 'Miniature painting',
+  storybook: "Children's storybook",
+  cartoon: 'Cartoon',
+  flatVector: 'Flat vector',
+  handDrawn: 'Hand-drawn',
 };
 
 export interface FieldDef {
@@ -231,6 +235,10 @@ export interface StyleInfo {
 
 export const STYLE_INFO: Record<string, StyleInfo> = {
   auto: { origin: 'ClipForge', look: 'Your local AI reads the script and picks the style that suits the topic.', bestFor: 'When you are not sure — rivers might get ink wash, a village story Warli', palette: ['#B5E2DD', '#D8CCE8', '#F4C7D6', '#FBDFCB'] },
+  storybook: { origin: 'ClipForge vector engine', look: 'Procedurally drawn characters and places: soft colours, gentle outlines, paper grain. Same characters in every scene, with real poses and expressions.', bestFor: "Children's stories, fables, moral stories, bedtime tales", palette: ['#F3E3C3', '#E07A5F', '#81B29A', '#3D405B', '#F2CC8F'] },
+  cartoon: { origin: 'ClipForge vector engine', look: 'Thick outlines, bright colour, cel shading and big expressive eyes — characters act out each scene.', bestFor: 'Kids content, comedy, energetic explainers', palette: ['#FFE14D', '#FF6B6B', '#4ECDC4', '#1D1B1F', '#A06CD5'] },
+  flatVector: { origin: 'ClipForge vector engine', look: 'Clean geometric shapes, no outlines, flat colour — the modern explainer look.', bestFor: 'Business, tech, how-it-works, education', palette: ['#264653', '#2A9D8F', '#E9C46A', '#F4A261', '#E76F51'] },
+  handDrawn: { origin: 'ClipForge vector engine', look: 'Wobbly ink lines with a second pencil pass over light watercolour fills.', bestFor: 'Personal stories, journals, gentle documentaries', palette: ['#2A2622', '#FBF7EF', '#A3C4BC', '#E8B4A0', '#BFD7EA'] },
   mix: { origin: 'ClipForge', look: 'Every scene in a different art style, cycling through all ten.', bestFor: 'Showreels, montages, "world of art" pieces', palette: ['#C1272D', '#0B3D91', '#FFB347', '#2E6B3A'] },
   madhubani: { origin: 'Mithila, Bihar (India)', look: 'Bold double outlines, every shape filled with fine hatching; fish, sun and peacock motifs.', bestFor: 'Indian culture, festivals, folk tales, rural life', palette: ['#C1272D', '#F4B400', '#2E7D32', '#1F4E9E', '#F6E7C1'] },
   inkWash: { origin: 'China / Japan (sumi-e)', look: 'Grey brush ink bleeding into rice paper, misty mountains, a small red seal.', bestFor: 'Nature, calm reflection, philosophy, poetry', palette: ['#141414', '#5E5E5A', '#9A9A96', '#EFEAE0', '#B3261E'] },

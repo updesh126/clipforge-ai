@@ -8,6 +8,12 @@ import { RECIPES, findRecipe } from '../src/assetkit/catalog.ts';
 import type { EditItem, EffectId, SpriteMotion } from '../src/editor/types.ts';
 import { ensureAsset, listAssets } from './assets.ts';
 import { newId } from './edits.ts';
+import { objectNames } from './objectdb.ts';
+import { castFor, isPersonName, renderCharacter, renderEnvironment, renderParticles, vectorActorKind } from './vector.ts';
+import { EXPRESSIONS, type Expression } from '../src/vector/character.ts';
+import { POSES, type Pose } from '../src/vector/skeleton.ts';
+import { normaliseEnv } from '../src/vector/environment.ts';
+import { isTheme } from '../src/vector/theme.ts';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const PLAN_MODEL = process.env.OLLAMA_EDIT_MODEL || process.env.OLLAMA_MODEL || 'qwen2.5:3b';
@@ -22,6 +28,8 @@ export interface Actor {
   where: Where;
   motion: SpriteMotion;
   size?: 'small' | 'medium' | 'large';
+  pose?: Pose; // people (procedural themes)
+  expression?: Expression;
 }
 
 export interface StoryPlan {
@@ -36,6 +44,34 @@ export interface StoryPlan {
   label?: string;
   data?: string;
   highlight?: string;
+  mood?: Expression; // the scene's emotional tone → default face for its people
+}
+
+/** Scene mood from the narration (fallback when the LLM gives none). */
+export function moodOf(text: string): Expression {
+  const t = text.toLowerCase();
+  const score: [Expression, RegExp][] = [
+    ['scared', /\b(afraid|scared|fear|frighten|danger|terrif|tremb|monster|panic|hid|hide)\w*/g],
+    ['sad', /\b(sad|cry|cried|tears?|lost|lonely|alone|died|death|miss(ed)?|sorrow|grief|dark(ness)?|not a single)\b/g],
+    ['angry', /\b(angry|anger|furious|shout|shouted|fight|rage|cruel)\w*/g],
+    ['surprised', /\b(suddenly|surpris|amaz|astonish|wow|discover|shock|could not believe|unexpected)\w*/g],
+    ['happy', /\b(happy|joy|smil|laugh|celebrat|love[sd]?|glow|beautiful|wonderful|delight|friends?|together|return(ed|s)?|dance)\w*/g],
+  ];
+  // Hindi (Devanagari has no \b word boundaries, so plain substrings)
+  score.push(
+    ['scared', /डर|ख़तरा|खतरा|काँप|कांप|भयभीत|छिप/g],
+    ['sad', /दुख|दुःख|रो[ईएया]|आँसू|आंसू|अकेल|अँधेर|अंधेर|उदास|एक भी नहीं/g],
+    ['angry', /गुस्सा|ग़ुस्सा|क्रोध|चिल्ला|लड़ाई/g],
+    ['surprised', /अचानक|हैरान|चौंक|आश्चर्य/g],
+    ['happy', /ख़ुशी|खुशी|हँस|हंस|मुस्कान|मुस्कुरा|नाच|प्यार|सुंदर|जगमग|लौट आ|साथ/g]
+  );
+  let best: Expression = 'neutral';
+  let n = 0;
+  for (const [e, re] of score) {
+    const c = (t.match(re) ?? []).length;
+    if (c > n) [best, n] = [e, c];
+  }
+  return best;
 }
 
 const PLACES = RECIPES.filter((r) => r.spec.type === 'background').map((r) => r.name);
@@ -79,6 +115,7 @@ export function heuristicStory(scenes: string[]): StoryPlan[] {
     const num = text.match(/(\d+(?:\.\d+)?)\s*(%|percent|million|billion|years?)?/i);
     return {
       place,
+      mood: moodOf(text),
       actors: found,
       camera: cams[i % cams.length],
       graphic: i === 0 ? 'title' : num ? 'stat' : /[“"].+[”"]/.test(text) ? 'quote' : 'none',
@@ -101,17 +138,22 @@ export function heuristicStory(scenes: string[]): StoryPlan[] {
 
 // ---------------------------------------------------------------- LLM planner
 export async function llmStory(scenes: string[]): Promise<StoryPlan[] | null> {
-  const known = [...new Set([...RECIPES.filter((r) => r.spec.type !== 'background').map((r) => r.name), ...listAssets().filter((a) => a.style === 'any').map((a) => a.name)])];
+  const catalogued = objectNames();
+  const known = [...new Set([...catalogued, ...RECIPES.filter((r) => r.spec.type !== 'background').map((r) => r.name), ...(catalogued.length ? [] : listAssets().filter((a) => a.style === 'any').map((a) => a.name))])];
   const prompt = `You are a storyboard artist for an illustrated explainer video. Each numbered scene is narrated exactly as written.
 For EVERY scene decide what we SEE (the picture must change with the story):
 - "place": the setting. Prefer one of: ${PLACES.join(', ')}. You may invent a short new one (e.g. "tea garden") if none fits.
 - "time": day | sunset | night | dawn
 - "actors": 1-3 things on screen, taken from what the scene talks about. Each: {"name","where","motion"}.
-   name: prefer one of: ${known.slice(0, 80).join(', ')}. You may invent a new simple name (e.g. "camel", "fisherwoman") — it will be drawn.
+   name: use the plain name of the thing the narration mentions (e.g. "firefly" for "fireflies", never a tree for lights). Prefer an exact name from this library: ${known.slice(0, 600).join(', ')}. If nothing there fits, invent a simple name (e.g. "camel", "fisherwoman") — it will be drawn. Never use abstract things (wind, light, sound, love) as actors.
    where: ${WHERE.join(' | ')}   (birds, sun, clouds → sky; buildings/trees → back)
    motion: ${MOTIONS.join(' | ')}   (people/animals arriving → walkIn; birds → fly; trees → sway; objects → float)
+   For PEOPLE also add "pose": ${POSES.join(' | ')} and "expression": ${EXPRESSIONS.join(' | ')} matching what they do and feel. Always call the same person by the same name (e.g. "Meera", not "the girl" later).
+- "mood": ${EXPRESSIONS.join(' | ')} — the feeling of the scene
 - "camera": ${CAMERAS.join(' | ')}  (vary it scene to scene)
 - "graphic": ${GRAPHICS.join(' | ')}. title only for scene 0. stat only with a number in the scene → add "value","suffix","label". chart → "data" like "A:10, B:20". highlight → "highlight" (exact words). quote → "title" (short line).
+
+Write every title, label, highlight and quote in the SAME language and script as the narration (Hindi narration → Devanagari Hindi). Keep actor names, place, motion and other field values in plain English.
 
 SCENES:
 ${scenes.map((s, i) => `${i}: ${s}`).join('\n')}
@@ -127,7 +169,7 @@ Reply with ONLY JSON: {"scenes":[{"i":0,"place":"...","time":"day","actors":[{"n
         format: 'json',
         stream: false,
         ...(/qwen3|deepseek-r1|gpt-oss|magistral/i.test(PLAN_MODEL) ? { think: false } : {}),
-        options: { temperature: 0.4, num_ctx: 8192 },
+        options: { temperature: 0.4, num_ctx: 16384 },
       }),
       signal: AbortSignal.timeout(1000 * 60 * 4),
     });
@@ -148,12 +190,15 @@ Reply with ONLY JSON: {"scenes":[{"i":0,"place":"...","time":"day","actors":[{"n
             type,
             where: WHERE.includes(a.where as Where) ? (a.where as Where) : (['left', 'center', 'right'] as Where[])[k % 3],
             motion: MOTIONS.includes(a.motion as SpriteMotion) ? (a.motion as SpriteMotion) : defaultMotion(type, k),
+            pose: POSES.includes(a.pose as Pose) ? (a.pose as Pose) : undefined,
+            expression: EXPRESSIONS.includes(a.expression as Expression) ? (a.expression as Expression) : undefined,
           };
         })
         .filter((a) => a.name);
       const graphic = GRAPHICS.includes(raw.graphic as Graphic) ? (raw.graphic as Graphic) : fb.graphic;
       const plan: StoryPlan = {
         place: String(raw.place ?? fb.place).toLowerCase().slice(0, 40) || fb.place,
+        mood: EXPRESSIONS.includes(raw.mood as Expression) ? (raw.mood as Expression) : fb.mood,
         time: ['day', 'sunset', 'night', 'dawn'].includes(String(raw.time)) ? (raw.time as StoryPlan['time']) : undefined,
         actors: actors.length ? actors : fb.actors,
         camera: CAMERAS.includes(raw.camera as Camera) ? (raw.camera as Camera) : fb.camera,
@@ -203,9 +248,9 @@ function slot(where: Where, portrait: boolean): Slot {
 }
 
 /** Sprite height as a fraction of frame height, by asset type. */
-function sizeFor(type: AssetType, name: string, size?: Actor['size']) {
-  const base: Record<string, number> = { person: 0.38, animal: 0.34, bird: 0.18, fish: 0.16, tree: 0.42, mountain: 0.45, building: 0.42, object: 0.2, background: 1 };
-  let s = base[type] ?? 0.3;
+function sizeFor(type: AssetType, name: string, size?: Actor['size'], kind?: string) {
+  const base: Record<string, number> = { person: 0.38, animal: 0.34, bird: 0.18, fish: 0.16, tree: 0.42, mountain: 0.45, building: 0.42, object: 0.2, background: 1, insect: 0.09, plant: 0.2, vehicle: 0.3, food: 0.14, weather: 0.25 };
+  let s = base[kind ?? ''] ?? base[type] ?? 0.3;
   if (/elephant|giraffe|camel|horse/.test(name)) s *= 1.25;
   if (/cat|rabbit|dog|goat/.test(name)) s *= 0.7;
   if (size === 'large') s *= 1.25;
@@ -230,22 +275,76 @@ export async function buildStoryScene(
   const timed = plan.time && plan.time !== 'day' && rc && rc.spec.type === 'background' && !/night|sunset|dawn/.test(plan.place);
   const placeName = timed ? `${rc.name} ${plan.time}` : plan.place;
   onAsset?.(placeName);
-  const bg = await ensureAsset(placeName, { style, type: 'background', aspect, spec: timed ? { ...rc.spec, type: 'background', time: plan.time } : undefined });
-  items.push({ id: newId('bg'), kind: 'image', name: `Place · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: bg.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 0.35, motion: 'kenBurns', assetId: bg.id });
+  const vector = isTheme(style);
+  if (vector) {
+    const env = normaliseEnv({ place: plan.place, time: plan.time });
+    const r = await renderEnvironment(env, style, frame.width, frame.height);
+    items.push({ id: newId('bg'), kind: 'image', name: `Place · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: r.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 0.35, motion: 'kenBurns', assetId: `env-${env.id}` });
+  }
+  const bg = vector ? null : await ensureAsset(placeName, { style, type: 'background', aspect, spec: timed ? { ...rc.spec, type: 'background', time: plan.time } : undefined });
+  if (bg) items.push({ id: newId('bg'), kind: 'image', name: `Place · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: bg.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 0.35, motion: 'kenBurns', assetId: bg.id, look: bg.style === 'any' ? style : undefined });
 
   // actors
   const used = new Set<string>();
   const LANDSCAPE = /\b(river|glacier|wetland|valley|lake|sea|ocean|field|forest|jungle|sky|land|landscape|desert|city|village|mountains|hills|delta|monsoon|flood|water body)\b/i;
+  const ABSTRACT = /^(the )?(wind|breeze|air|lights?|glow|sound|music|silence|darkness|time|love|hope|magic|energy|peace|joy|fear|memory|memories|dream|dreams)$/i;
   for (const [k, a] of plan.actors.entries()) {
     // landscapes are places, not actors (they belong in the background)
     const rcType = findRecipe(a.name)?.spec.type;
     if (rcType === 'background' || (!rcType && LANDSCAPE.test(a.name))) continue;
+    // things you can't draw as a sprite (otherwise "wind" gets drawn as a generic animal)
+    if (!rcType && ABSTRACT.test(a.name)) continue;
     const where = used.has(a.where) ? (['left', 'right', 'center', 'far-left', 'far-right'] as Where[]).find((w) => !used.has(w)) ?? a.where : a.where;
     used.add(where);
     onAsset?.(a.name);
+    if (vector) {
+      const vk = vectorActorKind(a.name);
+      if (vk === 'scenery') continue; // the procedural environment already draws grass, trees, sky…
+      if (vk.startsWith('particles-')) {
+        if (used.has(vk)) continue; // one overlay per kind per scene
+        used.add(vk);
+        // fireflies / sparkles / petals: a floating transparent overlay, not a creature sprite
+        const r = await renderParticles(vk.replace('particles-', '') as 'fireflies', frame.width, frame.height, k + 3);
+        items.push({ id: newId('fx'), kind: 'image', name: a.name, track: 5, from: round(from), duration: round(dur), src: r.url, fit: 'cover', scale: 1, x: 50, y: 50, motion: 'float', depth: 0.6 });
+        continue;
+      }
+    }
+    // procedural themes: people come from the cast — same face, clothes and proportions in every scene
+    if (vector && isPersonName(a.name)) {
+      const who = castFor(a.name);
+      const pose: Pose = a.pose ?? (a.motion === 'walkIn' || a.motion === 'walkAcross' || a.motion === 'walkOut' ? 'walk' : 'stand');
+      const expression: Expression = a.expression ?? plan.mood ?? 'neutral';
+      const r = await renderCharacter(who.spec, { pose, expression, theme: style, size: 1024 });
+      const s = slot(where, portrait);
+      const scale = (sizeFor('person', a.name, a.size) * 1.12 * frame.height) / frame.width;
+      const enterDelay = 0.25 + k * 0.35;
+      items.push({
+        id: newId('act'),
+        kind: 'image',
+        name: who.spec.name,
+        track: 3 + (where === 'center' ? 1 : 0),
+        from: round(from + Math.min(enterDelay, dur * 0.3)),
+        duration: round(Math.max(1, dur - Math.min(enterDelay, dur * 0.3))),
+        src: r.url,
+        fit: 'contain',
+        scale: round(scale),
+        x: s.x,
+        y: s.y,
+        anchor: 'bottom',
+        motion: pose === 'walk' ? 'walkIn' : a.motion === 'walkIn' ? 'pop' : a.motion,
+        flip: where === 'right' || where === 'far-right' ? true : undefined,
+        depth: s.depth,
+        assetId: 'cast-' + who.spec.id,
+        vector: { cast: who.spec.id, pose, expression, theme: style },
+      });
+      continue;
+    }
     const asset = await ensureAsset(a.name, { style, type: a.type });
-    const s = slot(where, portrait);
-    const hFrac = sizeFor(asset.type, a.name, a.size);
+    // flying things (insects, birds from the library) hover in the sky instead of walking in on the ground
+    const flies = asset.where === 'sky' || asset.kind === 'insect' || asset.kind === 'bird';
+    const motion: SpriteMotion = flies && (a.motion === 'walkIn' || a.motion === 'breathe') ? (asset.kind === 'insect' ? 'float' : 'fly') : a.motion;
+    const s = slot(flies && where !== 'sky' ? 'sky' : where, portrait);
+    const hFrac = sizeFor(asset.type, a.name, a.size, asset.kind);
     const scale = (hFrac * frame.height) / frame.width; // sprite PNGs are square
     const enterDelay = 0.25 + k * 0.35;
     items.push({
@@ -261,10 +360,11 @@ export async function buildStoryScene(
       x: s.x,
       y: s.y,
       anchor: 'bottom',
-      motion: a.motion,
-      flip: (where === 'right' || where === 'far-right') && a.motion !== 'walkAcross' && a.motion !== 'fly' ? true : undefined,
+      motion,
+      flip: (where === 'right' || where === 'far-right') && motion !== 'walkAcross' && motion !== 'fly' ? true : undefined,
       depth: s.depth,
       assetId: asset.id,
+      look: asset.style === 'any' ? style : undefined,
     });
   }
 

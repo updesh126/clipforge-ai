@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "meera",
+    "name": "Meera",
+    "description": "8-year-old village girl",
+    "seed": 2817286567,
+    "age": "child",
+    "gender": "female",
+    "build": "slim",
+    "height": 1.0076450234139338,
+    "skin": "#F5D0A9",
+    "face": {
+      "shape": "round",
+      "eyes": "round",
+      "eyeColor": "#3B2416",
+      "nose": "wide",
+      "freckles": true
+    },
+    "hair": {
+      "style": "braid",
+      "color": "#4A3728"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#E6B89C",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#FFFFFF",
+      "shoes": "barefoot",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [],
+    "accessoryColor": "#277DA1",
+    "holding": "lantern"
+  },
+  "aliases": [
+    "meera",
+    "the girl",
+    "she"
+  ],
+  "createdAt": "2026-11-16T12:04:32.532Z",
+  "updatedAt": "2026-11-16T12:14:06.224Z"
+}

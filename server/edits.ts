@@ -182,6 +182,15 @@ export function sanitiseItem(raw: Record<string, unknown>): EditItem | null {
         flip: raw.flip === true ? true : undefined,
         depth: raw.depth === undefined ? undefined : clamp(raw.depth, 0, 1.6, 1),
         assetId: typeof raw.assetId === 'string' ? raw.assetId.slice(0, 80) : undefined,
+        look: typeof raw.look === 'string' && /^[a-zA-Z]{2,20}$/.test(raw.look) ? raw.look : undefined,
+        vector:
+          raw.vector && typeof raw.vector === 'object'
+            ? (() => {
+                const v = raw.vector as Record<string, unknown>;
+                const ok = (x: unknown) => typeof x === 'string' && /^[a-zA-Z0-9-]{1,40}$/.test(x);
+                return ok(v.cast) && ok(v.pose) && ok(v.expression) && ok(v.theme) ? { cast: v.cast as string, pose: v.pose as string, expression: v.expression as string, theme: v.theme as string } : undefined;
+              })()
+            : undefined,
       };
     }
     case 'text': {

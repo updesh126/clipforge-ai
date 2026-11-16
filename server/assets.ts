@@ -16,8 +16,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { AssetEntry, AssetSpec, AssetType } from '../src/assetkit/types.ts';
 import { CATEGORY_OF, licenceStatus } from '../src/assetkit/types.ts';
-import { RECIPES, findRecipe, slug } from '../src/assetkit/catalog.ts';
+import { RECIPES, findRecipe, singular, slug } from '../src/assetkit/catalog.ts';
 import { getBundle } from './remotion.ts';
+import { findObject, readObjects, relOf } from './objectdb.ts';
 
 export const ASSETS_DIR = path.resolve(process.env.CLIPFORGE_ASSETS_DIR || path.join(process.cwd(), 'assets', 'library'));
 const INDEX = path.join(ASSETS_DIR, 'index.json');
@@ -211,6 +212,7 @@ export function listAssets(checkInbox = true): AssetEntry[] {
   if (checkInbox) processInbox();
   const idx = readIndex();
   const licences = readLicences();
+  const objects = readObjects();
   const known = new Set(Object.values(idx).map((e) => e.url));
   const out: AssetEntry[] = Object.values(idx).filter((e) => fs.existsSync(path.join(ASSETS_DIR, decodeURIComponent(e.url.replace('/media/assets/', '')))));
   const walk = (dir: string) => {
@@ -222,9 +224,12 @@ export function listAssets(checkInbox = true): AssetEntry[] {
         const url = urlFor(p);
         if (known.has(url)) continue;
         const folder = path.relative(ASSETS_DIR, p).split(path.sep)[0];
-        const tags = [...new Set([...tagsFromName(e.name), folder.replace(/s$/, '')])];
+        const obj = objects[relOf(p)];
+        const objWords = obj ? [obj.name, ...obj.aliases].flatMap((a) => a.split(' ')) : [];
+        const tags = [...new Set([...tagsFromName(e.name), folder.replace(/s$/, ''), ...objWords])];
         const note = licences[relKey(p)];
         out.push({
+          ...(obj ? { label: obj.name, kind: obj.kind, where: obj.where, description: obj.description } : {}),
           source: note?.source,
           licence: note?.licence,
           licenceStatus: licenceStatus(note?.licence),
@@ -253,7 +258,7 @@ function score(entry: AssetEntry, q: string): number {
   const name = entry.name.toLowerCase();
   if (name === q.toLowerCase()) return 100;
   let s = 0;
-  for (const w of words) if (entry.tags.some((t) => t === w || t === `${w}s` || `${t}s` === w)) s += 20;
+  for (const w of words) if (entry.tags.some((t) => t === w || singular(t) === singular(w))) s += 20;
   if (name.includes(q.toLowerCase())) s += 30;
   return s;
 }
@@ -383,10 +388,23 @@ export async function ensureAsset(name: string, opts: EnsureOptions): Promise<As
   const aspect = isBg ? (FRAME_FOR_ASPECT[opts.aspect ?? ''] ? (opts.aspect as string) : '9:16') : undefined;
   const key = opts.spec ? name : recipe ? recipe.name : name; // explicit recipes (e.g. "village night") cache under their own name
 
+  // 0. the AI object database — what library pictures really show ("fireflies" → the firefly PNG)
+  if (!opts.spec && !opts.preferGenerated) {
+    const hit = findObject(name, isBg ? { kinds: ['scene', 'sky'] } : { exclude: ['scene', 'sky'] });
+    if (hit && hit.score >= 45) {
+      const url = urlFor(path.join(ASSETS_DIR, hit.info.file));
+      const e = listAssets(false).find((a) => a.url === url);
+      if (e && (!isBg || !e.aspect || e.aspect === aspect)) return e;
+    }
+  }
+
   {
     // 1. user PNGs (only when no explicit recipe was asked for)  2. generated earlier in this style
+    //    (nothing found anywhere → 3/4 below draw it now, in the chosen style, and save it for next time)
     const hits = searchAssets(key, { type: type === 'fish' ? 'animal' : type }).filter((e) => (isBg ? !e.aspect || e.aspect === aspect : true));
-    const user = hits.find((e) => e.style === 'any' && score(e, key) >= 20);
+    // a library PNG named after what the script actually says ("firefly") beats one found via the recipe name
+    const own = key !== name ? searchAssets(name).filter((e) => e.style === 'any' && !e.generated && score(e, name) >= 20 && (isBg ? e.type === 'background' : e.type !== 'background')) : [];
+    const user = own[0] ?? hits.find((e) => e.style === 'any' && score(e, key) >= 20);
     if (user && !opts.preferGenerated && !opts.spec) return user;
     const mine = hits.find((e) => e.generated && e.style === opts.style && slug(e.name) === slug(key));
     if (mine) return mine;

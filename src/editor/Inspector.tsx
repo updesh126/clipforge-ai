@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Trash2, Copy, Scissors } from 'lucide-react';
 import type { CaptionLook, EditItem } from './types.ts';
-import { EFFECTS, TEMPLATES, type FieldDef } from './catalog.ts';
+import { ART_STYLE_LABELS, ART_STYLE_OPTIONS, EFFECTS, TEMPLATES, type FieldDef } from './catalog.ts';
 import { KIND_STYLE, itemLabel } from './ops.ts';
 
 interface Props {
@@ -56,6 +56,53 @@ function Field({ f, value, onChange }: { f: FieldDef; value: unknown; onChange: 
   return <input className={inputCls} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />;
 }
 
+type VectorRef = { cast: string; pose: string; expression: string; theme: string };
+const POSE_OPTIONS = ['stand', 'walk', 'run', 'sit', 'jump', 'wave', 'point', 'cheer', 'think'];
+const EXPRESSION_OPTIONS = ['neutral', 'happy', 'sad', 'angry', 'surprised', 'scared'];
+const THEME_OPTIONS: [string, string][] = [['storybook', "Children's storybook"], ['cartoon', 'Cartoon'], ['flatVector', 'Flat vector'], ['handDrawn', 'Hand-drawn']];
+
+/** Procedural cast character: change pose / expression / theme → the server redraws the same identity. */
+function CharacterControls({ vector, onRendered }: { vector: VectorRef; onRendered: (src: string, v: VectorRef) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const change = async (patch: Partial<VectorRef>) => {
+    const next = { ...vector, ...patch };
+    setBusy(true);
+    setError('');
+    try {
+      const res = await fetch('/api/vector/character', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: next.cast, pose: next.pose, expression: next.expression, theme: next.theme, size: 1024 }) });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? 'Could not redraw the character.');
+      onRendered(data.url, next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not redraw the character.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="space-y-1.5 rounded-lg border border-zinc-900 p-2.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Character · {vector.cast}{busy ? ' · drawing…' : ''}</p>
+      <Row label="Pose">
+        <select className={inputCls} disabled={busy} value={vector.pose} onChange={(e) => change({ pose: e.target.value })}>
+          {POSE_OPTIONS.map((p) => <option key={p}>{p}</option>)}
+        </select>
+      </Row>
+      <Row label="Expression">
+        <select className={inputCls} disabled={busy} value={vector.expression} onChange={(e) => change({ expression: e.target.value })}>
+          {EXPRESSION_OPTIONS.map((p) => <option key={p}>{p}</option>)}
+        </select>
+      </Row>
+      <Row label="Theme">
+        <select className={inputCls} disabled={busy} value={vector.theme} onChange={(e) => change({ theme: e.target.value })}>
+          {THEME_OPTIONS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+        </select>
+      </Row>
+      {error && <p className="text-[11px] text-red-400">{error}</p>}
+    </div>
+  );
+}
+
 export function Inspector({ item, onChange, onDelete, onDuplicate, onSplit }: Props) {
   const set = (patch: Record<string, unknown>, commit = true) => onChange(patch as Partial<EditItem>, commit);
   const st = KIND_STYLE[item.kind];
@@ -108,6 +155,8 @@ export function Inspector({ item, onChange, onDelete, onDuplicate, onSplit }: Pr
         </div>
       )}
 
+      {item.kind === 'image' && item.vector && <CharacterControls vector={item.vector} onRendered={(src, vector) => set({ src, vector })} />}
+
       {item.kind === 'image' && (
         <div className="space-y-1.5 rounded-lg border border-zinc-900 p-2.5">
           <Row label="Motion">
@@ -122,6 +171,14 @@ export function Inspector({ item, onChange, onDelete, onDuplicate, onSplit }: Pr
           </Row>
           <Row label="Stand on ground">
             <input type="checkbox" checked={item.anchor === 'bottom'} onChange={(e) => set({ anchor: e.target.checked ? 'bottom' : undefined })} className="accent-[#B5E2DD] justify-self-start" />
+          </Row>
+          <Row label="Style look">
+            <select className={inputCls} value={item.look ?? ''} onChange={(e) => set({ look: e.target.value || undefined })}>
+              <option value="">Original colours</option>
+              {ART_STYLE_OPTIONS.map((id) => (
+                <option key={id} value={id}>{ART_STYLE_LABELS[id] ?? id}</option>
+              ))}
+            </select>
           </Row>
           <Row label="Depth"><Slider value={item.depth ?? 1} min={0} max={1.6} step={0.05} onChange={(v) => set({ depth: v }, false)} onCommit={() => set({})} /></Row>
           <Row label="Size"><Slider value={item.scale} min={0.1} max={1} step={0.01} onChange={(v) => set({ scale: v }, false)} onCommit={() => set({})} /></Row>

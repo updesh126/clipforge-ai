@@ -9,6 +9,8 @@
  *   Border — a decorative frame with a clear centre (used by the "Art frame" over footage)
  * plus palette + typography for the "Art caption banner".
  */
+import { environmentSvg, normaliseEnv, type EnvSpec } from '../vector/environment.ts';
+import type { ThemeId } from '../vector/theme.ts';
 import type { CSSProperties, ReactElement } from 'react';
 import { AbsoluteFill, interpolate, random, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
@@ -22,7 +24,12 @@ export type ArtStyleId =
   | 'warli'
   | 'blueprint'
   | 'ukiyoe'
-  | 'miniature';
+  | 'miniature'
+  // procedural vector themes (src/vector)
+  | 'storybook'
+  | 'flatVector'
+  | 'handDrawn'
+  | 'cartoon';
 
 interface StyleDef {
   label: string;
@@ -146,12 +153,87 @@ export const ART_STYLES: Record<ArtStyleId, StyleDef> = {
     bannerText: '#F7E3A1',
     bannerBorder: '#D4A537',
   },
+  storybook: {
+    label: "Children's storybook",
+    blurb: 'Soft gouache colours, gentle outlines, paper grain — procedurally drawn characters',
+    font: '"Comic Sans MS", "Trebuchet MS", "Segoe Print", sans-serif',
+    titleColor: '#4A2E1F',
+    titleShadow: '0 0 12px #FFF4DC, 0 0 24px #FFF4DC',
+    bannerBg: '#FFF4DC',
+    bannerText: '#4A2E1F',
+    bannerBorder: '#E07A5F',
+    titlePos: 'top',
+  },
+  flatVector: {
+    label: 'Flat vector',
+    blurb: 'Clean geometric explainer look, no outlines, bold flat colour',
+    font: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    titleColor: '#FFFFFF',
+    titleShadow: '0 4px 0 rgba(0,0,0,.18)',
+    bannerBg: '#264653',
+    bannerText: '#FFFFFF',
+    bannerBorder: '#E9C46A',
+    titlePos: 'top',
+  },
+  handDrawn: {
+    label: 'Hand-drawn',
+    blurb: 'Wobbly ink lines with a pencil pass over light watercolour',
+    font: '"Segoe Print", "Ink Free", "Bradley Hand", cursive',
+    titleColor: '#2A2622',
+    titleShadow: '0 0 10px #FBF7EF, 0 0 20px #FBF7EF',
+    bannerBg: '#FBF7EF',
+    bannerText: '#2A2622',
+    bannerBorder: '#2A2622',
+    titlePos: 'top',
+  },
+  cartoon: {
+    label: 'Cartoon',
+    blurb: 'Thick black outlines, saturated colour, cel shading, big expressive eyes',
+    font: '"Arial Black", "Segoe UI Black", Impact, sans-serif',
+    titleColor: '#FFE14D',
+    titleStroke: '#1D1B1F',
+    upper: true,
+    bannerBg: '#FFE14D',
+    bannerText: '#1D1B1F',
+    bannerBorder: '#1D1B1F',
+    titlePos: 'top',
+  },
 };
 
 export const ART_STYLE_IDS = Object.keys(ART_STYLES) as ArtStyleId[];
 
 export function artStyle(id: unknown): ArtStyleId {
   return typeof id === 'string' && id in ART_STYLES ? (id as ArtStyleId) : 'madhubani';
+}
+
+/** n drop-shadows round the alpha edge = an outline that follows the cut-out shape */
+const outline = (px: number, c: string) => `drop-shadow(${px}px 0 0 ${c}) drop-shadow(-${px}px 0 0 ${c}) drop-shadow(0 ${px}px 0 ${c}) drop-shadow(0 -${px}px 0 ${c})`;
+
+/**
+ * Re-colour a library picture (photo-ish / cartoon PNG) so it sits inside an art style next to the drawn assets.
+ * sprite = cut-out character/object; otherwise a full background.
+ */
+export function styleLook(id: string | undefined, sprite: boolean): { filter?: string; mixBlendMode?: 'screen' | 'multiply' } {
+  if (!id || !(id in ART_STYLES)) return {};
+  const L: Record<ArtStyleId, [string, string, ('screen' | 'multiply')?]> = {
+    // [sprite filter, background filter, sprite blend]
+    shadowPuppet: [`brightness(0.18) sepia(0.7) saturate(2) ${'drop-shadow(0 0 6px rgba(255,150,40,.55))'}`, 'sepia(0.8) saturate(1.6) hue-rotate(-15deg) contrast(1.1) brightness(0.85)'],
+    inkWash: ['grayscale(1) contrast(1.4) brightness(1.05)', 'grayscale(1) contrast(0.85) brightness(1.15) sepia(0.15)', 'multiply'],
+    warli: ['brightness(0) invert(1)', 'sepia(1) saturate(1.8) hue-rotate(-20deg) brightness(0.55) contrast(0.9)'],
+    blueprint: ['grayscale(1) contrast(1.6) invert(1)', 'grayscale(1) invert(1) sepia(1) hue-rotate(180deg) saturate(2.5) brightness(0.7)', 'screen'],
+    madhubani: [`saturate(1.5) contrast(1.25) ${outline(3, '#1A1A1A')}`, 'sepia(0.35) saturate(1.3) contrast(1.1)'],
+    paperCutout: [`saturate(1.15) ${outline(5, '#FFFFFF')} drop-shadow(6px 10px 6px rgba(0,0,0,.35))`, 'saturate(1.1) contrast(0.95)'],
+    stainedGlass: [`saturate(1.9) contrast(1.3) ${outline(4, '#111111')}`, 'saturate(1.6) contrast(1.2)'],
+    anime: ['saturate(1.25) contrast(1.08) brightness(1.04)', 'saturate(1.2) contrast(1.05) brightness(1.04)'],
+    ukiyoe: [`sepia(0.35) saturate(0.85) contrast(1.1) ${outline(2, '#2B2B2B')}`, 'sepia(0.45) saturate(0.8) contrast(1.05)'],
+    miniature: [`sepia(0.25) saturate(1.35) contrast(1.1) ${outline(2, '#C9A227')}`, 'sepia(0.3) saturate(1.3) contrast(1.05)'],
+    storybook: [`saturate(0.9) sepia(0.12) ${outline(2, '#6B4A35')}`, 'saturate(0.9) sepia(0.15) brightness(1.03)'],
+    flatVector: ['saturate(1.15) contrast(1.05)', 'saturate(1.1) contrast(1.03)'],
+    handDrawn: [`saturate(0.75) brightness(1.06) ${outline(2, '#2A2622')}`, 'saturate(0.7) brightness(1.08) sepia(0.1)'],
+    cartoon: [`saturate(1.35) contrast(1.15) ${outline(4, '#1D1B1F')}`, 'saturate(1.3) contrast(1.1)'],
+  };
+  const [sp, bg, blend] = L[id as ArtStyleId];
+  return sprite ? { filter: sp, mixBlendMode: blend } : { filter: bg };
 }
 
 interface Ctx {
@@ -959,7 +1041,34 @@ function MiniatureBorder({ w, h, f, draw }: Ctx) {
 }
 
 // ============================================================ registry
+/** Procedural vector backdrop for the four engine themes (memoised: one SVG string per theme/size). */
+const vectorScenes = new Map<string, string>();
+const VECTOR_BACKDROP: Record<string, Partial<EnvSpec>> = {
+  storybook: { kind: 'forest', time: 'sunset' },
+  flatVector: { kind: 'city', time: 'day' },
+  handDrawn: { kind: 'village', time: 'day' },
+  cartoon: { kind: 'fantasy', time: 'day' },
+};
+function vectorScene(theme: ThemeId) {
+  return (c: Ctx) => {
+    const key = `${theme}:${c.w}x${c.h}`;
+    if (!vectorScenes.has(key)) vectorScenes.set(key, environmentSvg(normaliseEnv(VECTOR_BACKDROP[theme]), theme, c.w, c.h));
+    // gentle drift so the card is not static
+    const drift = Math.sin(c.f / 50) * c.w * 0.006;
+    return <div style={{ position: 'absolute', inset: 0, transform: `scale(1.04) translateX(${drift}px)` }} dangerouslySetInnerHTML={{ __html: vectorScenes.get(key) as string }} />;
+  };
+}
+const vectorBorder = (color: string, width: number, radius: number) => (c: Ctx) => (
+  <svg width={c.w} height={c.h}>
+    <rect x={width / 2 + c.w * 0.025} y={width / 2 + c.w * 0.025} width={c.w * 0.95 - width} height={c.h - c.w * 0.05 - width} rx={radius} fill="none" stroke={color} strokeWidth={width} />
+  </svg>
+);
+
 const SCENES: Record<ArtStyleId, (c: Ctx) => ReactElement> = {
+  storybook: vectorScene('storybook'),
+  flatVector: vectorScene('flatVector'),
+  handDrawn: vectorScene('handDrawn'),
+  cartoon: vectorScene('cartoon'),
   madhubani: MadhubaniScene,
   inkWash: InkWashScene,
   shadowPuppet: ShadowPuppetScene,
@@ -973,6 +1082,10 @@ const SCENES: Record<ArtStyleId, (c: Ctx) => ReactElement> = {
 };
 
 const BORDERS: Record<ArtStyleId, (c: Ctx) => ReactElement> = {
+  storybook: vectorBorder('#FFF4DC', 18, 28),
+  flatVector: vectorBorder('#E9C46A', 10, 0),
+  handDrawn: vectorBorder('#2A2622', 5, 6),
+  cartoon: vectorBorder('#1D1B1F', 16, 22),
   madhubani: (c) => <svg width={c.w} height={c.h}>{madhubaniBorder(c)}</svg>,
   inkWash: InkWashBorder,
   shadowPuppet: ShadowPuppetBorder,

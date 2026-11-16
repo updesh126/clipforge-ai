@@ -47,6 +47,10 @@ export interface ImageItem extends BaseItem {
   flip?: boolean; // mirror horizontally (characters face right by default)
   depth?: number; // 0 (far, moves little with the camera) … 1.4 (near, moves most)
   assetId?: string;
+  /** art-style id: re-colours a library picture so it matches the video's style (shadow puppet → silhouette …) */
+  look?: string;
+  /** procedural character: re-rendered when pose/expression/theme change (Inspector) */
+  vector?: { cast: string; pose: string; expression: string; theme: string };
 }
 
 export type SpriteMotion = 'none' | 'pop' | 'walkIn' | 'walkOut' | 'walkAcross' | 'bob' | 'sway' | 'float' | 'fly' | 'breathe' | 'slideUp' | 'kenBurns';

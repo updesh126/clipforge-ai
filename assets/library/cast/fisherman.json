@@ -1,0 +1,46 @@
+{
+  "spec": {
+    "id": "fisherman",
+    "name": "Fisherman",
+    "description": "Old man living by the river",
+    "seed": 311137604,
+    "age": "elder",
+    "gender": "male",
+    "build": "broad",
+    "height": 0.9741503564035521,
+    "skin": "#8B7355",
+    "face": {
+      "shape": "long",
+      "eyes": "almond",
+      "eyeColor": "#2F4F6F",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "bald",
+      "color": "#2F1B0E"
+    },
+    "beard": "stubble",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#4A3728",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#6B5344",
+      "shoes": "boots",
+      "shoeColor": "#33415C"
+    },
+    "accessories": [
+      "hat"
+    ],
+    "accessoryColor": "#F3CA40",
+    "holding": "none"
+  },
+  "aliases": [
+    "fisherman",
+    "the old fisherman"
+  ],
+  "createdAt": "2026-11-16T12:04:32.533Z",
+  "updatedAt": "2026-11-16T12:07:10.639Z"
+}
