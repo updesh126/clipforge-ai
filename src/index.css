@@ -1,6 +1,22 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Brand palette on black: Mint (primary accent), Pink, Lavender, Peach */
+@theme {
+  --color-accent: #B5E2DD;
+  --color-accent-strong: #9FD6CF;
+  --color-pink: #F4C7D6;
+  --color-lavender: #D8CCE8;
+  --color-peach: #FBDFCB;
+  --color-surface: #070709;
+  --color-panel: #0C0C0F;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+}
+
 @layer base {
   :root {
     --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -41,4 +57,10 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
+}
+
+/* Brand gradient used for progress bars and highlights */
+.bg-brand-gradient {
+  background-image: linear-gradient(90deg, #B5E2DD, #D8CCE8, #F4C7D6, #FBDFCB, #B5E2DD);
+  background-size: 200% 100%;
 }

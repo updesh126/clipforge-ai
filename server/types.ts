@@ -1,7 +1,14 @@
 export type AspectRatio = '9:16' | '1:1' | '16:9';
 export type Framing = 'fill' | 'fit';
-export type CaptionStyle = 'off' | 'clean' | 'highlight';
+/** off · clean · highlight (FFmpeg or HyperFrames) · karaoke · pop (animated, HyperFrames; ASS karaoke fallback) */
+export type CaptionStyle = 'off' | 'clean' | 'highlight' | 'karaoke' | 'pop';
 export type ClipLengthPreset = 'auto' | 'short' | 'medium' | 'long';
+
+export interface WordTiming {
+  text: string;
+  start: number;
+  end: number;
+}
 
 export interface TranscriptSegment {
   id: string;
@@ -9,6 +16,7 @@ export interface TranscriptSegment {
   end: number;
   text: string;
   speaker?: string;
+  words?: WordTiming[]; // word-level timings from Whisper (powers karaoke captions)
 }
 
 export interface ClipCandidate {
@@ -26,6 +34,9 @@ export interface ClipCandidate {
   zoom?: number; // 1-3x
   framing?: Framing; // fill = crop to frame, fit = whole video on blurred background
   captionStyle: CaptionStyle;
+  hookTitle?: boolean; // animated title banner over the first seconds (HyperFrames)
+  voiceIntro?: boolean; // spoken title card before the clip (HyperFrames TTS)
+  voice?: string; // TTS voice id, e.g. af_heart
   exportedFiles?: {
     aspectRatio: AspectRatio;
     fileName: string;
@@ -33,6 +44,7 @@ export interface ClipCandidate {
     srtUrl: string;
     createdAt: string;
     burnedCaptions: boolean;
+    engine?: 'ffmpeg' | 'hyperframes';
   }[];
 }
 

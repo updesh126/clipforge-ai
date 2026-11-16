@@ -13,6 +13,11 @@ import {
   AlertCircle,
   FileText,
   SlidersHorizontal,
+  Sparkles,
+  Mic,
+  Type,
+  Layers,
+  Clapperboard,
 } from 'lucide-react';
 import type {
   AspectRatio,
@@ -20,9 +25,13 @@ import type {
   ClipCandidate,
   ClipLengthPreset,
   ClipProject,
+  EngineStatus,
+  JobProgress,
   TranscriptSegment,
+  WordTiming,
 } from '../types.ts';
 import { formatTimecode } from '../utils/format.ts';
+import { postJson, withProgress } from '../utils/api.ts';
 
 interface StudioWorkspaceProps {
   project: ClipProject;
@@ -30,19 +39,40 @@ interface StudioWorkspaceProps {
   onPersistProject: (project: ClipProject) => Promise<void>;
   onReanalyze: (preset: ClipLengthPreset) => Promise<void>;
   isReanalyzing: boolean;
+  reanalyzeProgress: JobProgress | null;
+  engines: EngineStatus | null;
+  onOpenInEditor: (projectId: string, clipId: string) => void;
 }
 
-const ASPECT_OPTIONS: Array<{ id: AspectRatio; label: string }> = [
-  { id: '9:16', label: '9:16' },
-  { id: '1:1', label: '1:1' },
-  { id: '16:9', label: '16:9' },
+/** Platform presets — each maps to an export frame. */
+const ASPECT_OPTIONS: Array<{ id: AspectRatio; label: string; hint: string }> = [
+  { id: '9:16', label: '9:16', hint: 'TikTok · Reels · Shorts' },
+  { id: '1:1', label: '1:1', hint: 'Instagram / LinkedIn feed' },
+  { id: '16:9', label: '16:9', hint: 'YouTube · X' },
 ];
 
-const CAPTION_OPTIONS: Array<{ id: CaptionStyle; label: string }> = [
-  { id: 'off', label: 'Off' },
-  { id: 'clean', label: 'Clean' },
-  { id: 'highlight', label: 'Highlight' },
+const CAPTION_OPTIONS: Array<{ id: CaptionStyle; label: string; motion?: boolean; hint: string }> = [
+  { id: 'off', label: 'Off', hint: 'No burned captions (SRT still exported)' },
+  { id: 'clean', label: 'Clean', hint: 'Plain white subtitles' },
+  { id: 'highlight', label: 'Bold', hint: 'Bold yellow subtitles' },
+  { id: 'karaoke', label: 'Karaoke', motion: true, hint: 'Word-by-word highlight (HyperFrames)' },
+  { id: 'pop', label: 'Pop', motion: true, hint: 'Words pop in as they are spoken (HyperFrames)' },
 ];
+
+/** Word timings for a segment; re-times evenly when the text was edited (mirrors the server). */
+function segmentWords(seg: TranscriptSegment): WordTiming[] {
+  const tokens = seg.text.trim().split(/\s+/).filter(Boolean);
+  if (seg.words?.length && seg.words.length === tokens.length) return seg.words.map((w, i) => ({ ...w, text: tokens[i] }));
+  const len = Math.max(0.2, seg.end - seg.start);
+  const total = tokens.reduce((n, t) => n + t.length + 1, 0) || 1;
+  let t = seg.start;
+  return tokens.map((text) => {
+    const d = (len * (text.length + 1)) / total;
+    const w = { text, start: t, end: t + d };
+    t += d;
+    return w;
+  });
+}
 
 export function StudioWorkspace({
   project,
@@ -50,6 +80,9 @@ export function StudioWorkspace({
   onPersistProject,
   onReanalyze,
   isReanalyzing,
+  reanalyzeProgress,
+  engines,
+  onOpenInEditor,
 }: StudioWorkspaceProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -70,6 +103,9 @@ export function StudioWorkspace({
   const [burnCaptions, setBurnCaptions] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [exportWarning, setExportWarning] = useState<string | null>(null);
+  const [exportProgress, setExportProgress] = useState<JobProgress | null>(null);
+  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
   const [reanalyzePreset, setReanalyzePreset] = useState<ClipLengthPreset>(
     project.clipLengthPreset || 'auto'
   );
@@ -142,6 +178,24 @@ export function StudioWorkspace({
       ) ?? null
     );
   }, [project.transcript, currentTime, selectedClip]);
+
+  // Word-level caption page for the live preview (karaoke / pop)
+  const activeWords = useMemo(() => {
+    if (!activeCaption || !selectedClip) return null;
+    if (selectedClip.captionStyle !== 'karaoke' && selectedClip.captionStyle !== 'pop') return null;
+    const words = segmentWords(activeCaption);
+    const portrait = selectedClip.aspectRatio === '9:16';
+    const per = portrait ? 3 : 6;
+    const idx = Math.max(0, words.findIndex((w) => currentTime < w.end));
+    const pageStart = Math.floor(idx / per) * per;
+    return { words: words.slice(pageStart, pageStart + per), current: idx - pageStart };
+  }, [activeCaption, selectedClip, currentTime]);
+
+  const showHookPreview =
+    Boolean(selectedClip?.hookTitle) &&
+    Boolean(selectedClip) &&
+    currentTime >= (selectedClip?.start ?? 0) &&
+    currentTime < (selectedClip?.start ?? 0) + 3.5;
 
   const clipTranscript = useMemo(() => {
     if (!selectedClip) return project.transcript;
@@ -382,42 +436,62 @@ export function StudioWorkspace({
     seekToTime(target);
   };
 
+  const exportOne = async (clip: ClipCandidate) => {
+    const data = await withProgress(
+      (jobId) =>
+        postJson<{ project?: ClipProject; warning?: string }>(`/api/projects/${project.id}/clips/${clip.id}/export`, {
+          jobId,
+          start: clip.start,
+          end: clip.end,
+          aspectRatio: clip.aspectRatio,
+          cropX: clip.cropX,
+          cropY: clip.cropY ?? 50,
+          zoom: clip.zoom ?? 1,
+          framing: clip.framing ?? 'fill',
+          captionStyle: clip.captionStyle,
+          burnCaptions: burnCaptions && clip.captionStyle !== 'off',
+          hookTitle: Boolean(clip.hookTitle),
+          voiceIntro: Boolean(clip.voiceIntro),
+          voice: clip.voice,
+        }),
+      setExportProgress
+    );
+    if (data.project) onUpdateProject(data.project);
+    setExportWarning(data.warning ?? null);
+    return data.project;
+  };
+
   const handleExport = async () => {
     if (!selectedClip || isExporting) return;
     setIsExporting(true);
     setExportError(null);
-
+    setExportWarning(null);
     try {
-      const res = await fetch(
-        `/api/projects/${project.id}/clips/${selectedClip.id}/export`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            start: selectedClip.start,
-            end: selectedClip.end,
-            aspectRatio: selectedClip.aspectRatio,
-            cropX: selectedClip.cropX,
-            cropY: selectedClip.cropY ?? 50,
-            zoom: selectedClip.zoom ?? 1,
-            framing: selectedClip.framing ?? 'fill',
-            captionStyle: selectedClip.captionStyle,
-            burnCaptions: burnCaptions && selectedClip.captionStyle !== 'off',
-          }),
-        }
-      );
+      await exportOne(selectedClip);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Export failed.');
-      }
-
-      if (data.project) {
-        onUpdateProject(data.project);
+  /** Export every clip one after another with its own settings. */
+  const handleExportAll = async () => {
+    if (isExporting || project.clips.length === 0) return;
+    setIsExporting(true);
+    setExportError(null);
+    setExportWarning(null);
+    const clips = [...project.clips];
+    try {
+      for (let i = 0; i < clips.length; i++) {
+        setBatch({ done: i, total: clips.length });
+        setSelectedClipId(clips[i].id);
+        await exportOne(clips[i]);
       }
     } catch (err) {
       setExportError(err instanceof Error ? err.message : 'Export failed.');
     } finally {
+      setBatch(null);
       setIsExporting(false);
     }
   };
@@ -434,56 +508,81 @@ export function StudioWorkspace({
   return (
     <div className="flex-1 min-h-0 flex flex-col lg:flex-row bg-black overflow-hidden">
       {/* LEFT RAIL: AI Clip Queue */}
-      <aside className="w-full lg:w-[310px] shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-[#070709] flex flex-col min-h-0 max-h-[260px] lg:max-h-none">
-        <div className="px-4 py-3.5 border-b border-zinc-900 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="text-xs font-semibold text-white truncate">
-              {project.name}
-            </h2>
-            <p className="text-[11px] text-zinc-500 font-mono mt-0.5">
-              {project.clips.length} clips · {formatTimecode(duration)}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+      <aside className="w-full lg:w-[310px] shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-900 bg-surface flex flex-col min-h-0 max-h-[260px] lg:max-h-none">
+        <div className="px-4 pt-3.5 pb-3 border-b border-zinc-900 space-y-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-white truncate" title={project.name}>
+                {project.name}
+              </h2>
+              <p className="text-[11px] text-zinc-500 font-mono mt-0.5">
+                {project.clips.length} clips · {formatTimecode(duration)}
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setShowShortcuts(true)}
               title="Keyboard shortcuts (?)"
-              className="inline-flex items-center justify-center rounded-md border border-zinc-800 bg-black px-2 py-1 text-[11px] font-mono text-zinc-400 hover:text-white cursor-pointer"
+              className="shrink-0 rounded-md border border-zinc-800 bg-black px-2 py-1 text-[11px] font-mono text-zinc-400 hover:text-white cursor-pointer"
             >
-              ⌨
+              ?
             </button>
+          </div>
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleAddManualClip}
-              title="Add your own clip starting at the playhead"
+              title="Add your own clip starting at the playhead (A)"
               className="inline-flex items-center gap-1 rounded-md border border-zinc-800 bg-black px-2 py-1 text-[11px] text-zinc-200 hover:border-zinc-700 hover:text-white transition-colors cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              Add clip
+              Add
             </button>
-            <select
-              aria-label="Clip length preset"
-              value={reanalyzePreset}
-              onChange={(e) => setReanalyzePreset(e.target.value as ClipLengthPreset)}
-              className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-[11px] text-zinc-300 focus:outline-none focus:border-[#4F8BFF]"
-            >
-              <option value="auto">Auto</option>
-              <option value="short">Short</option>
-              <option value="medium">Medium</option>
-              <option value="long">Long</option>
-            </select>
-            <button
-              type="button"
-              disabled={isReanalyzing}
-              onClick={() => void onReanalyze(reanalyzePreset)}
-              title="Re-run AI clip selection"
-              className="inline-flex items-center justify-center rounded-md border border-zinc-800 bg-black p-1.5 text-zinc-300 hover:border-zinc-700 hover:text-white disabled:opacity-50 transition-colors cursor-pointer"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isReanalyzing ? 'animate-spin' : ''}`} />
-            </button>
+            <div className="inline-flex items-center rounded-md border border-zinc-800 bg-black">
+              <select
+                aria-label="Clip length preset"
+                value={reanalyzePreset}
+                onChange={(e) => setReanalyzePreset(e.target.value as ClipLengthPreset)}
+                className="bg-transparent pl-2 pr-1 py-1 text-[11px] text-zinc-300 focus:outline-none"
+              >
+                <option value="auto">Auto length</option>
+                <option value="short">Short</option>
+                <option value="medium">Medium</option>
+                <option value="long">Long</option>
+              </select>
+              <button
+                type="button"
+                disabled={isReanalyzing}
+                onClick={() => void onReanalyze(reanalyzePreset)}
+                title="Re-run AI clip selection"
+                className="border-l border-zinc-800 p-1.5 text-zinc-300 hover:text-white disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isReanalyzing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+            {!isYoutubeEmbed && project.clips.length > 1 && (
+              <button
+                type="button"
+                disabled={isExporting}
+                onClick={() => void handleExportAll()}
+                title="Export every clip with its own settings"
+                className="ml-auto inline-flex items-center gap-1 rounded-md border border-accent/40 bg-accent/5 px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10 disabled:opacity-50 cursor-pointer"
+              >
+                <Layers className="h-3.5 w-3.5" />
+                {batch ? `${batch.done + 1}/${batch.total}` : 'Export all'}
+              </button>
+            )}
           </div>
         </div>
+
+        {isReanalyzing && (
+          <div className="px-4 py-2.5 border-b border-zinc-900">
+            <p className="text-[11px] text-zinc-300 truncate">{reanalyzeProgress?.label || 'Re-analysing…'}</p>
+            <div className="mt-1.5 h-1 rounded-full bg-zinc-900 overflow-hidden">
+              <div className="h-full bg-brand-gradient animate-shimmer transition-[width] duration-700" style={{ width: `${Math.max(4, reanalyzeProgress?.pct ?? 4)}%` }} />
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto divide-y divide-zinc-900/80">
           {project.clips.map((clip, idx) => {
@@ -497,8 +596,8 @@ export function StudioWorkspace({
                 onClick={() => handleSelectClip(clip)}
                 className={`w-full text-left px-4 py-3.5 transition-colors cursor-pointer ${
                   active
-                    ? 'bg-[#11131A]'
-                    : 'hover:bg-[#0D0D10]'
+                    ? 'bg-white/[0.04] shadow-[inset_2px_0_0_var(--color-accent)]'
+                    : 'hover:bg-white/[0.02]'
                 }`}
               >
                 <div className="flex items-baseline justify-between gap-2">
@@ -546,12 +645,20 @@ export function StudioWorkspace({
                 <p className="mt-1.5 text-xs text-zinc-500 line-clamp-2">
                   {clip.reason}
                 </p>
-                {hasExport && (
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-[#4F8BFF]">
-                    <Check className="h-3 w-3" />
-                    Exported watermark-free
-                  </p>
-                )}
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {hasExport && (
+                    <span className="inline-flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 text-[10.5px] text-accent">
+                      <Check className="h-3 w-3" />
+                      Exported
+                    </span>
+                  )}
+                  {(clip.captionStyle === 'karaoke' || clip.captionStyle === 'pop' || clip.hookTitle || clip.voiceIntro) && (
+                    <span className="inline-flex items-center gap-1 rounded bg-lavender/10 px-1.5 py-0.5 text-[10.5px] text-lavender">
+                      <Sparkles className="h-3 w-3" />
+                      Motion
+                    </span>
+                  )}
+                </div>
               </button>
             );
           })}
@@ -562,7 +669,7 @@ export function StudioWorkspace({
       <main className="flex-1 min-w-0 min-h-0 flex flex-col bg-black">
         {/* Studio Toolbar */}
         {selectedClip && (
-          <div className="shrink-0 border-b border-zinc-900 bg-[#070709] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <div className="shrink-0 border-b border-zinc-900 bg-surface px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               {/* Aspect Ratio Switcher */}
               <div className="inline-flex items-center rounded-lg bg-black p-0.5 border border-zinc-900">
@@ -572,6 +679,7 @@ export function StudioWorkspace({
                     <button
                       key={opt.id}
                       type="button"
+                      title={opt.hint}
                       onClick={() => updateSelectedClip({ aspectRatio: opt.id })}
                       className={`px-2.5 py-1 rounded-md text-xs font-mono transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                         active
@@ -593,13 +701,15 @@ export function StudioWorkspace({
                     <button
                       key={opt.id}
                       type="button"
+                      title={opt.hint}
                       onClick={() => updateSelectedClip({ captionStyle: opt.id })}
-                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                         active
                           ? 'bg-zinc-800 text-white'
                           : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
+                      {opt.motion && <Sparkles className={`h-3 w-3 ${active ? 'text-accent' : 'text-zinc-600'}`} />}
                       {opt.label}
                     </button>
                   );
@@ -664,7 +774,7 @@ export function StudioWorkspace({
                     type="checkbox"
                     checked={burnCaptions}
                     onChange={(e) => setBurnCaptions(e.target.checked)}
-                    className="accent-[#4F8BFF] rounded"
+                    className="accent-accent rounded"
                   />
                   Burn captions
                 </label>
@@ -674,22 +784,32 @@ export function StudioWorkspace({
                 <a
                   href={`/api/projects/${project.id}/clips/${selectedClip.id}/srt`}
                   download
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#4F8BFF] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#3b7af5] transition-colors whitespace-nowrap shrink-0"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-accent-strong transition-colors whitespace-nowrap shrink-0"
                 >
                   <FileText className="h-3.5 w-3.5" />
                   Download SRT
                 </a>
               ) : (
+                <>
+                <button
+                  type="button"
+                  onClick={() => onOpenInEditor(project.id, selectedClip.id)}
+                  title="Open this clip in the timeline editor with motion graphics"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-lavender/40 bg-lavender/5 px-3 py-1.5 text-xs font-semibold text-lavender hover:bg-lavender/10 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <Clapperboard className="h-3.5 w-3.5" />
+                  Open in editor
+                </button>
                 <button
                   type="button"
                   disabled={isExporting}
                   onClick={() => void handleExport()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#4F8BFF] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#3b7af5] disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-accent-strong disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   {isExporting ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Rendering MP4...
+                      {exportProgress ? `${exportProgress.pct}%` : 'Rendering…'}
                     </>
                   ) : (
                     <>
@@ -698,6 +818,7 @@ export function StudioWorkspace({
                     </>
                   )}
                 </button>
+                </>
               )}
             </div>
           </div>
@@ -770,8 +891,40 @@ export function StudioWorkspace({
                 </>
               )}
 
+              {/* Hook title preview (first 3.5 s of the clip) */}
+              {showHookPreview && (
+                <div className={`pointer-events-none absolute inset-x-0 flex justify-center ${selectedClip.aspectRatio === '9:16' ? 'top-[10%]' : 'top-[6%]'}`}>
+                  <p className="max-w-[84%] rounded-lg border-b-4 border-accent bg-white px-3 py-1.5 text-center text-sm font-black leading-tight text-black shadow-xl">
+                    {selectedClip.title}
+                  </p>
+                </div>
+              )}
+
+              {/* Animated caption preview (karaoke / pop) */}
+              {activeWords && (
+                <div className={`pointer-events-none absolute inset-x-3 flex justify-center ${selectedClip.aspectRatio === '9:16' ? 'bottom-[22%]' : 'bottom-6'}`}>
+                  <p
+                    style={{ fontFamily: '"Arial Black", "Segoe UI", Arial, sans-serif' }}
+                    className="text-center text-xl sm:text-2xl font-black uppercase leading-tight tracking-tight [text-shadow:0_2px_0_#000,0_0_10px_rgba(0,0,0,.9)]"
+                  >
+                    {activeWords.words.map((w, i) => {
+                      const isCur = i === activeWords.current;
+                      const hidden = selectedClip.captionStyle === 'pop' && i > activeWords.current;
+                      return (
+                        <span
+                          key={i}
+                          className={`mx-[0.24em] inline-block transition-all duration-100 ${isCur ? 'text-accent scale-[1.04] -translate-y-0.5' : 'text-white'} ${hidden ? 'opacity-0' : 'opacity-100'}`}
+                        >
+                          {w.text}
+                        </span>
+                      );
+                    })}
+                  </p>
+                </div>
+              )}
+
               {/* Live Caption Preview Overlay */}
-              {activeCaption && selectedClip.captionStyle !== 'off' && (
+              {activeCaption && !activeWords && selectedClip.captionStyle !== 'off' && (
                 <div
                   className={`pointer-events-none absolute inset-x-4 flex justify-center ${
                     selectedClip.aspectRatio === '9:16' ? 'bottom-14' : 'bottom-6'
@@ -805,14 +958,48 @@ export function StudioWorkspace({
         </div>
 
         {isYoutubeEmbed && (
-          <div className="shrink-0 border-t border-zinc-900 bg-[#09090C] px-4 py-2 text-xs text-zinc-400">
+          <div className="shrink-0 border-t border-zinc-900 bg-surface px-4 py-2 text-xs text-zinc-400">
             Streaming via YouTube player (direct stream download was restricted on this network). Run ClipForge AI locally on your PC to download MP4 streams via yt-dlp for burned-in FFmpeg export.
           </div>
         )}
 
         {/* Export feedback / Download strip */}
-        {(exportError || latestExport) && (
-          <div className="shrink-0 border-t border-zinc-900 bg-[#09090C] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        {isExporting && exportProgress && (
+          <div className="shrink-0 border-t border-zinc-900 bg-surface px-4 py-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-300">
+                {batch ? `Clip ${batch.done + 1} of ${batch.total} · ` : ''}
+                {exportProgress.label}
+              </span>
+              <span className="font-mono text-zinc-500">{exportProgress.pct}%</span>
+            </div>
+            <div className="mt-1.5 h-1 rounded-full bg-zinc-900 overflow-hidden">
+              <div className="h-full bg-brand-gradient animate-shimmer transition-[width] duration-700" style={{ width: `${Math.max(3, exportProgress.pct)}%` }} />
+            </div>
+          </div>
+        )}
+
+        {exportWarning && !isExporting && (
+          <div className="shrink-0 border-t border-zinc-900 bg-peach/5 px-4 py-2 flex items-start gap-2 text-xs text-peach">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>{exportWarning}</span>
+          </div>
+        )}
+
+        {!isExporting && (exportError || latestExport) && (
+          <div className="shrink-0 border-t border-zinc-900 bg-surface px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            {latestExport && !exportError && (
+              <video
+                key={latestExport.url}
+                src={latestExport.url}
+                muted
+                playsInline
+                onMouseEnter={(e) => void e.currentTarget.play()}
+                onMouseLeave={(e) => e.currentTarget.pause()}
+                className="h-12 rounded border border-zinc-800 bg-black"
+                title="Hover to preview the exported clip"
+              />
+            )}
             {exportError ? (
               <div className="flex items-center gap-2 text-red-300">
                 <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
@@ -821,10 +1008,11 @@ export function StudioWorkspace({
             ) : latestExport ? (
               <>
                 <div className="flex items-center gap-2 text-zinc-300">
-                  <Check className="h-4 w-4 text-[#4F8BFF] shrink-0" />
+                  <Check className="h-4 w-4 text-accent shrink-0" />
                   <span>
                     Ready ({latestExport.aspectRatio} · watermark-free
-                    {latestExport.burnedCaptions ? ' · burned captions' : ''})
+                    {latestExport.burnedCaptions ? ' · burned captions' : ''}
+                    {latestExport.engine === 'hyperframes' ? ' · HyperFrames motion' : ''})
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -851,7 +1039,7 @@ export function StudioWorkspace({
 
         {/* Bottom Transport & Precision Trim Scrubber */}
         {selectedClip && (
-          <div className="shrink-0 border-t border-zinc-900 bg-[#070709] px-4 py-3">
+          <div className="shrink-0 border-t border-zinc-900 bg-surface px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
               <div className="flex items-center gap-2">
                 <button
@@ -867,7 +1055,7 @@ export function StudioWorkspace({
                   onClick={() => setLoopClip((v) => !v)}
                   className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
                     loopClip
-                      ? 'border-[#4F8BFF]/60 bg-[#4F8BFF]/10 text-[#4F8BFF]'
+                      ? 'border-accent/60 bg-accent/10 text-accent'
                       : 'border-zinc-800 bg-black text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
@@ -974,7 +1162,7 @@ export function StudioWorkspace({
                     style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
                     className={`absolute inset-y-1 rounded-sm transition-colors ${
                       isSelected
-                        ? 'bg-[#4F8BFF]/25 border border-[#4F8BFF]'
+                        ? 'bg-accent/25 border border-accent'
                         : 'bg-zinc-800/40 border border-zinc-700/40'
                     }`}
                   />
@@ -1035,7 +1223,7 @@ export function StudioWorkspace({
       )}
 
       {/* RIGHT RAIL: Clip Inspector & Synced Transcript */}
-      <aside className="w-full lg:w-[340px] shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-900 bg-[#070709] flex flex-col min-h-0 max-h-[300px] lg:max-h-none">
+      <aside className="w-full lg:w-[340px] shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-900 bg-surface flex flex-col min-h-0 max-h-[300px] lg:max-h-none">
         {selectedClip && (
           <div className="p-4 border-b border-zinc-900 space-y-2.5">
             <label className="block">
@@ -1045,7 +1233,7 @@ export function StudioWorkspace({
                 value={selectedClip.title}
                 onChange={(e) => updateSelectedClip({ title: e.target.value }, false)}
                 onBlur={() => void onPersistProject(project)}
-                className="mt-1 w-full rounded-md border border-zinc-800 bg-black px-2.5 py-1.5 text-sm font-medium text-white focus:outline-none focus:border-[#4F8BFF]"
+                className="mt-1 w-full rounded-md border border-zinc-800 bg-black px-2.5 py-1.5 text-sm font-medium text-white focus:outline-none focus:border-accent"
               />
             </label>
             {selectedClip.hookLine && (
@@ -1062,6 +1250,77 @@ export function StudioWorkspace({
                 {selectedClip.reason}
               </p>
             </div>
+          </div>
+        )}
+
+        {selectedClip && !isYoutubeEmbed && (
+          <div className="p-4 border-b border-zinc-900 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-white">Motion & voice</h3>
+              <span className={`text-[10.5px] font-mono ${engines?.hyperframes ? 'text-accent' : 'text-zinc-500'}`}>
+                {engines?.hyperframes ? 'HyperFrames ready' : 'HyperFrames off'}
+              </span>
+            </div>
+            {([
+              {
+                key: 'hookTitle',
+                icon: Type,
+                label: 'Hook title',
+                hint: 'Animated title banner over the first 3.5 s',
+              },
+              {
+                key: 'voiceIntro',
+                icon: Mic,
+                label: 'Voice intro',
+                hint: engines?.tts ? 'AI voice (Kokoro) reads the title on a card' : 'System voice reads the title on a card',
+              },
+            ] as const).map((opt) => {
+              const on = Boolean(selectedClip[opt.key]);
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  onClick={() => updateSelectedClip({ [opt.key]: !on })}
+                  className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors cursor-pointer ${
+                    on ? 'border-accent/40 bg-accent/5' : 'border-zinc-900 bg-black hover:border-zinc-800'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 shrink-0 ${on ? 'text-accent' : 'text-zinc-500'}`} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-medium text-white">{opt.label}</span>
+                    <span className="block text-[11px] text-zinc-500">{opt.hint}</span>
+                  </span>
+                  <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? 'bg-accent' : 'bg-zinc-800'}`}>
+                    <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-black transition-all ${on ? 'left-3.5' : 'left-0.5 bg-zinc-400'}`} />
+                  </span>
+                </button>
+              );
+            })}
+            {selectedClip.voiceIntro && (engines?.voices?.length ?? 0) > 0 && (
+              <label className="flex items-center justify-between gap-2 text-xs text-zinc-400">
+                Voice
+                <select
+                  value={selectedClip.voice ?? 'af_heart'}
+                  disabled={!engines?.tts}
+                  onChange={(e) => updateSelectedClip({ voice: e.target.value })}
+                  className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-accent disabled:opacity-50"
+                >
+                  {engines!.voices.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label} · {v.language} · {v.gender}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {selectedClip.voiceIntro && engines && !engines.tts && (
+              <p className="text-[11px] text-zinc-500">
+                For natural AI voices run <code className="font-mono text-zinc-400">pip install kokoro-onnx soundfile</code>.
+              </p>
+            )}
           </div>
         )}
 
@@ -1090,7 +1349,7 @@ export function StudioWorkspace({
                   key={seg.id}
                   className={`px-4 py-2.5 transition-colors ${
                     isCurrent
-                      ? 'bg-[#121622]'
+                      ? 'bg-accent/10'
                       : inClip
                         ? 'bg-[#0B0B0F]'
                         : 'opacity-50 hover:opacity-85'
@@ -1100,7 +1359,7 @@ export function StudioWorkspace({
                     <button
                       type="button"
                       onClick={() => seekToTime(seg.start)}
-                      className="font-mono text-[11px] text-[#4F8BFF] hover:underline cursor-pointer"
+                      className="font-mono text-[11px] text-accent hover:underline cursor-pointer"
                     >
                       {formatTimecode(seg.start, true)}
                     </button>

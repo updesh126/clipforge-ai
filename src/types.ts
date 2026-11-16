@@ -1,8 +1,14 @@
 export type AspectRatio = '9:16' | '1:1' | '16:9';
 export type Framing = 'fill' | 'fit';
-export type CaptionStyle = 'off' | 'clean' | 'highlight';
+export type CaptionStyle = 'off' | 'clean' | 'highlight' | 'karaoke' | 'pop';
 export type ClipLengthPreset = 'auto' | 'short' | 'medium' | 'long';
-export type AppTab = 'studio' | 'library' | 'architecture';
+export type AppTab = 'home' | 'studio' | 'script' | 'editor' | 'library' | 'architecture';
+
+export interface WordTiming {
+  text: string;
+  start: number;
+  end: number;
+}
 
 export interface TranscriptSegment {
   id: string;
@@ -10,6 +16,27 @@ export interface TranscriptSegment {
   end: number;
   text: string;
   speaker?: string;
+  words?: WordTiming[];
+}
+
+export interface EngineStatus {
+  ffmpeg: boolean;
+  libass: boolean;
+  whisper: boolean;
+  whisperModel: boolean;
+  whisperName: string;
+  ollama: boolean;
+  ollamaModel: string;
+  ollamaModelInstalled: boolean;
+  hyperframes: boolean;
+  tts: boolean;
+  voices: Array<{ id: string; label: string; language: string; gender: string }>;
+}
+
+export interface JobProgress {
+  stage: string;
+  label: string;
+  pct: number;
 }
 
 export interface ExportedClipFile {
@@ -19,6 +46,7 @@ export interface ExportedClipFile {
   srtUrl: string;
   createdAt: string;
   burnedCaptions: boolean;
+  engine?: 'ffmpeg' | 'hyperframes';
 }
 
 export interface ClipCandidate {
@@ -36,6 +64,9 @@ export interface ClipCandidate {
   zoom?: number; // 1-3x
   framing?: Framing; // fill = crop to frame, fit = whole video on blurred background
   captionStyle: CaptionStyle;
+  hookTitle?: boolean; // animated title banner over the opening seconds (HyperFrames)
+  voiceIntro?: boolean; // spoken title card before the clip (TTS)
+  voice?: string;
   exportedFiles?: ExportedClipFile[];
 }
 

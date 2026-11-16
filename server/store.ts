@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ClipProject } from './types.ts';
 
-export const DATA_DIR = path.resolve(process.cwd(), 'data');
+// Override with CLIPFORGE_DATA_DIR to keep projects, models and exports on another drive
+export const DATA_DIR = path.resolve(process.env.CLIPFORGE_DATA_DIR || path.join(process.cwd(), 'data'));
 export const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 export const EXPORTS_DIR = path.join(DATA_DIR, 'exports');
 export const TEMP_DIR = path.join(DATA_DIR, 'temp');

@@ -12,9 +12,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import type { ClipCandidate, ClipLengthPreset, TranscriptSegment, VideoMetadata } from './types.ts';
+import type { ClipCandidate, ClipLengthPreset, TranscriptSegment, VideoMetadata, WordTiming } from './types.ts';
 import { renderDemoMp4FromAudio } from './media.ts';
 import { DATA_DIR, TEMP_DIR } from './store.ts';
+import { hyperframesInstalled, listVoices, transcribeWords, ttsAvailable } from './hyperframes.ts';
+import type { ProgressFn } from './progress.ts';
+import { speak } from './tts.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -29,11 +32,16 @@ const MODELS_DIR = path.join(DATA_DIR, 'models');
 // ---------- Health / capability check ----------
 export interface EngineStatus {
   ffmpeg: boolean;
+  libass: boolean;
   whisper: boolean;
   whisperModel: boolean;
+  whisperName: string;
   ollama: boolean;
   ollamaModel: string;
   ollamaModelInstalled: boolean;
+  hyperframes: boolean;
+  tts: boolean;
+  voices: Array<{ id: string; label: string; language: string; gender: string }>;
 }
 
 async function hasBinary(bin: string, args: string[] = ['--help']): Promise<boolean> {
@@ -57,20 +65,34 @@ async function ollamaTags(): Promise<string[] | null> {
   }
 }
 
+/** HyperFrames can build/fetch whisper.cpp itself on macOS/Linux; on Windows it needs HYPERFRAMES_WHISPER_PATH. */
+function hyperframesWhisperUsable(): boolean {
+  return hyperframesInstalled() && (process.platform !== 'win32' || Boolean(process.env.HYPERFRAMES_WHISPER_PATH));
+}
+
 export async function getEngineStatus(): Promise<EngineStatus> {
-  const [ffmpeg, whisper, tags] = await Promise.all([
+  const [ffmpeg, whisper, tags, tts, voices] = await Promise.all([
     hasBinary('ffmpeg', ['-version']),
     hasBinary(WHISPER_BIN, ['--help']),
     ollamaTags(),
+    ttsAvailable(),
+    listVoices(),
   ]);
   const base = OLLAMA_MODEL.includes(':') ? OLLAMA_MODEL : `${OLLAMA_MODEL}:latest`;
+  const { ffmpegHasFilter } = await import('./media.ts');
   return {
     ffmpeg,
-    whisper,
+    libass: ffmpeg ? await ffmpegHasFilter('ass') : false,
+    // HyperFrames can install its own whisper runtime, so transcription still works without whisper-cli
+    whisper: whisper || hyperframesWhisperUsable(),
     whisperModel: fs.existsSync(whisperModelPath()),
+    whisperName: whisper ? `whisper.cpp ${WHISPER_MODEL_NAME}` : hyperframesWhisperUsable() ? 'Whisper via HyperFrames' : 'missing',
     ollama: tags !== null,
     ollamaModel: OLLAMA_MODEL,
     ollamaModelInstalled: Boolean(tags?.some((t) => t === base || t === OLLAMA_MODEL)),
+    hyperframes: hyperframesInstalled(),
+    tts,
+    voices,
   };
 }
 
@@ -100,32 +122,92 @@ async function extractWav16k(videoPath: string, outWav: string) {
   });
 }
 
-export async function transcribeLocal(videoPath: string, jobId: string): Promise<TranscriptSegment[]> {
+/** Group word timings into caption-sized segments (≤ 48 chars, split on sentence ends and pauses). */
+export function wordsToSegments(words: WordTiming[]): TranscriptSegment[] {
+  const segs: TranscriptSegment[] = [];
+  let cur: WordTiming[] = [];
+  const flush = () => {
+    if (!cur.length) return;
+    segs.push({
+      id: `seg_${segs.length + 1}`,
+      start: round2(cur[0].start),
+      end: round2(cur[cur.length - 1].end),
+      text: cur.map((w) => w.text).join(' '),
+      speaker: 'Speaker',
+      words: cur.map((w) => ({ text: w.text, start: round2(w.start), end: round2(w.end) })),
+    });
+    cur = [];
+  };
+  for (const w of words) {
+    const len = cur.reduce((n, x) => n + x.text.length + 1, 0) + w.text.length;
+    const gap = cur.length ? w.start - cur[cur.length - 1].end : 0;
+    if (cur.length && (len > 48 || gap > 1)) flush();
+    cur.push(w);
+    if (/[.!?]$/.test(w.text)) flush();
+  }
+  flush();
+  return segs.filter((s) => s.end > s.start);
+}
+
+const cleanWord = (t: string) => t.replace(/\[.*?\]|\(.*?\)/g, '').trim();
+
+async function whisperCliWords(wav: string, outBase: string): Promise<WordTiming[]> {
   const modelPath = await ensureWhisperModel();
+  const threads = String(Math.max(2, Math.min(8, os.cpus().length - 1)));
+  // -ml 1 -sow → one entry per word, giving word-level timestamps for karaoke captions
+  await execFileAsync(
+    WHISPER_BIN,
+    ['-m', modelPath, '-f', wav, '-l', WHISPER_LANG, '-t', threads, '-ml', '1', '-sow', '-oj', '-of', outBase],
+    { maxBuffer: 1024 * 1024 * 64, timeout: 1000 * 60 * 60 * 3, windowsHide: true }
+  );
+  const json = JSON.parse(fs.readFileSync(`${outBase}.json`, 'utf-8')) as {
+    transcription?: Array<{ offsets: { from: number; to: number }; text: string }>;
+  };
+  const words: WordTiming[] = [];
+  for (const t of json.transcription ?? []) {
+    const text = cleanWord(t.text);
+    if (!text) continue;
+    const w = { text, start: t.offsets.from / 1000, end: t.offsets.to / 1000 };
+    // whisper sometimes splits punctuation into its own token — glue it to the previous word
+    if (/^[^\p{L}\p{N}]+$/u.test(text) && words.length) {
+      words[words.length - 1].text += text;
+      words[words.length - 1].end = Math.max(words[words.length - 1].end, w.end);
+    } else if (w.end > w.start) {
+      words.push(w);
+    }
+  }
+  return words;
+}
+
+/** HyperFrames ships Whisper models as tiny.en/base.en/small.en/medium.en or small/medium/large-v3. */
+function hyperframesModel(): string {
+  const m = WHISPER_MODEL_NAME.replace(/\.bin$/, '').replace(/^ggml-/, '');
+  if (['tiny.en', 'base.en', 'small.en', 'medium.en', 'small', 'medium', 'large-v3'].includes(m)) return m;
+  const english = WHISPER_LANG === 'en';
+  if (m === 'tiny' || m === 'base') return english ? `${m}.en` : 'small';
+  return m.startsWith('large') ? 'large-v3' : english ? `${m}.en` : m;
+}
+
+export async function transcribeLocal(videoPath: string, jobId: string): Promise<TranscriptSegment[]> {
   const wav = path.join(TEMP_DIR, `${jobId}.wav`);
   const outBase = path.join(TEMP_DIR, `${jobId}_whisper`);
+  const hfDir = path.join(TEMP_DIR, `${jobId}_hf_transcribe`);
   try {
     await extractWav16k(videoPath, wav);
-    const threads = String(Math.max(2, Math.min(8, os.cpus().length - 1)));
-    await execFileAsync(
-      WHISPER_BIN,
-      ['-m', modelPath, '-f', wav, '-l', WHISPER_LANG, '-t', threads, '-ml', '48', '-sow', '-oj', '-of', outBase],
-      { maxBuffer: 1024 * 1024 * 64, timeout: 1000 * 60 * 60 }
-    );
-    const json = JSON.parse(fs.readFileSync(`${outBase}.json`, 'utf-8')) as {
-      transcription?: Array<{ offsets: { from: number; to: number }; text: string }>;
-    };
-    return (json.transcription ?? [])
-      .map((t, i) => ({
-        id: `seg_${i + 1}`,
-        start: round2(t.offsets.from / 1000),
-        end: round2(t.offsets.to / 1000),
-        text: t.text.replace(/\[.*?\]|\(.*?\)/g, '').trim(),
-        speaker: 'Speaker',
-      }))
-      .filter((s) => s.text.length > 0 && s.end > s.start);
+    let words: WordTiming[];
+    if (await hasBinary(WHISPER_BIN, ['--help'])) {
+      words = await whisperCliWords(wav, outBase);
+    } else if (hyperframesWhisperUsable()) {
+      console.log('[clipforge] whisper-cli not found — transcribing through HyperFrames (Whisper)');
+      fs.mkdirSync(hfDir, { recursive: true });
+      words = (await transcribeWords(wav, hfDir, hyperframesModel(), WHISPER_LANG)).map((w) => ({ ...w, text: cleanWord(w.text) }));
+    } else {
+      throw new Error('No speech-to-text engine: install whisper.cpp (whisper-cli) or run npm install for HyperFrames.');
+    }
+    return wordsToSegments(words.filter((w) => w.text));
   } finally {
-    for (const f of [wav, `${outBase}.json`]) if (fs.existsSync(f)) fs.rmSync(f, { force: true });
+    for (const f of [wav, `${outBase}.json`]) fs.rmSync(f, { force: true });
+    fs.rmSync(hfDir, { recursive: true, force: true });
   }
 }
 
@@ -164,7 +246,8 @@ interface RawClip {
 async function selectWithOllama(
   transcript: TranscriptSegment[],
   duration: number,
-  preset: ClipLengthPreset
+  preset: ClipLengthPreset,
+  onWindow?: (done: number, total: number) => void
 ): Promise<{ summary: string; clips: RawClip[] }> {
   const [minLen, maxLen] = lengthRange(preset, duration);
   const lines = transcript.map((s) => `[${s.start.toFixed(1)}-${s.end.toFixed(1)}] ${s.text}`);
@@ -186,7 +269,8 @@ async function selectWithOllama(
   const all: RawClip[] = [];
   let summary = '';
 
-  for (const win of windows) {
+  for (const [wi, win] of windows.entries()) {
+    onWindow?.(wi, windows.length);
     const prompt = `You are a viral short-form video editor (like Vizard / Opus Clip).
 Below is a timestamped transcript (seconds). Pick up to ${perWindow} standalone highlight clips that would perform well as TikTok/Reels/Shorts.
 Rules:
@@ -317,11 +401,15 @@ export async function analyzeVideoAndSelectClips(params: {
   videoPath: string;
   metadata: VideoMetadata;
   clipLengthPreset: ClipLengthPreset;
+  onProgress?: ProgressFn;
 }): Promise<{ summary: string; transcript: TranscriptSegment[]; clips: ClipCandidate[] }> {
   const { projectId, videoPath, metadata, clipLengthPreset } = params;
+  const progress = params.onProgress ?? (() => {});
   const duration = Math.max(1, metadata.duration);
 
+  progress('transcribe', 'Transcribing speech with Whisper', 15);
   const transcript = metadata.hasAudio ? await transcribeLocal(videoPath, projectId) : [];
+  progress('select', 'Finding the best moments', 60);
   const max = targetCount(duration);
 
   let summary = '';
@@ -329,7 +417,9 @@ export async function analyzeVideoAndSelectClips(params: {
   let engine = 'heuristic';
   if (transcript.length) {
     try {
-      const r = await selectWithOllama(transcript, duration, clipLengthPreset);
+      const r = await selectWithOllama(transcript, duration, clipLengthPreset, (d, t) =>
+        progress('select', `Ranking highlights with ${OLLAMA_MODEL} (${d + 1}/${t})`, 60 + (30 * d) / t)
+      );
       summary = r.summary;
       raw = r.clips;
       engine = `Ollama ${OLLAMA_MODEL}`;
@@ -356,6 +446,7 @@ export async function analyzeVideoAndSelectClips(params: {
     );
   }
 
+  progress('finalise', 'Snapping clips to sentences', 95);
   return {
     summary: (summary || transcript.slice(0, 2).map((s) => s.text).join(' ') || 'Video segmented into clips.') + ` (selected by ${engine})`,
     transcript,
@@ -371,23 +462,13 @@ export async function analyzeYoutubeUrlDirect(_: {
   throw new Error('Could not download this YouTube video locally (yt-dlp failed). Download it manually and upload the file.');
 }
 
-/** Sample video using the OS's built-in offline text-to-speech (macOS `say`, Linux `espeak-ng`, Windows SAPI). */
+/** Sample video narrated by local TTS (HyperFrames Kokoro, else the OS voice). */
 export async function createDemoVideoAsset(outMp4Path: string): Promise<void> {
   const script =
     "Most creators spend four hours editing a single podcast episode, only to publish one horizontal video that nobody finishes. Here is the shift. Short-form clips are not trailers, they are standalone ideas. Why does that matter? Because the first two seconds decide everything. Never start with hey guys welcome back. Start with the sharpest claim or the most surprising number you said. Here's the biggest mistake I see. People think captions are optional. They are not. Eighty five percent of viewers watch on mute. Finally, keep everything local. No cloud lock-in, no subscriptions, and zero watermarks on your brand.";
   const wav = path.join(TEMP_DIR, `demo_tts_${Date.now()}.wav`);
   try {
-    if (process.platform === 'darwin') {
-      const aiff = wav.replace(/\.wav$/, '.aiff');
-      await execFileAsync('say', ['-o', aiff, script]);
-      await execFileAsync('ffmpeg', ['-y', '-i', aiff, wav]);
-      fs.rmSync(aiff, { force: true });
-    } else if (process.platform === 'win32') {
-      const ps = `Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.SetOutputToWaveFile('${wav}'); $s.Speak(@'\n${script}\n'@); $s.Dispose()`;
-      await execFileAsync('powershell', ['-NoProfile', '-Command', ps]);
-    } else {
-      await execFileAsync('espeak-ng', ['-w', wav, script]).catch(() => execFileAsync('espeak', ['-w', wav, script]));
-    }
+    await speak(script, wav);
     await renderDemoMp4FromAudio(wav, outMp4Path);
   } finally {
     fs.rmSync(wav, { force: true });

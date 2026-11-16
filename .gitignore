@@ -144,3 +144,7 @@ data/
 *.wav
 *.bin
 .DS_Store
+
+# ClipForge asset library: generated drawings are a cache (redrawn on demand); your own PNGs stay tracked
+assets/library/generated/
+assets/library/index.json

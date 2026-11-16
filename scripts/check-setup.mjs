@@ -1,5 +1,11 @@
 // Checks that local engines are installed and prints the exact install command for anything missing.
+import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { refreshWindowsPath } from './win-path.mjs';
+
+refreshWindowsPath();
 
 const os = process.platform;
 const has = (bin, args = ['--help']) => {
@@ -11,12 +17,31 @@ const hint = {
   'whisper-cli': { darwin: 'brew install whisper-cpp', linux: 'build from https://github.com/ggml-org/whisper.cpp', win32: 'download whisper-bin-x64.zip from github.com/ggml-org/whisper.cpp/releases and add to PATH' },
   ollama: { darwin: 'brew install ollama  (or download from ollama.com)', linux: 'curl -fsSL https://ollama.com/install.sh | sh', win32: 'winget install Ollama.Ollama' },
 };
+
 let ok = true;
-for (const [bin, args] of [['ffmpeg', ['-version']], [process.env.WHISPER_BIN || 'whisper-cli', ['--help']], ['ollama', ['--version']]]) {
+const whisperBin = process.env.WHISPER_BIN || 'whisper-cli';
+const hfCli = path.join(process.cwd(), 'node_modules', 'hyperframes', 'bin', 'hyperframes.mjs');
+const hyperframes = fs.existsSync(hfCli);
+
+for (const [bin, args, required] of [['ffmpeg', ['-version'], true], [whisperBin, ['--help'], false], ['ollama', ['--version'], false]]) {
   const found = has(bin, args);
-  console.log(`${found ? '✔' : '✘'} ${bin}${found ? '' : `  →  ${hint[bin]?.[os] ?? 'install it'}`}`);
-  if (!found && bin !== 'ollama') ok = false;
+  let note = '';
+  if (!found && bin === whisperBin) note = hyperframes && os !== 'win32' ? '  (optional — HyperFrames can install Whisper on first use)' : '';
+  console.log(`${found ? '✔' : '✘'} ${bin}${found ? '' : `  →  ${hint[bin]?.[os] ?? 'install it'}${note}`}`);
+  if (!found && required) ok = false;
+  if (!found && bin === whisperBin && (!hyperframes || os === 'win32') && !process.env.HYPERFRAMES_WHISPER_PATH) ok = false;
 }
+
+console.log(`${hyperframes ? '✔' : '✘'} HyperFrames (motion captions, hook titles, TTS)${hyperframes ? '' : '  →  npm install'}`);
+
+// Kokoro TTS is a Python package used by `hyperframes tts`
+let kokoro = false;
+for (const py of [process.env.HYPERFRAMES_PYTHON, 'python3', 'python', 'py'].filter(Boolean)) {
+  try { execFileSync(py, ['-c', 'import kokoro_onnx, soundfile'], { stdio: 'ignore', timeout: 15000 }); kokoro = true; break; }
+  catch { /* try next */ }
+}
+console.log(`${kokoro ? '✔' : '–'} Kokoro TTS (natural AI voices)${kokoro ? '' : '  →  optional: pip install kokoro-onnx soundfile  (system voice is used otherwise)'}`);
+
 const model = process.env.OLLAMA_MODEL || 'qwen2.5:3b';
 try {
   const tags = await (await fetch('http://127.0.0.1:11434/api/tags')).json();

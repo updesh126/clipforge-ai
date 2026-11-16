@@ -26,6 +26,17 @@ import {
   parseYoutubeUrl,
 } from './server/youtube.ts';
 import type { AspectRatio, CaptionStyle, Framing, ClipLengthPreset, ClipProject } from './server/types.ts';
+import { getJob, progressFor } from './server/progress.ts';
+import { blankEdit, deleteEdit, editFromClip, getEdit, linkMediaFile, readEdits, saveEdit } from './server/edits.ts';
+import { editWithAI } from './server/editAI.ts';
+import { renderEdit } from './server/remotion.ts';
+import { scriptToVideo, voiceFilesOf } from './server/scriptVideo.ts';
+import { ASSETS_DIR, cleanSpec, ensureAsset, ensureAssetDirs, importUserPng, searchAssets } from './server/assets.ts';
+import type { AssetType } from './src/assetkit/types.ts';
+import type { EditProject } from './src/editor/types.ts';
+import { refreshWindowsPath } from './scripts/win-path.mjs';
+
+refreshWindowsPath(); // pick up tools installed after this terminal was opened (winget etc.)
 
 // Prefer a caption-capable FFmpeg (Homebrew `ffmpeg-full` has libass) and make Homebrew tools visible
 // even when launched from an app without a login shell. Override with FFMPEG_DIR.
@@ -70,6 +81,8 @@ async function previewUrlFor(
 // Serve local uploaded videos and watermark-free exported clips with range support (via express.static)
 app.use('/media/uploads', express.static(UPLOADS_DIR));
 app.use('/media/exports', express.static(EXPORTS_DIR));
+ensureAssetDirs();
+app.use('/media/assets', express.static(ASSETS_DIR));
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
@@ -94,6 +107,11 @@ const upload = multer({
 // Local engine health (ffmpeg / whisper.cpp / Ollama)
 app.get('/api/health', async (_req, res) => {
   res.json(await getEngineStatus());
+});
+
+// Live progress for a long-running analyse / export request (the browser polls this)
+app.get('/api/jobs/:id', (req, res) => {
+  res.json({ job: getJob(req.params.id) });
 });
 
 // List all local projects
@@ -126,12 +144,15 @@ app.post('/api/projects/upload', upload.single('video'), async (req, res) => {
     path.basename(file.originalname, path.extname(file.originalname));
 
   try {
+    const progress = progressFor(req.body?.jobId);
+    progress('probe', 'Reading video with FFprobe', 5);
     const metadata = await probeVideo(file.path);
     const analysis = await analyzeVideoAndSelectClips({
       projectId,
       videoPath: file.path,
       metadata,
       clipLengthPreset,
+      onProgress: progress,
     });
 
     const now = new Date().toISOString();
@@ -174,6 +195,8 @@ app.post('/api/projects/demo', async (req, res) => {
   const videoPath = path.join(UPLOADS_DIR, fileName);
 
   try {
+    const progress = progressFor(req.body?.jobId);
+    progress('tts', 'Narrating sample video (text-to-speech)', 3);
     await createDemoVideoAsset(videoPath);
     const metadata = await probeVideo(videoPath);
     const analysis = await analyzeVideoAndSelectClips({
@@ -181,6 +204,7 @@ app.post('/api/projects/demo', async (req, res) => {
       videoPath,
       metadata,
       clipLengthPreset,
+      onProgress: progress,
     });
 
     const now = new Date().toISOString();
@@ -215,7 +239,8 @@ app.post('/api/projects/demo', async (req, res) => {
 });
 
 // Native OS file picker shown on this PC. Returns the real path so the video is used in place (never uploaded).
-app.get('/api/pick-file', async (_req, res) => {
+app.get('/api/pick-file', async (req, res) => {
+  const anyMedia = req.query.kind === 'media';
   const { execFile } = await import('node:child_process');
   const run = (cmd: string, args: string[]) =>
     new Promise<string>((resolve, reject) =>
@@ -235,7 +260,7 @@ app.get('/api/pick-file', async (_req, res) => {
         '-NoProfile',
         '-STA',
         '-Command',
-        "Add-Type -AssemblyName System.Windows.Forms; $f=New-Object System.Windows.Forms.OpenFileDialog; $f.Filter='Videos|*.mp4;*.mov;*.mkv;*.webm;*.avi;*.m4v|All files|*.*'; $f.Title='Choose a video for ClipForge'; if($f.ShowDialog() -eq 'OK'){ $f.FileName }",
+        "Add-Type -AssemblyName System.Windows.Forms; $f=New-Object System.Windows.Forms.OpenFileDialog; $f.Filter='" + (anyMedia ? 'Media|*.mp4;*.mov;*.mkv;*.webm;*.m4v;*.mp3;*.wav;*.m4a;*.aac;*.png;*.jpg;*.jpeg;*.webp;*.gif|' : '') + "Videos|*.mp4;*.mov;*.mkv;*.webm;*.avi;*.m4v|All files|*.*'; $f.Title='Choose a video for ClipForge'; if($f.ShowDialog() -eq 'OK'){ $f.FileName }",
       ]);
     } else {
       picked = await run('zenity', ['--file-selection', '--title=Choose a video for ClipForge']).catch(() =>
@@ -271,8 +296,10 @@ app.post('/api/projects/local', async (req, res) => {
     } catch {
       fs.linkSync(srcPath, linkPath); // Windows without symlink rights: hard link (same drive)
     }
+    const progress = progressFor(req.body?.jobId);
+    progress('probe', 'Reading video with FFprobe', 5);
     const metadata = await probeVideo(linkPath);
-    const analysis = await analyzeVideoAndSelectClips({ projectId, videoPath: linkPath, metadata, clipLengthPreset });
+    const analysis = await analyzeVideoAndSelectClips({ projectId, videoPath: linkPath, metadata, clipLengthPreset, onProgress: progress });
     const now = new Date().toISOString();
     const project: ClipProject = {
       id: projectId,
@@ -318,6 +345,8 @@ app.post('/api/projects/youtube', async (req, res) => {
     const oembed = await fetchYoutubeOembed(parsed.normalizedUrl);
     const projectName = oembed.title || `YouTube Video (${parsed.videoId})`;
 
+    const progress = progressFor(req.body?.jobId);
+    progress('download', 'Downloading from YouTube (yt-dlp)', 2);
     const dlResult = await downloadYoutubeMp4(parsed.normalizedUrl, videoPath);
     const now = new Date().toISOString();
 
@@ -328,6 +357,7 @@ app.post('/api/projects/youtube', async (req, res) => {
         videoPath,
         metadata,
         clipLengthPreset,
+        onProgress: progress,
       });
 
       const project: ClipProject = {
@@ -434,6 +464,7 @@ app.post('/api/projects/:id/reanalyze', async (req, res) => {
         videoPath,
         metadata: project.metadata,
         clipLengthPreset,
+        onProgress: progressFor(req.body?.jobId),
       });
     }
 
@@ -523,12 +554,20 @@ app.post('/api/projects/:id/clips/:clipId/export', async (req, res) => {
   const burnCaptions = Boolean(req.body?.burnCaptions ?? captionStyle !== 'off');
   const start = typeof req.body?.start === 'number' ? req.body.start : clip.start;
   const end = typeof req.body?.end === 'number' ? req.body.end : clip.end;
+  const hookTitle = typeof req.body?.hookTitle === 'boolean' ? req.body.hookTitle : Boolean(clip.hookTitle);
+  const voiceIntro = typeof req.body?.voiceIntro === 'boolean' ? req.body.voiceIntro : Boolean(clip.voiceIntro);
+  const voice = typeof req.body?.voice === 'string' && /^[a-z]{2}_[a-z]+$/.test(req.body.voice) ? req.body.voice : clip.voice;
 
   try {
-    const { mp4FileName, srtFileName, burned } = await exportClipWithFfmpeg({
+    const { mp4FileName, srtFileName, burned, engine, warning } = await exportClipWithFfmpeg({
       sourcePath,
       metadata: project.metadata,
       clipId: clip.id,
+      title: clip.title,
+      hookTitle,
+      voiceIntro,
+      voice,
+      onProgress: progressFor(req.body?.jobId),
       start,
       end,
       aspectRatio,
@@ -548,6 +587,7 @@ app.post('/api/projects/:id/clips/:clipId/export', async (req, res) => {
       srtUrl: `/media/exports/${srtFileName}`,
       createdAt: new Date().toISOString(),
       burnedCaptions: burned,
+      engine,
     };
 
     const updatedClip = {
@@ -560,6 +600,9 @@ app.post('/api/projects/:id/clips/:clipId/export', async (req, res) => {
       zoom,
       framing,
       captionStyle,
+      hookTitle,
+      voiceIntro,
+      voice,
       exportedFiles: [exportRecord, ...(clip.exportedFiles ?? [])].slice(0, 6),
     };
 
@@ -573,7 +616,7 @@ app.post('/api/projects/:id/clips/:clipId/export', async (req, res) => {
     };
     upsertProject(updatedProject);
 
-    res.json({ exportRecord, project: updatedProject });
+    res.json({ exportRecord, project: updatedProject, warning });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'FFmpeg export failed.';
     res.status(500).json({ error: message });
@@ -599,6 +642,194 @@ app.delete('/api/projects/:id', (req, res) => {
     return;
   }
   res.json({ ok: true });
+});
+
+// ---------------- Editor (Remotion) ----------------
+app.get('/api/edits', (_req, res) => {
+  res.json({ edits: readEdits().map(({ items, ...rest }) => ({ ...rest, itemCount: items.length })) });
+});
+
+app.get('/api/edits/:id', (req, res) => {
+  const edit = getEdit(req.params.id);
+  if (!edit) {
+    res.status(404).json({ error: 'Edit not found.' });
+    return;
+  }
+  res.json({ edit });
+});
+
+// New edit: blank, or auto-built from an AI clip ({ projectId, clipId })
+app.post('/api/edits', (req, res) => {
+  const { projectId, clipId, name, aspect } = (req.body ?? {}) as Record<string, string>;
+  if (projectId && clipId) {
+    const project = getProjectById(projectId);
+    const clip = project?.clips.find((c) => c.id === clipId);
+    if (!project || !clip) {
+      res.status(404).json({ error: 'Clip not found.' });
+      return;
+    }
+    if (project.sourceType === 'youtube-embed') {
+      res.status(400).json({ error: 'This YouTube video was not downloaded, so it cannot be edited locally.' });
+      return;
+    }
+    res.status(201).json({ edit: saveEdit(editFromClip(project, clip)) });
+    return;
+  }
+  res.status(201).json({ edit: saveEdit(blankEdit(name || 'Untitled edit', aspect || '9:16')) });
+});
+
+app.put('/api/edits/:id', (req, res) => {
+  const current = getEdit(req.params.id);
+  if (!current) {
+    res.status(404).json({ error: 'Edit not found.' });
+    return;
+  }
+  const body = (req.body ?? {}) as Partial<EditProject>;
+  const next: EditProject = {
+    ...current,
+    name: typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 80) : current.name,
+    width: [1080, 1920].includes(Number(body.width)) || Number(body.width) === 1350 ? Number(body.width) : current.width,
+    height: [1080, 1350, 1920].includes(Number(body.height)) ? Number(body.height) : current.height,
+    background: typeof body.background === 'string' && /^#[0-9a-f]{3,8}$/i.test(body.background) ? body.background : current.background,
+    items: Array.isArray(body.items) ? (body.items as EditProject['items']) : current.items,
+  };
+  res.json({ edit: saveEdit(next) });
+});
+
+app.delete('/api/edits/:id', (req, res) => {
+  const edit = getEdit(req.params.id);
+  const ok = deleteEdit(req.params.id);
+  // voice-over clips made by Script → Video belong to this edit only
+  for (const f of edit ? voiceFilesOf(edit) : []) fs.rmSync(f, { force: true });
+  res.status(ok ? 200 : 404).json({ ok });
+});
+
+// ---------------- Asset library ----------------
+app.get('/api/assets', (req, res) => {
+  const q = String(req.query.q ?? '').slice(0, 80);
+  const style = String(req.query.style ?? '') || undefined;
+  const category = String(req.query.category ?? '') || undefined;
+  res.json({ assets: searchAssets(q, { style, category }).slice(0, 200), folder: ASSETS_DIR });
+});
+
+// Draw (or reuse) an asset in a style: built-in recipe, or a new one designed by the local LLM
+app.post('/api/assets/generate', async (req, res) => {
+  const b = (req.body ?? {}) as Record<string, unknown>;
+  const name = String(b.name ?? '').trim().slice(0, 60);
+  if (!name) {
+    res.status(400).json({ error: 'Give the asset a name.' });
+    return;
+  }
+  const types: AssetType[] = ['person', 'animal', 'bird', 'fish', 'tree', 'mountain', 'building', 'object', 'background'];
+  const type = types.includes(b.type as AssetType) ? (b.type as AssetType) : undefined;
+  try {
+    const asset = await ensureAsset(name, {
+      style: String(b.style ?? 'flat').slice(0, 30),
+      type,
+      aspect: typeof b.aspect === 'string' ? b.aspect : undefined,
+      spec: b.spec && typeof b.spec === 'object' && type ? cleanSpec(b.spec as Record<string, unknown>, type) : undefined,
+      preferGenerated: true,
+    });
+    res.status(201).json({ asset });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not draw the asset.' });
+  }
+});
+
+// Copy one of your own PNGs into the library, recording its source and licence
+app.post('/api/assets/import', (req, res) => {
+  const b = (req.body ?? {}) as Record<string, string>;
+  const src = path.resolve(String(b.path ?? '').replace(/^["']|["']$/g, ''));
+  if (!/\.png$/i.test(src) || !fs.existsSync(src)) {
+    res.status(400).json({ error: 'Pick an existing .png file.' });
+    return;
+  }
+  try {
+    res.status(201).json({ asset: importUserPng(src, String(b.category ?? 'props'), String(b.name ?? ''), { source: b.source, licence: b.licence }) });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Import failed.' });
+  }
+});
+
+// Script → video: voice-over + motion graphics + captions, built as an editable edit
+app.post('/api/script-video', async (req, res) => {
+  const b = (req.body ?? {}) as Record<string, string>;
+  const script = String(b.script ?? '').slice(0, 20000);
+  if (!script.trim()) {
+    res.status(400).json({ error: 'Paste a script first.' });
+    return;
+  }
+  try {
+    const edit = await scriptToVideo(
+      { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story' },
+      progressFor(b.jobId)
+    );
+    res.status(201).json({ edit });
+  } catch (err) {
+    console.error('[clipforge] script-video failed:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not build the video.' });
+  }
+});
+
+// Edit by prompt with the local LLM
+app.post('/api/edits/:id/ai', async (req, res) => {
+  const edit = getEdit(req.params.id);
+  const instruction = String(req.body?.instruction ?? '').trim().slice(0, 1000);
+  if (!edit || !instruction) {
+    res.status(400).json({ error: edit ? 'Type what you want changed.' : 'Edit not found.' });
+    return;
+  }
+  try {
+    const result = await editWithAI(edit, instruction);
+    const saved = result.applied ? saveEdit(result.edit) : edit;
+    res.json({ edit: saved, reply: result.reply, applied: result.applied });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'AI edit failed.' });
+  }
+});
+
+// Local Remotion render → MP4 in data/exports
+app.post('/api/edits/:id/render', async (req, res) => {
+  const edit = getEdit(req.params.id);
+  if (!edit) {
+    res.status(404).json({ error: 'Edit not found.' });
+    return;
+  }
+  try {
+    const out = await renderEdit(edit, PORT, progressFor(req.body?.jobId));
+    const record = { ...out, createdAt: new Date().toISOString() };
+    const saved = saveEdit({ ...edit, exports: [record, ...(edit.exports ?? [])].slice(0, 10) });
+    res.json({ edit: saved, export: record });
+  } catch (err) {
+    console.error('[clipforge] Remotion render failed:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Render failed.' });
+  }
+});
+
+// Add a file from disk to the editor's media (linked in place, not copied when possible)
+app.post('/api/assets/local', async (req, res) => {
+  const raw = String(req.body?.path ?? '').trim().replace(/^["']|["']$/g, '');
+  const src = path.resolve(raw);
+  if (!raw || !fs.existsSync(src) || !fs.statSync(src).isFile()) {
+    res.status(400).json({ error: `File not found: ${raw || '(empty path)'}` });
+    return;
+  }
+  const ext = path.extname(src).toLowerCase();
+  const kind = ['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext) ? 'image' : ['.mp3', '.wav', '.m4a', '.aac', '.ogg'].includes(ext) ? 'audio' : 'video';
+  try {
+    const { url, fileName } = linkMediaFile(src);
+    let duration = kind === 'image' ? 4 : 10;
+    if (kind !== 'image') {
+      try {
+        duration = (await probeVideo(path.join(UPLOADS_DIR, fileName))).duration || duration;
+      } catch {
+        // keep default
+      }
+    }
+    res.status(201).json({ asset: { url, kind, name: path.basename(src), duration } });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not add media.' });
+  }
 });
 
 async function startServer() {

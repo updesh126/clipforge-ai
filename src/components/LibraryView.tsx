@@ -33,7 +33,7 @@ export function LibraryView({
           <button
             type="button"
             onClick={onNewVideo}
-            className="mt-6 rounded-lg bg-[#4F8BFF] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3b7af5] transition-colors cursor-pointer"
+            className="mt-6 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-black hover:bg-accent-strong transition-colors cursor-pointer"
           >
             Import First Video
           </button>
@@ -85,7 +85,7 @@ export function LibraryView({
                       {project.name}
                     </h3>
                     {isActive && (
-                      <span className="text-[11px] font-medium text-[#4F8BFF] whitespace-nowrap shrink-0">
+                      <span className="text-[11px] font-medium text-accent whitespace-nowrap shrink-0">
                         Active
                       </span>
                     )}
@@ -123,7 +123,7 @@ export function LibraryView({
                   <button
                     type="button"
                     onClick={() => onOpenProject(project)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#4F8BFF] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#3b7af5] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-accent-strong transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     <FolderOpen className="h-3.5 w-3.5" />
                     Open

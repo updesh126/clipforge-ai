@@ -1,74 +1,80 @@
 export function ArchitectureView() {
   const stackLayers = [
     {
-      layer: '01. Local Media Engine',
-      tech: 'FFmpeg + FFprobe (Native Binary)',
-      role: 'Extracts mono 16kHz audio or keyframes, probes resolution/FPS, applies 9:16 and 1:1 pan-crops, burns ASS subtitles, and exports watermark-free H.264 MP4s.',
+      layer: '01. Speech to text',
+      tech: 'Whisper (whisper.cpp, or Whisper via HyperFrames)',
+      role: 'Transcribes speech locally with word-level timestamps — the basis for clip selection and karaoke captions. 99 languages.',
     },
     {
-      layer: '02. AI Clip Selection',
-      tech: 'whisper.cpp + Ollama (qwen2.5:3b) — fully offline',
-      role: 'whisper.cpp transcribes speech locally; a small Ollama LLM ranks viral highlight windows. Falls back to a built-in heuristic scorer when Ollama is not running.',
+      layer: '02. Clip selection',
+      tech: 'Ollama (qwen2.5:3b) + built-in scorer',
+      role: 'A small local LLM ranks highlight windows 0–100 for virality. Without Ollama, a heuristic scorer still picks clips automatically.',
     },
     {
-      layer: '03. Local Workspace Store',
-      tech: 'Express 4 + Local Filesystem (data/)',
-      role: 'Persists uploaded source files, project manifests, edited captions, and rendered exports locally on disk with zero cloud lock-in.',
+      layer: '03. Framing & encoding',
+      tech: 'FFmpeg + FFprobe',
+      role: 'Probes media, crops/fits to 9:16 · 1:1 · 16:9 with zoom and pan, burns ASS captions (incl. \\k karaoke), mixes audio and writes 1080p H.264 + SRT.',
     },
     {
-      layer: '04. Pure-Black Studio UI',
-      tech: 'React 19 + TypeScript + Tailwind CSS v4',
-      role: 'Microsoft Clips-inspired 3-pane workspace with real-time aspect-ratio preview, synced caption editor, and precision In/Out trim scrubber.',
+      layer: '04. Motion graphics',
+      tech: 'HyperFrames (HTML + GSAP → MP4)',
+      role: 'Renders animated karaoke / pop captions, hook-title banners and intro cards in headless Chrome over the FFmpeg-framed footage.',
+    },
+    {
+      layer: '05. Voice',
+      tech: 'Kokoro-82M TTS via HyperFrames (system voice fallback)',
+      role: 'Speaks the clip title for voice intros and narrates the sample video — offline, no API key.',
+    },
+    {
+      layer: '06. Studio',
+      tech: 'React 19 + Tailwind v4 · Express · JSON store',
+      role: 'Three-pane studio with live caption preview, trim, platform presets, export queue and live pipeline progress. Everything stays in data/.',
     },
   ];
 
   const roadmapPhases = [
     {
-      phase: 'Phase 1 — MVP (Implemented Today)',
+      phase: 'Done',
       items: [
-        'Local drag-and-drop video upload + 1-click offline-TTS sample session generator',
-        'FFprobe media inspection & compressed audio/keyframe extraction',
-        'Automatic AI transcription & non-overlapping viral clip selection',
-        'Pure-black 3-pane studio with 9:16 / 1:1 / 16:9 crop preview & pan control',
-        'Live editable synced captions & watermark-free FFmpeg MP4 + SRT export',
+        'Local upload / path / YouTube / TTS sample → automatic clips',
+        'Word-level Whisper timings + karaoke, pop, bold and clean captions',
+        'HyperFrames motion captions, hook titles and voice intro cards',
+        'Live pipeline progress, engine status and Export all',
       ],
     },
     {
-      phase: 'Phase 2 — Smart Reframe & Local Models',
+      phase: 'Next',
       items: [
-        'Active-speaker face tracking with automatic per-shot Crop X keyframes',
-        'Word-level timestamps from whisper.cpp for karaoke captions',
-        'Word-level karaoke highlight timestamps in ASS subtitle renderer',
-        'Batch export queue to render all selected clips in one click',
-      ],
-    },
-    {
-      phase: 'Phase 3 — Desktop Packaging & B-Roll',
-      items: [
-        'Electron / Tauri desktop wrapper with bundled static FFmpeg binary',
+        'Active-speaker face tracking with automatic reframe keyframes',
         'Silence & filler-word auto-cut (jump-cut compaction)',
-        'Custom font presets, brand safe-zone guides, and 4K 60fps hardware encoding',
+        'Publish kit per clip: title, description and hashtags',
+      ],
+    },
+    {
+      phase: 'Later',
+      items: [
+        'Tauri desktop app with bundled FFmpeg + whisper.cpp',
+        'Brand caption presets and safe-zone guides',
+        'GPU encode (NVENC / VideoToolbox)',
       ],
     },
   ];
 
   const treeText = `clipforge-ai/
-├── server.ts                  # Express + Vite middleware entrypoint (port 3000)
+├── server.ts                  # Express + Vite middleware (port 3000) + job progress API
 ├── server/
-│   ├── ai.ts                  # Local whisper.cpp + Ollama pipeline (heuristic fallback)
-│   ├── media.ts               # FFprobe inspection, ASS/SRT builder, FFmpeg MP4 export
-│   ├── store.ts               # Local JSON persistence & file cleanup (data/)
-│   └── types.ts               # Shared domain models
+│   ├── ai.ts                  # Whisper (word-level) + Ollama pipeline, heuristic fallback
+│   ├── media.ts               # FFprobe, ASS/SRT, FFmpeg export, HyperFrames export path
+│   ├── hyperframes.ts         # HyperFrames render / TTS / transcribe wrapper + compositions
+│   ├── tts.ts                 # Kokoro TTS with system-voice fallback
+│   ├── progress.ts            # In-memory job progress for the UI
+│   ├── store.ts               # Local JSON persistence (data/)
+│   └── types.ts
 ├── src/
-│   ├── App.tsx                # Root workspace navigation & project state
-│   ├── index.css              # Pure-black theme & typography setup
-│   └── components/
-│       ├── TopBar.tsx         # Minimal 3-zone header
-│       ├── UploadStage.tsx    # Dropzone, length presets & sample generator
-│       ├── StudioWorkspace.tsx# 3-pane Clip Queue / Video Stage / Transcript Editor
-│       ├── LibraryView.tsx    # Local project & export manager
-│       └── ArchitectureView.tsx
-└── data/                      # Gitignored local storage (uploads/, exports/, projects.json)`;
+│   ├── App.tsx                # Project state, progress polling, engine status
+│   ├── utils/api.ts           # withProgress() helper
+│   └── components/            # TopBar, UploadStage, StudioWorkspace, LibraryView, ArchitectureView
+└── data/                      # Gitignored: uploads/, exports/, models/, temp/, projects.json`;
 
   return (
     <div className="flex-1 bg-black overflow-y-auto px-6 py-8">
@@ -78,7 +84,7 @@ export function ArchitectureView() {
             Technical Architecture & Development Plan
           </h1>
           <p className="mt-2.5 text-sm text-zinc-400 max-w-2xl leading-relaxed">
-            ClipForge AI is engineered as an open-source, local-first video clipping studio. Source footage stays on your machine, FFmpeg handles deterministic frame-accurate exports without watermarks, and structured multimodal reasoning selects standalone clips automatically.
+            Open-source and local-first. Your footage never leaves this computer: Whisper transcribes, a local LLM picks the moments, FFmpeg frames and encodes, and HyperFrames adds motion captions and voice intros.
           </p>
         </section>
 
@@ -87,13 +93,13 @@ export function ArchitectureView() {
           <h2 className="font-display text-lg font-semibold text-white mb-4">
             System Architecture
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stackLayers.map((item) => (
               <div
                 key={item.layer}
                 className="rounded-xl border border-zinc-900 bg-[#09090B] p-5"
               >
-                <p className="font-mono text-xs text-[#4F8BFF]">{item.layer}</p>
+                <p className="font-mono text-xs text-accent">{item.layer}</p>
                 <h3 className="mt-1.5 text-sm font-semibold text-white">
                   {item.tech}
                 </h3>
