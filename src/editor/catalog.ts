@@ -220,3 +220,26 @@ export const EFFECTS: Record<EffectId, { label: string; description: string; dur
   whipPan: { label: 'Whip pan', description: 'Fast blurred swipe — place it across a scene cut', duration: 0.5 },
   irisWipe: { label: 'Iris wipe', description: 'Ink circle closes and opens — place it across a scene cut', duration: 0.8 },
 };
+
+/** Shown when hovering a style in the picker. */
+export interface StyleInfo {
+  origin: string;
+  look: string;
+  bestFor: string;
+  palette: string[];
+}
+
+export const STYLE_INFO: Record<string, StyleInfo> = {
+  auto: { origin: 'ClipForge', look: 'Your local AI reads the script and picks the style that suits the topic.', bestFor: 'When you are not sure — rivers might get ink wash, a village story Warli', palette: ['#B5E2DD', '#D8CCE8', '#F4C7D6', '#FBDFCB'] },
+  mix: { origin: 'ClipForge', look: 'Every scene in a different art style, cycling through all ten.', bestFor: 'Showreels, montages, "world of art" pieces', palette: ['#C1272D', '#0B3D91', '#FFB347', '#2E6B3A'] },
+  madhubani: { origin: 'Mithila, Bihar (India)', look: 'Bold double outlines, every shape filled with fine hatching; fish, sun and peacock motifs.', bestFor: 'Indian culture, festivals, folk tales, rural life', palette: ['#C1272D', '#F4B400', '#2E7D32', '#1F4E9E', '#F6E7C1'] },
+  inkWash: { origin: 'China / Japan (sumi-e)', look: 'Grey brush ink bleeding into rice paper, misty mountains, a small red seal.', bestFor: 'Nature, calm reflection, philosophy, poetry', palette: ['#141414', '#5E5E5A', '#9A9A96', '#EFEAE0', '#B3261E'] },
+  shadowPuppet: { origin: 'Tholu Bommalata (India), wayang kulit (Indonesia)', look: 'Perforated black puppets on sticks against a warm, flickering lamp-lit screen.', bestFor: 'Myths, legends, history, dramatic storytelling', palette: ['#1B0E05', '#5A230A', '#FFB347', '#FFE2A8'] },
+  paperCutout: { origin: 'Paper craft / diorama', look: 'Layered pastel paper hills and props with soft drop shadows.', bestFor: 'Kids, education, friendly explainers, product stories', palette: ['#FFADAD', '#FFD6A5', '#CAFFBF', '#A0C4FF', '#6D597A'] },
+  stainedGlass: { origin: 'Gothic cathedral windows', look: 'Jewel-tone glass pieces in dark leading, glowing with light.', bestFor: 'Heritage, spiritual, grand or celebratory moments', palette: ['#1E5AA8', '#C0392B', '#E0B53A', '#2E8B57', '#6C3483'] },
+  anime: { origin: 'Japanese animation', look: 'Speed lines, sparkles, sky gradients and slam-in titles.', bestFor: 'Youth, energy, hype, gaming, launches', palette: ['#3A7BD5', '#B06AB3', '#FF8FAB', '#FFD166'] },
+  warli: { origin: 'Warli tribe, Maharashtra (India)', look: 'White stick figures on earth-red — dancing circles, sun, moon, village life.', bestFor: 'Community, farming, sustainability, rural India', palette: ['#7A3B22', '#FFFFFF', '#A0522D'] },
+  blueprint: { origin: 'Engineering drawings', look: 'White line art drawn on a blue grid, with dimensions and a title block.', bestFor: 'Tech, product, engineering, how-it-works', palette: ['#0B3D91', '#5C8DD6', '#9CC3FF', '#FFFFFF'] },
+  ukiyoe: { origin: 'Edo-period Japan (woodblock prints)', look: 'Rolling Prussian-blue waves, a red sun, flat colour and paper grain.', bestFor: 'Travel, oceans, seasons, Japanese themes', palette: ['#1F2A44', '#5C7FA6', '#C8452F', '#E0B07A', '#F3E6CC'] },
+  miniature: { origin: 'Mughal / Rajput courts (India)', look: 'Gold floral border, arched window, cypress trees and jewel colours.', bestFor: 'History, royalty, weddings, luxury, heritage brands', palette: ['#8E1B1B', '#D4A537', '#2E6B3A', '#1B3A6B', '#E9A75A'] },
+};

@@ -15,7 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { AssetEntry, AssetSpec, AssetType } from '../src/assetkit/types.ts';
-import { CATEGORY_OF } from '../src/assetkit/types.ts';
+import { CATEGORY_OF, licenceStatus } from '../src/assetkit/types.ts';
 import { RECIPES, findRecipe, slug } from '../src/assetkit/catalog.ts';
 import { getBundle } from './remotion.ts';
 
@@ -26,7 +26,7 @@ const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const DESIGN_MODEL = process.env.OLLAMA_EDIT_MODEL || process.env.OLLAMA_MODEL || 'qwen2.5:3b';
 
 export function ensureAssetDirs() {
-  for (const f of FOLDERS) fs.mkdirSync(path.join(ASSETS_DIR, f), { recursive: true });
+  for (const f of [...FOLDERS, 'inbox']) fs.mkdirSync(path.join(ASSETS_DIR, f), { recursive: true });
   const readme = path.join(ASSETS_DIR, 'README.md');
   if (!fs.existsSync(readme)) {
     fs.writeFileSync(
@@ -44,6 +44,17 @@ Drop transparent PNGs into these folders and ClipForge will find them by file na
 - backgrounds/ full scenes (1080×1920 or 1920×1080 works best)
 
 Words in the file name become search tags. Characters should face right and stand on the bottom edge.
+
+## Quick import: inbox/
+Drop downloaded PNGs (e.g. from CleanPNG) into \`inbox/\`. ClipForge strips site prefixes and ids from the
+file name (\`kisspng-elephant-clip-art-5a3b….png\` → \`animals/elephant.png\`), sorts it into the right folder and
+marks it **unverified**. Story videos then use it instead of the drawn version.
+
+## Licences
+Your licence notes are kept in \`licences.json\` (tracked in git). Set them in the editor's Assets tab.
+Rendering a video that uses an unverified or personal-use-only PNG shows a warning.
+CleanPNG says licences differ per image — open each image page and check before using it in client work.
+
 \`generated/\` holds assets ClipForge drew itself — they are reused in future videos.
 
 Only add images you have the right to use (your own, CC0 / public domain, or properly licensed).
@@ -84,23 +95,139 @@ const TYPE_OF_FOLDER: Record<string, AssetType> = {
   backgrounds: 'background',
 };
 
+// ---------------------------------------------------------------- licences + inbox
+/** Licence notes for YOUR PNGs live in a small tracked file (the cache index is git-ignored). */
+const LICENCES = path.join(ASSETS_DIR, 'licences.json');
+export const INBOX_DIR = path.join(ASSETS_DIR, 'inbox');
+
+type LicenceNote = { source?: string; licence?: string; checkedAt?: string };
+
+function readLicences(): Record<string, LicenceNote> {
+  try {
+    return JSON.parse(fs.readFileSync(LICENCES, 'utf-8')) as Record<string, LicenceNote>;
+  } catch {
+    return {};
+  }
+}
+
+const relKey = (abs: string) => path.relative(ASSETS_DIR, abs).split(path.sep).join('/');
+
+export function setLicence(url: string, note: LicenceNote) {
+  const rel = decodeURIComponent(url.replace('/media/assets/', ''));
+  if (rel.includes('..') || !fs.existsSync(path.join(ASSETS_DIR, rel))) throw new Error('Asset not found.');
+  const all = readLicences();
+  // only overwrite fields that were actually given (keeps the recorded source when just the licence changes)
+  const given = Object.fromEntries(Object.entries(note).filter(([, v]) => v !== undefined && v !== ''));
+  all[rel] = { ...all[rel], ...given, checkedAt: new Date().toISOString() };
+  fs.writeFileSync(LICENCES, JSON.stringify(all, null, 2), 'utf-8');
+  return all[rel];
+}
+
+/**
+ * Files dropped into assets/library/inbox/ (e.g. PNGs you downloaded from CleanPNG) are sorted into
+ * the right folder by name, renamed to clean tags, and marked "unverified" until you confirm the licence.
+ */
+/** Recognise where a download came from by its file name, with that site's licence as the starting point. */
+function siteOf(file: string): { name: string; licence: string } {
+  if (/^pngimg\.com|_PNG\d+\.png$/i.test(file)) return { name: 'pngimg.com', licence: 'CC BY-NC 4.0 (pngimg.com) — non-commercial, attribution required' };
+  if (/iconscout/i.test(file)) return { name: 'iconscout.com', licence: 'commercial use allowed with attribution (IconScout free licence) — credit required' };
+  if (/svgrepo/i.test(file)) return { name: 'svgrepo.com', licence: 'unverified (SVG Repo — check the icon page; most allow commercial use)' };
+  if (/kisspng|cleanpng/i.test(file)) return { name: 'cleanpng.com', licence: 'unverified (CleanPNG — licence differs per image)' };
+  return { name: 'inbox', licence: 'unverified' };
+}
+
+/** Strip scripts, event handlers, external references and foreign objects from an SVG. */
+export function sanitiseSvg(svg: string): string {
+  return svg
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href|xlink:href)\s*=\s*("|')\s*(javascript:|https?:|data:text\/html)[^"']*\2/gi, '')
+    .replace(/<!ENTITY[\s\S]*?>/gi, '');
+}
+
+/** A Lottie file is JSON with a frame rate, a size and layers. */
+function isLottie(file: string): boolean {
+  try {
+    const j = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, unknown>;
+    return typeof j.fr === 'number' && typeof j.w === 'number' && Array.isArray(j.layers);
+  } catch {
+    return false;
+  }
+}
+
+export function processInbox(): AssetEntry[] {
+  fs.mkdirSync(INBOX_DIR, { recursive: true });
+  const moved: string[] = [];
+  const notes = readLicences();
+  for (const e of fs.readdirSync(INBOX_DIR, { withFileTypes: true })) {
+    if (!e.isFile() || !/\.(png|svg|json)$/i.test(e.name)) continue;
+    if (/\.json$/i.test(e.name) && !isLottie(path.join(INBOX_DIR, e.name))) {
+      console.warn(`[clipforge] inbox: ${e.name} is not a Lottie animation — left in the inbox`);
+      continue;
+    }
+    const ext = path.extname(e.name).toLowerCase();
+    const site = siteOf(e.name);
+    // downloads carry site prefixes/suffixes and ids: "kisspng-elephant-clip-art-5a3b….png",
+    // "pngimg.com - elephant_PNG18773.png", "elephant-svgrepo-com.svg"
+    const words = path
+      .basename(e.name, path.extname(e.name))
+      .toLowerCase()
+      .replace(/^pngimg\.com\s*-\s*/, '')
+      .replace(/_png\d+$/, '')
+      .replace(/-?svgrepo-com$/, '')
+      .replace(/(^|[-_ ])(iconscout|lottie|animation|animated)(?=$|[-_ ])/g, ' ')
+      .replace(/^(kisspng|cleanpng|pngwing|pngegg|pngtree|favpng|hiclipart|imgbin|klipartz)[-_ ]*/, '')
+      .split(/[^a-z]+/)
+      .filter((w) => w.length > 1 && !/^(png|svg|clipart|clip|art|free|transparent|image|images|hd|download|vector|icon|illustration|background|cartoon|stock|photo|svgrepo|com)$/.test(w))
+      .slice(0, 5);
+    const name = words.join(' ') || 'imported';
+    const type = guessType(name);
+    const folder = CATEGORY_OF[type];
+    const base = words.join('_') || 'imported';
+    let dest = path.join(ASSETS_DIR, folder, `${base}${ext}`);
+    for (let n = 2; fs.existsSync(dest); n++) dest = path.join(ASSETS_DIR, folder, `${base}_${n}${ext}`);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    if (ext === '.svg') {
+      // SVGs can carry scripts — keep only the drawing
+      fs.writeFileSync(dest, sanitiseSvg(fs.readFileSync(path.join(INBOX_DIR, e.name), 'utf-8')), 'utf-8');
+      fs.rmSync(path.join(INBOX_DIR, e.name));
+    } else {
+      fs.renameSync(path.join(INBOX_DIR, e.name), dest);
+    }
+    notes[relKey(dest)] = { source: `${site.name} (${e.name})`, licence: site.licence, checkedAt: new Date().toISOString() };
+    moved.push(relKey(dest));
+  }
+  if (moved.length) {
+    fs.writeFileSync(LICENCES, JSON.stringify(notes, null, 2), 'utf-8');
+    console.log(`[clipforge] inbox: imported ${moved.length} PNG(s) → ${moved.join(', ')}`);
+  }
+  return listAssets(false).filter((a) => moved.some((m) => a.url.endsWith(m.split('/').map(encodeURIComponent).join('/'))));
+}
+
 /** Every asset: indexed generated ones + any PNG found on disk (user drops). */
-export function listAssets(): AssetEntry[] {
+export function listAssets(checkInbox = true): AssetEntry[] {
   ensureAssetDirs();
+  if (checkInbox) processInbox();
   const idx = readIndex();
+  const licences = readLicences();
   const known = new Set(Object.values(idx).map((e) => e.url));
   const out: AssetEntry[] = Object.values(idx).filter((e) => fs.existsSync(path.join(ASSETS_DIR, decodeURIComponent(e.url.replace('/media/assets/', '')))));
   const walk = (dir: string) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) {
-        if (e.name !== 'generated') walk(p);
-      } else if (/\.png$/i.test(e.name)) {
+        if (e.name !== 'generated' && e.name !== 'inbox') walk(p);
+      } else if (/\.(png|svg|json)$/i.test(e.name) && e.name !== 'index.json' && e.name !== 'licences.json') {
         const url = urlFor(p);
         if (known.has(url)) continue;
         const folder = path.relative(ASSETS_DIR, p).split(path.sep)[0];
         const tags = [...new Set([...tagsFromName(e.name), folder.replace(/s$/, '')])];
+        const note = licences[relKey(p)];
         out.push({
+          source: note?.source,
+          licence: note?.licence,
+          licenceStatus: licenceStatus(note?.licence),
           id: `user-${slug(path.relative(ASSETS_DIR, p))}`,
           name: path.basename(e.name, path.extname(e.name)).replace(/[_-]+/g, ' '),
           type: TYPE_OF_FOLDER[folder] ?? 'object',
@@ -112,6 +239,7 @@ export function listAssets(): AssetEntry[] {
           width: 0,
           height: 0,
           createdAt: fs.statSync(p).mtime.toISOString(),
+          animated: /\.json$/i.test(e.name) || undefined, // Lottie animation
         });
       }
     }
@@ -295,25 +423,42 @@ export async function ensureAsset(name: string, opts: EnsureOptions): Promise<As
 export function importUserPng(srcPath: string, category: string, name: string, meta: { source?: string; licence?: string }): AssetEntry {
   ensureAssetDirs();
   const folder = FOLDERS.includes(category) ? category : 'props';
-  const file = path.join(ASSETS_DIR, folder, `${slug(name || path.basename(srcPath, path.extname(srcPath))).replace(/-/g, '_')}.png`);
-  fs.copyFileSync(srcPath, file);
-  const entry: AssetEntry & { source?: string; licence?: string } = {
-    id: `user-${slug(path.relative(ASSETS_DIR, file))}`,
-    name: name || path.basename(file, '.png').replace(/_/g, ' '),
-    type: TYPE_OF_FOLDER[folder] ?? 'object',
-    category: folder,
-    style: 'any',
-    url: urlFor(file),
-    tags: [...new Set([...tagsFromName(file), folder.replace(/s$/, '')])],
-    generated: false,
-    width: 0,
-    height: 0,
-    createdAt: new Date().toISOString(),
-    source: meta.source?.slice(0, 300),
-    licence: meta.licence?.slice(0, 100),
-  };
-  const idx = readIndex();
-  idx[entry.id] = entry;
-  writeIndex(idx);
+  const ext = (path.extname(srcPath) || '.png').toLowerCase();
+  if (ext === '.json' && !isLottie(srcPath)) throw new Error('That JSON file is not a Lottie animation.');
+  const file = path.join(ASSETS_DIR, folder, `${slug(name || path.basename(srcPath, path.extname(srcPath))).replace(/-/g, '_')}${ext}`);
+  if (ext === '.svg') fs.writeFileSync(file, sanitiseSvg(fs.readFileSync(srcPath, 'utf-8')), 'utf-8');
+  else fs.copyFileSync(srcPath, file);
+  setLicence(urlFor(file), { source: meta.source?.slice(0, 300) || 'imported', licence: meta.licence?.slice(0, 100) || 'unverified' });
+  const entry = listAssets(false).find((a) => a.url === urlFor(file));
+  if (!entry) throw new Error('Import failed.');
   return entry;
+}
+
+/** Credit lines for assets in an edit whose licence asks for attribution (IconScout, pngimg, CC BY…). */
+export function creditsFor(urls: string[]): string[] {
+  const mine = new Map(listAssets(false).filter((a) => a.style === 'any').map((a) => [a.url, a]));
+  const lines = new Set<string>();
+  for (const u of new Set(urls)) {
+    const a = mine.get(u);
+    if (!a || !/attribution|credit|cc[- ]?by/i.test(a.licence ?? '')) continue;
+    const site = (a.source ?? '').split(' (')[0] || 'source';
+    const page = (a.source ?? '').match(/https?:\/\/\S+/)?.[0];
+    const title = a.name.replace(/\b\w/g, (c) => c.toUpperCase());
+    const cc = (a.licence ?? '').match(/CC BY[- A-Z0-9.]*/i)?.[0]?.trim();
+    lines.add(`${title} — ${page ?? site}${cc ? ` · ${cc}` : ''}`);
+  }
+  return [...lines];
+}
+
+/** Your PNGs used in an edit whose licence is not confirmed for commercial use. */
+export function licenceIssues(urls: string[]): Array<{ name: string; url: string; licence: string; status: 'check' | 'restricted'; source?: string }> {
+  const mine = new Map(listAssets(false).filter((a) => a.style === 'any').map((a) => [a.url, a]));
+  const out: Array<{ name: string; url: string; licence: string; status: 'check' | 'restricted'; source?: string }> = [];
+  for (const u of new Set(urls)) {
+    const a = mine.get(u);
+    if (!a) continue;
+    const status = licenceStatus(a.licence);
+    if (status !== 'ok') out.push({ name: a.name, url: a.url, licence: a.licence || 'unverified', status, source: a.source });
+  }
+  return out;
 }

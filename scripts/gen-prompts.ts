@@ -264,6 +264,10 @@ const idx: string[] = [
   '',
   ...STYLES.map((st) => `- [${st.label}](${st.id}.md) — ${st.prompt.split(',')[0]}`),
   '',
+  '### Single-file Atlas',
+  '',
+  '- [Objects & Props Atlas (all 11 styles in one file)](OBJECTS_ATLAS.md) — 198 copy-paste prompts for all objects and props across every art style.',
+  '',
   'Each style file has a complete, ready-to-paste prompt for every person, animal, bird, plant, building, prop and background listed below.',
   '',
   '## How a prompt is built',
@@ -329,4 +333,50 @@ for (const st of STYLES) {
   }
   fs.writeFileSync(path.join(outDir, `${st.id}.md`), md.join('\n'), 'utf-8');
 }
-console.log(`Wrote ${STYLES.length} style files + README to ${outDir} — ${RECIPES.length} subjects each`);
+
+// ---- unified Objects & Props Atlas across all styles
+const objGroup = groups.find((g) => g.folder === 'props');
+const objRecipes = objGroup ? RECIPES.filter((r) => objGroup.filter(r.spec.type)) : [];
+const atlasLines: string[] = [
+  '# ClipForge AI — Asset Objects & Props Generation Prompt Atlas',
+  '',
+  `> Complete single-file atlas of all ${objRecipes.length} objects and props across all ${STYLES.length} art styles (${objRecipes.length * STYLES.length} prompts total).`,
+  '> All sprites are isolated on transparent PNG (PNG with alpha), centred, touching base.',
+  '',
+  '## Table of Contents',
+  '',
+];
+for (const st of STYLES) {
+  atlasLines.push(`- [${st.label}](#${st.id})`);
+}
+atlasLines.push('', '---', '');
+
+for (const st of STYLES) {
+  atlasLines.push(
+    `<a id="${st.id}"></a>`,
+    '',
+    `## ${st.label} (\`${st.id}\`)`,
+    '',
+    `- **Style prompt:** ${st.prompt}`,
+    `- **Palette:** ${st.palette}`,
+    `- **Avoid:** ${st.avoid}`,
+    `- **Negative prompt:** ${NEGATIVE}, ${st.avoid}`,
+    '',
+  );
+  for (const r of objRecipes) {
+    const save = `assets/library/props/${file(r.name)}_${st.id}.png`;
+    atlasLines.push(
+      `### ${r.name}`,
+      '',
+      FENCE,
+      `${describe(r.name, r.spec)}, ${st.prompt}, colour palette: ${st.palette}, ${SPRITE_RULES}`,
+      FENCE,
+      `Save as ${code(save)}`,
+      '',
+    );
+  }
+  atlasLines.push('---', '');
+}
+fs.writeFileSync(path.join(outDir, 'OBJECTS_ATLAS.md'), atlasLines.join('\n'), 'utf-8');
+
+console.log(`Wrote ${STYLES.length} style files, OBJECTS_ATLAS.md + README to ${outDir} — ${RECIPES.length} subjects each`);

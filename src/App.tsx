@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { TopBar } from './components/TopBar.tsx';
 import { UploadStage } from './components/UploadStage.tsx';
 import { StudioWorkspace } from './components/StudioWorkspace.tsx';
@@ -12,8 +13,18 @@ import { createEdit, listEdits, type EditSummary } from './editor/api.ts';
 import type { AppTab, ClipLengthPreset, ClipProject, EngineStatus, JobProgress } from './types.ts';
 import { postJson, withProgress } from './utils/api.ts';
 
+/** URL hash ↔ screen, so a reload (or server restart) returns to the same place: #/script, #/edit/<id>, … */
+const TAB_HASH: Record<AppTab, string> = { home: 'home', studio: 'clip', script: 'script', editor: 'edit', library: 'library', architecture: 'how' };
+
+function readHash(): { tab: AppTab; editId: string | null } {
+  const [, seg, id] = window.location.hash.replace(/^#/, '').split('/');
+  const tab = (Object.keys(TAB_HASH) as AppTab[]).find((t) => TAB_HASH[t] === seg) ?? 'home';
+  return { tab, editId: tab === 'editor' && id ? decodeURIComponent(id) : null };
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>('home');
+  const initial = readHash();
+  const [activeTab, setActiveTab] = useState<AppTab>(initial.tab);
   const [projects, setProjects] = useState<ClipProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [showUploadStage, setShowUploadStage] = useState<boolean>(false);
@@ -25,7 +36,24 @@ export default function App() {
   const [isReanalyzing, setIsReanalyzing] = useState(false);
   const [engines, setEngines] = useState<EngineStatus | null>(null);
   const [edits, setEdits] = useState<EditSummary[]>([]);
-  const [activeEditId, setActiveEditId] = useState<string | null>(null);
+  const [activeEditId, setActiveEditId] = useState<string | null>(initial.editId);
+
+  // keep the URL in sync with the screen …
+  useEffect(() => {
+    const want = `#/${TAB_HASH[activeTab]}${activeTab === 'editor' && activeEditId ? `/${encodeURIComponent(activeEditId)}` : ''}`;
+    if (window.location.hash !== want) window.history.replaceState(null, '', want);
+  }, [activeTab, activeEditId]);
+
+  // … and follow manual URL changes
+  useEffect(() => {
+    const onHash = () => {
+      const h = readHash();
+      setActiveTab(h.tab);
+      if (h.tab === 'editor') setActiveEditId(h.editId);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
   const refreshEdits = useCallback(() => {
     void listEdits().then(setEdits).catch(() => setEdits([]));
@@ -183,6 +211,16 @@ export default function App() {
         onHome={() => setActiveTab('home')}
       />
 
+      {/* page transitions (Motion) — a short cross-fade so switching tabs feels connected */}
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={activeTab}
+        className="flex-1 min-h-0 flex flex-col"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
+      >
       {activeTab === 'home' && (
         <HomeView
           projects={projects}
@@ -265,6 +303,8 @@ export default function App() {
       )}
 
       {activeTab === 'architecture' && <ArchitectureView />}
+      </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

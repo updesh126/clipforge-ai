@@ -2,7 +2,9 @@
  * The whole edit as one Remotion composition: every timeline item becomes a <Sequence>.
  * Used by @remotion/player in the editor and by @remotion/renderer for the final MP4.
  */
-import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { useEffect, useState } from 'react';
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, cancelRender, continueRender, delayRender, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { Lottie, type LottieAnimationData } from '@remotion/lottie';
 import type { CaptionsItem, CompositionProps, EditItem, EffectItem, ImageItem, VideoItem } from '../editor/types.ts';
 import { TEMPLATE_COMPONENTS } from './templates.tsx';
 
@@ -176,30 +178,51 @@ function spriteMotion(item: ImageItem, frame: number, fps: number, durFrames: nu
   return { dx, dy, rot, sx: sx * (item.flip ? -1 : 1), sy, opacity };
 }
 
+const isLottieSrc = (src: string) => /\.json$/i.test(src);
+
+/** A Lottie animation (e.g. from IconScout), played frame-accurately and looped for the item's length. */
+function LottieSprite({ src, style }: { src: string; style: React.CSSProperties }) {
+  const [data, setData] = useState<LottieAnimationData | null>(null);
+  const [handle] = useState(() => delayRender(`Loading Lottie ${src}`));
+  useEffect(() => {
+    fetch(src)
+      .then((r) => r.json())
+      .then((json: LottieAnimationData) => {
+        setData(json);
+        continueRender(handle);
+      })
+      .catch((err) => cancelRender(err));
+  }, [src, handle]);
+  if (!data) return null;
+  return (
+    <div style={style}>
+      <Lottie animationData={data} loop style={{ width: '100%', height: '100%' }} />
+    </div>
+  );
+}
+
 function ImageLayer({ item, base }: { item: ImageItem; base: string }) {
   const frame = useCurrentFrame();
   const { fps, width, durationInFrames } = useVideoConfig();
   const p = spring({ frame, fps, config: { damping: 14 } });
   const full = item.scale >= 0.999;
-  if (item.anchor === 'bottom' || item.motion) {
+  if (item.anchor === 'bottom' || item.motion || isLottieSrc(item.src)) {
     const m = spriteMotion(item, frame, fps, durationInFrames, width);
     const size = item.scale * width;
+    const style: React.CSSProperties = {
+      position: 'absolute',
+      width: full ? '100%' : size,
+      height: full ? '100%' : isLottieSrc(item.src) ? size : 'auto',
+      objectFit: full ? item.fit : undefined,
+      left: full ? 0 : `calc(${item.x}% - ${size / 2}px)`,
+      top: full ? 0 : item.anchor === 'bottom' ? `calc(${item.y}% - ${size}px)` : `calc(${item.y}% - ${size / 2}px)`,
+      transformOrigin: item.anchor === 'bottom' ? '50% 100%' : '50% 50%',
+      transform: `translate(${m.dx}px, ${m.dy}px) rotate(${m.rot}deg) scale(${m.sx}, ${m.sy})`,
+      opacity: m.opacity,
+    };
     return (
       <AbsoluteFill style={{ overflow: 'visible' }}>
-        <Img
-          src={url(base, item.src)}
-          style={{
-            position: 'absolute',
-            width: full ? '100%' : size,
-            height: full ? '100%' : 'auto',
-            objectFit: full ? item.fit : undefined,
-            left: full ? 0 : `calc(${item.x}% - ${size / 2}px)`,
-            top: full ? 0 : item.anchor === 'bottom' ? `calc(${item.y}% - ${size}px)` : `calc(${item.y}% - ${size / 2}px)`,
-            transformOrigin: item.anchor === 'bottom' ? '50% 100%' : '50% 50%',
-            transform: `translate(${m.dx}px, ${m.dy}px) rotate(${m.rot}deg) scale(${m.sx}, ${m.sy})`,
-            opacity: m.opacity,
-          }}
-        />
+        {isLottieSrc(item.src) ? <LottieSprite src={url(base, item.src)} style={style} /> : <Img src={url(base, item.src)} style={style} />}
       </AbsoluteFill>
     );
   }

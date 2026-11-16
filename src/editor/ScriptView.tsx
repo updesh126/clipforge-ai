@@ -1,27 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Wand2, Loader2, AlertCircle, Mic, Sparkles, Check, Loader } from 'lucide-react';
 import type { EngineStatus, JobProgress } from '../types.ts';
 import type { EditProject } from './types.ts';
-import { ART_STYLE_LABELS, ART_STYLE_OPTIONS } from './catalog.ts';
-import { postJson, withProgress } from '../utils/api.ts';
+import { StylePicker } from './StylePicker.tsx';
+import { newJobId, postJson } from '../utils/api.ts';
 
 interface Props {
   engines: EngineStatus | null;
   onCreated: (editId: string) => void;
 }
-
-const SWATCH: Record<string, string> = {
-  madhubani: 'linear-gradient(135deg,#C1272D,#F4B400 50%,#2E7D32)',
-  inkWash: 'linear-gradient(135deg,#EFEAE0,#5E5E5A 60%,#141414)',
-  shadowPuppet: 'radial-gradient(circle at 50% 40%,#FFE2A8,#FFB347 45%,#5A230A)',
-  paperCutout: 'linear-gradient(180deg,#CDEAFF 30%,#FFADAD 55%,#6D597A)',
-  stainedGlass: 'conic-gradient(#1E5AA8,#C0392B,#E0B53A,#2E8B57,#6C3483,#1E5AA8)',
-  anime: 'linear-gradient(180deg,#3A7BD5,#B06AB3,#FF8FAB)',
-  warli: 'radial-gradient(circle,#fff 2px,transparent 3px) 0 0/12px 12px, #7A3B22',
-  blueprint: 'linear-gradient(#5C8DD6 1px,transparent 1px) 0 0/10px 10px, linear-gradient(90deg,#5C8DD6 1px,#0B3D91 1px) 0 0/10px 10px',
-  ukiyoe: 'radial-gradient(circle at 70% 30%,#C8452F 14%,transparent 15%), linear-gradient(180deg,#F3E6CC 55%,#5C7FA6 56%,#1F2A44)',
-  miniature: 'radial-gradient(ellipse at 50% 60%,#E9A75A 25%,#2E6B3A 26%), #5B1A18',
-};
 
 const SAMPLE = `Every monsoon, India's rivers carry the story of a continent.
 
@@ -35,37 +22,115 @@ The good news? Restored wetlands can cut flood damage by up to 40 percent.
 
 The future of our rivers depends on what we do in the next ten years.`;
 
+// Draft + running job survive a page reload or server restart
+const DRAFT_KEY = 'clipforge.scriptDraft';
+const JOB_KEY = 'clipforge.scriptJob';
+const store = {
+  get<T>(k: string): T | null {
+    try {
+      const v = localStorage.getItem(k);
+      return v ? (JSON.parse(v) as T) : null;
+    } catch {
+      return null;
+    }
+  },
+  set(k: string, v: unknown) {
+    try {
+      if (v === null) localStorage.removeItem(k);
+      else localStorage.setItem(k, JSON.stringify(v));
+    } catch {
+      // storage blocked — the page still works, it just won't remember
+    }
+  },
+};
+
+interface Draft {
+  script: string;
+  title: string;
+  aspect: string;
+  style: string;
+  voice: string;
+  captions: string;
+  mode: 'story' | 'graphics';
+}
+
 export function ScriptView({ engines, onCreated }: Props) {
-  const [script, setScript] = useState('');
-  const [title, setTitle] = useState('');
-  const [aspect, setAspect] = useState('9:16');
-  const [style, setStyle] = useState('auto');
-  const [voice, setVoice] = useState('af_heart');
-  const [captions, setCaptions] = useState('karaoke');
-  const [mode, setMode] = useState<'story' | 'graphics'>('story');
+  const draft = store.get<Draft>(DRAFT_KEY);
+  const [script, setScript] = useState(draft?.script ?? '');
+  const [title, setTitle] = useState(draft?.title ?? '');
+  const [aspect, setAspect] = useState(draft?.aspect ?? '9:16');
+  const [style, setStyle] = useState(draft?.style ?? 'auto');
+  const [voice, setVoice] = useState(draft?.voice ?? 'af_heart');
+  const [captions, setCaptions] = useState(draft?.captions ?? 'karaoke');
+  const [mode, setMode] = useState<'story' | 'graphics'>(draft?.mode ?? 'story');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<JobProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const polling = useRef(false);
 
   const words = script.trim() ? script.trim().split(/\s+/).length : 0;
   const estSeconds = Math.round(words / 2.5);
 
-  const create = async () => {
-    if (!script.trim() || busy) return;
+  // save the draft as you type
+  useEffect(() => {
+    store.set(DRAFT_KEY, { script, title, aspect, style, voice, captions, mode });
+  }, [script, title, aspect, style, voice, captions, mode]);
+
+  /** Follow a job by id until it reports its finished edit (works after a reload too). */
+  const follow = async (jobId: string) => {
+    if (polling.current) return;
+    polling.current = true;
     setBusy(true);
     setError(null);
+    let missing = 0;
     try {
-      const { edit } = await withProgress(
-        (jobId) => postJson<{ edit: EditProject }>('/api/script-video', { script, title, aspect, style, voice, captions, mode, jobId }),
-        (p) => setProgress((cur) => p ?? cur)
-      );
-      onCreated(edit.id);
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 1000));
+        type Job = JobProgress & { result?: { editId?: string; error?: string } };
+        const job: Job | null = await fetch(`/api/jobs/${jobId}`)
+          .then((r) => r.json() as Promise<{ job: Job | null }>)
+          .then((d) => d.job)
+          .catch(() => null); // server restarting — keep waiting
+        if (job?.result?.editId) {
+          store.set(JOB_KEY, null);
+          onCreated(job.result.editId);
+          return;
+        }
+        if (job?.result?.error) throw new Error(job.result.error);
+        if (job) {
+          missing = 0;
+          setProgress(job);
+        } else if (++missing > 20) {
+          throw new Error('The server restarted and the run was interrupted. Your script is saved — press Create video again.');
+        }
+      }
     } catch (err) {
+      store.set(JOB_KEY, null);
       setError(err instanceof Error ? err.message : 'Could not build the video.');
     } finally {
+      polling.current = false;
       setBusy(false);
       setProgress(null);
     }
+  };
+
+  // a run was in progress when the page reloaded → reconnect to it
+  useEffect(() => {
+    const pending = store.get<{ jobId: string; at: number }>(JOB_KEY);
+    if (pending && Date.now() - pending.at < 1000 * 60 * 60) void follow(pending.jobId);
+    else store.set(JOB_KEY, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const create = async () => {
+    if (!script.trim() || busy) return;
+    const jobId = newJobId();
+    store.set(JOB_KEY, { jobId, at: Date.now() });
+    // start the job; the result is picked up by polling, so a reload mid-run doesn't lose it
+    postJson('/api/script-video', { script, title, aspect, style, voice, captions, mode, jobId }).catch(() => {
+      /* errors are reported through the job */
+    });
+    await follow(jobId);
   };
 
   const steps = [
@@ -160,22 +225,8 @@ export function ScriptView({ engines, onCreated }: Props) {
           </section>
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Art style</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {['auto', 'mix', ...ART_STYLE_OPTIONS].map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setStyle(id)}
-                  className={`overflow-hidden rounded-lg border text-left cursor-pointer ${style === id ? 'border-accent ring-1 ring-accent' : 'border-zinc-800 hover:border-zinc-600'}`}
-                >
-                  <div
-                    className="h-12"
-                    style={{ background: id === 'auto' ? 'linear-gradient(135deg,#B5E2DD,#D8CCE8,#F4C7D6)' : id === 'mix' ? 'conic-gradient(#C1272D,#0B3D91,#FFB347,#2E6B3A,#FF8FAB,#C1272D)' : SWATCH[id] }}
-                  />
-                  <div className="truncate bg-surface px-2 py-1 text-[11px] text-zinc-200">{id === 'auto' ? 'AI picks' : id === 'mix' ? 'Mix all' : ART_STYLE_LABELS[id]}</div>
-                </button>
-              ))}
-            </div>
+            <StylePicker value={style} onChange={setStyle} />
+            <p className="mt-1.5 text-[10.5px] text-zinc-600">Hover a style to see a preview and what it suits.</p>
           </section>
 
           <section className="space-y-2">

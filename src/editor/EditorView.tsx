@@ -222,6 +222,8 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [aiBusy, setAiBusy] = useState(false);
   const [render, setRender] = useState<{ busy: boolean; progress: JobProgress | null; url?: string; error?: string }>({ busy: false, progress: null });
+  const [licenceWarn, setLicenceWarn] = useState<Array<{ name: string; licence: string; status: string }>>([]);
+  const [credits, setCredits] = useState<string[]>([]);
   const playerRef = useRef<PlayerRef | null>(null);
   const saveTimer = useRef<number | null>(null);
 
@@ -421,10 +423,16 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
       await saveEditRemote(edit);
       const data = await withProgress(
-        (jobId) => postJson<{ export: { url: string; fileName: string } }>(`/api/edits/${edit.id}/render`, { jobId }),
+        (jobId) =>
+          postJson<{ export: { url: string; fileName: string }; licenceIssues?: Array<{ name: string; licence: string; status: string }>; credits?: string[] }>(
+            `/api/edits/${edit.id}/render`,
+            { jobId }
+          ),
         (p) => setRender((r) => ({ ...r, progress: p ?? r.progress }))
       );
       setRender({ busy: false, progress: null, url: data.export.url });
+      setLicenceWarn(data.licenceIssues ?? []);
+      setCredits(data.credits ?? []);
     } catch (err) {
       setRender({ busy: false, progress: null, error: err instanceof Error ? err.message : 'Render failed.' });
     }
@@ -526,6 +534,35 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
           </button>
         </div>
       </div>
+      {licenceWarn.length > 0 && !render.busy && (
+        <div className="shrink-0 flex items-start gap-2 border-b border-zinc-900 bg-peach/10 px-4 py-2 text-xs text-peach">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1">
+            Check before using this video commercially — {licenceWarn.length} of your PNG{licenceWarn.length === 1 ? '' : 's'} {licenceWarn.length === 1 ? 'is' : 'are'} not cleared:{' '}
+            {licenceWarn.map((w) => `${w.name} (${w.status === 'restricted' ? `restricted: ${w.licence}` : 'licence not checked'})`).join(', ')}. Record licences in Assets → click the ? badge.
+          </span>
+          <button type="button" onClick={() => setLicenceWarn([])} className="text-peach/70 hover:text-peach cursor-pointer">
+            Dismiss
+          </button>
+        </div>
+      )}
+      {credits.length > 0 && !render.busy && (
+        <div className="shrink-0 flex items-start gap-2 border-b border-zinc-900 bg-lavender/10 px-4 py-2 text-xs text-lavender">
+          <span className="flex-1">
+            <b>Credits required</b> — add to your post description: {credits.join(' · ')}
+          </span>
+          <button
+            type="button"
+            onClick={() => void navigator.clipboard?.writeText(`Credits:\n${credits.join('\n')}`)}
+            className="rounded border border-lavender/40 px-2 py-0.5 hover:bg-lavender/10 cursor-pointer"
+          >
+            Copy
+          </button>
+          <button type="button" onClick={() => setCredits([])} className="text-lavender/70 hover:text-lavender cursor-pointer">
+            Dismiss
+          </button>
+        </div>
+      )}
       {(render.busy || render.error) && (
         <div className={`shrink-0 px-4 py-1.5 text-xs border-b border-zinc-900 ${render.error ? 'bg-red-950/30 text-red-200' : 'bg-surface text-zinc-300'}`}>
           {render.error ? (

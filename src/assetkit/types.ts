@@ -134,6 +134,20 @@ export interface AssetEntry {
   aspect?: string; // backgrounds only
   spec?: AssetSpec;
   createdAt: string;
+  /** user PNGs only: where it came from and what you may do with it */
+  source?: string;
+  licence?: string;
+  licenceStatus?: 'ok' | 'check' | 'restricted';
+  animated?: boolean; // Lottie JSON animation
+}
+
+/** Licences that are clear for commercial client work. Anything else needs checking before a paid project. */
+export function licenceStatus(licence?: string): 'ok' | 'check' | 'restricted' {
+  const l = (licence ?? '').toLowerCase();
+  if (!l || /unverified|unknown|not checked/.test(l)) return 'check';
+  if (/personal|non-?commercial|\bnc\b|editorial|fan ?art/.test(l)) return 'restricted';
+  if (/cc0|public domain|own work|my own|mine|commercial|purchased|paid|licensed|royalty[- ]free|cc[- ]by(?![- ]?nc)/.test(l)) return 'ok';
+  return 'check';
 }
 
 export const CATEGORY_OF: Record<AssetType, string> = {

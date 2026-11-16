@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import { Scissors, Clapperboard, ArrowRight, Film, Sparkles, Wand2, Layers, ScrollText } from 'lucide-react';
 import type { ClipProject } from '../types.ts';
 import type { EditSummary } from '../editor/api.ts';
@@ -84,14 +85,20 @@ export function HomeView({ projects, edits, onStartClipping, onStartEditing, onS
         </div>
 
         <div className="relative grid gap-4 md:grid-cols-3">
-          {cards.map((c) => {
+          {cards.map((c, i) => {
             const Icon = c.icon;
             return (
-              <button
+              <motion.button
                 key={c.id}
                 type="button"
                 onClick={c.onClick}
-                className={`group text-left rounded-2xl border border-zinc-800 bg-gradient-to-br ${c.tint} to-transparent bg-surface p-6 sm:p-7 transition-all hover:border-zinc-600 hover:-translate-y-0.5 cursor-pointer`}
+                // staggered entrance + springy hover (Motion)
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 * i, type: 'spring', stiffness: 260, damping: 24 }}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.985 }}
+                className={`group text-left rounded-2xl border border-zinc-800 bg-gradient-to-br ${c.tint} to-transparent bg-surface p-6 sm:p-7 transition-colors hover:border-zinc-600 cursor-pointer`}
               >
                 <div className="flex items-center justify-between">
                   <span className="h-11 w-11 rounded-xl border border-zinc-800 bg-black grid place-items-center">
@@ -112,7 +119,7 @@ export function HomeView({ projects, edits, onStartClipping, onStartEditing, onS
                 <span className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-black">
                   {c.cta}
                 </span>
-              </button>
+              </motion.button>
             );
           })}
         </div>

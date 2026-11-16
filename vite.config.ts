@@ -16,7 +16,12 @@ export default defineConfig(() => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Runtime output (projects, voice-overs, exports, drawn assets) must never trigger a page reload —
+      // otherwise a running Script → Video job would bounce the browser back to Home.
+      watch:
+        process.env.DISABLE_HMR === 'true'
+          ? null
+          : { ignored: ['**/data/**', '**/assets/library/**', '**/assets/prompts/**', '**/.hyperframes/**', '**/renders/**'] },
     },
   };
 });

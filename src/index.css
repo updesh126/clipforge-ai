@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* don't scan runtime output for class names (keeps CSS from rebuilding while videos render) */
+@source not "../data";
+@source not "../assets";
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Brand palette on black: Mint (primary accent), Pink, Lavender, Peach */

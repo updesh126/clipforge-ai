@@ -205,6 +205,10 @@ your video (used in place)
 
 All data stays in `./data` (uploads, exports, models, `projects.json`). Full design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Sources & credits
+
+Every tool, model, library, asset site and reference — with icons, links and licences — is listed in [SOURCES.md](SOURCES.md). Check the ⚠️ rows before client work (Remotion company licence, Qwen 2.5 3B `qwen-research` licence, pngimg non-commercial).
+
 ## License
 
 MIT — free to use, modify and share.

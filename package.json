@@ -11,10 +11,14 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "setup": "node scripts/check-setup.mjs",
-    "prompts": "tsx scripts/gen-prompts.ts"
+    "prompts": "tsx scripts/gen-prompts.ts",
+    "thumbs": "tsx scripts/gen-style-thumbs.ts",
+    "import-images": "tsx scripts/import-images.ts",
+    "asset-sheet": "tsx scripts/asset-sheet.ts"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.543",
+    "@remotion/lottie": "4.0.543",
     "@remotion/player": "4.0.543",
     "@remotion/renderer": "4.0.543",
     "@tailwindcss/vite": "^4.3.3",
@@ -24,12 +28,14 @@
     "express": "^4.21.2",
     "gsap": "^3.15.1",
     "hyperframes": "^0.9.56",
+    "lottie-web": "5.13.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "multer": "^2.5.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "remotion": "4.0.543",
+    "sharp": "0.34.5",
     "vite": "^8.3.0"
   },
   "devDependencies": {

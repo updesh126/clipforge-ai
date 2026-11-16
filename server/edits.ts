@@ -117,8 +117,8 @@ const clamp = (n: unknown, lo: number, hi: number, d: number) => {
 function safeSrc(src: unknown): string | null {
   const s = String(src ?? '');
   if (/^\/media\/(uploads|exports)\/[^/\\]+$/.test(s)) return s;
-  // asset library PNGs (sub-folders allowed, no traversal)
-  if (/^\/media\/assets\/[A-Za-z0-9%._\-/]+\.png$/i.test(s) && !s.includes('..')) return s;
+  // asset library PNG / SVG / Lottie JSON (sub-folders allowed, no traversal)
+  if (/^\/media\/assets\/[A-Za-z0-9%._\-/]+\.(png|svg|json)$/i.test(s) && !s.includes('..')) return s;
   return null;
 }
 

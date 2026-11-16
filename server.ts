@@ -26,12 +26,13 @@ import {
   parseYoutubeUrl,
 } from './server/youtube.ts';
 import type { AspectRatio, CaptionStyle, Framing, ClipLengthPreset, ClipProject } from './server/types.ts';
-import { getJob, progressFor } from './server/progress.ts';
+import { finishJob, getJob, progressFor } from './server/progress.ts';
 import { blankEdit, deleteEdit, editFromClip, getEdit, linkMediaFile, readEdits, saveEdit } from './server/edits.ts';
 import { editWithAI } from './server/editAI.ts';
 import { renderEdit } from './server/remotion.ts';
 import { scriptToVideo, voiceFilesOf } from './server/scriptVideo.ts';
-import { ASSETS_DIR, cleanSpec, ensureAsset, ensureAssetDirs, importUserPng, searchAssets } from './server/assets.ts';
+import { importFolder } from './server/importer.ts';
+import { ASSETS_DIR, INBOX_DIR, cleanSpec, creditsFor, ensureAsset, ensureAssetDirs, importUserPng, licenceIssues, processInbox, searchAssets, setLicence } from './server/assets.ts';
 import type { AssetType } from './src/assetkit/types.ts';
 import type { EditProject } from './src/editor/types.ts';
 import { refreshWindowsPath } from './scripts/win-path.mjs';
@@ -709,7 +710,7 @@ app.get('/api/assets', (req, res) => {
   const q = String(req.query.q ?? '').slice(0, 80);
   const style = String(req.query.style ?? '') || undefined;
   const category = String(req.query.category ?? '') || undefined;
-  res.json({ assets: searchAssets(q, { style, category }).slice(0, 200), folder: ASSETS_DIR });
+  res.json({ assets: searchAssets(q, { style, category }).slice(0, 200), folder: ASSETS_DIR, inbox: INBOX_DIR });
 });
 
 // Draw (or reuse) an asset in a style: built-in recipe, or a new one designed by the local LLM
@@ -737,11 +738,39 @@ app.post('/api/assets/generate', async (req, res) => {
 });
 
 // Copy one of your own PNGs into the library, recording its source and licence
+// Sort files dropped into assets/library/inbox now. PNG/SVG/Lottie are sorted on every lookup;
+// JPG/WebP pictures also get their background removed here.
+app.post('/api/assets/inbox', async (_req, res) => {
+  const imported = processInbox();
+  const pictures = await importFolder(INBOX_DIR, { source: 'inbox', move: true });
+  res.json({ imported, pictures, inbox: INBOX_DIR });
+});
+
+// Record where one of your PNGs came from and its licence (stored in assets/library/licences.json)
+app.post('/api/assets/licence', (req, res) => {
+  const b = (req.body ?? {}) as Record<string, string>;
+  try {
+    res.json({ note: setLicence(String(b.url ?? ''), { licence: String(b.licence ?? '').slice(0, 100), source: b.source ? String(b.source).slice(0, 300) : undefined }) });
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : 'Could not save the licence.' });
+  }
+});
+
+// Which of your PNGs in this edit still need a licence check
+app.get('/api/edits/:id/licences', (req, res) => {
+  const edit = getEdit(req.params.id);
+  if (!edit) {
+    res.status(404).json({ error: 'Edit not found.' });
+    return;
+  }
+  res.json({ issues: licenceIssues(edit.items.filter((i) => i.kind === 'image').map((i) => (i as { src: string }).src)) });
+});
+
 app.post('/api/assets/import', (req, res) => {
   const b = (req.body ?? {}) as Record<string, string>;
   const src = path.resolve(String(b.path ?? '').replace(/^["']|["']$/g, ''));
-  if (!/\.png$/i.test(src) || !fs.existsSync(src)) {
-    res.status(400).json({ error: 'Pick an existing .png file.' });
+  if (!/\.(png|svg|json)$/i.test(src) || !fs.existsSync(src)) {
+    res.status(400).json({ error: 'Pick an existing .png, .svg or Lottie .json file.' });
     return;
   }
   try {
@@ -764,10 +793,13 @@ app.post('/api/script-video', async (req, res) => {
       { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story' },
       progressFor(b.jobId)
     );
+    finishJob(b.jobId, { editId: edit.id }); // lets a reloaded page open the result
     res.status(201).json({ edit });
   } catch (err) {
     console.error('[clipforge] script-video failed:', err);
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not build the video.' });
+    const message = err instanceof Error ? err.message : 'Could not build the video.';
+    finishJob(b.jobId, { error: message });
+    res.status(500).json({ error: message });
   }
 });
 
@@ -799,7 +831,9 @@ app.post('/api/edits/:id/render', async (req, res) => {
     const out = await renderEdit(edit, PORT, progressFor(req.body?.jobId));
     const record = { ...out, createdAt: new Date().toISOString() };
     const saved = saveEdit({ ...edit, exports: [record, ...(edit.exports ?? [])].slice(0, 10) });
-    res.json({ edit: saved, export: record });
+    // the render still happens, but tell the user which of their PNGs aren't cleared for commercial use
+    const srcs = edit.items.filter((i) => i.kind === 'image').map((i) => (i as { src: string }).src);
+    res.json({ edit: saved, export: record, licenceIssues: licenceIssues(srcs), credits: creditsFor(srcs) });
   } catch (err) {
     console.error('[clipforge] Remotion render failed:', err);
     res.status(500).json({ error: err instanceof Error ? err.message : 'Render failed.' });

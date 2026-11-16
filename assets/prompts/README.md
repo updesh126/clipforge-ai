@@ -18,6 +18,10 @@ Image-generation prompts for every art style and every asset, so PNGs made in an
 - [Ukiyo-e (Japanese woodblock print)](ukiyoe.md) — ukiyo-e Japanese woodblock print
 - [Miniature painting (Mughal / Rajput)](miniature.md) — Indian miniature painting
 
+### Single-file Atlas
+
+- [Objects & Props Atlas (all 11 styles in one file)](OBJECTS_ATLAS.md) — 198 copy-paste prompts for all objects and props across every art style.
+
 Each style file has a complete, ready-to-paste prompt for every person, animal, bird, plant, building, prop and background listed below.
 
 ## How a prompt is built
