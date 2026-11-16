@@ -14,6 +14,7 @@ import { EXPRESSIONS, type Expression } from '../src/vector/character.ts';
 import { POSES, type Pose } from '../src/vector/skeleton.ts';
 import { normaliseEnv } from '../src/vector/environment.ts';
 import { isTheme } from '../src/vector/theme.ts';
+import { SEQUENCES } from '../src/motion/sequences.ts';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const PLAN_MODEL = process.env.OLLAMA_EDIT_MODEL || process.env.OLLAMA_MODEL || 'qwen2.5:3b';
@@ -45,7 +46,36 @@ export interface StoryPlan {
   data?: string;
   highlight?: string;
   mood?: Expression; // the scene's emotional tone → default face for its people
+  motion?: { id: string; params: Record<string, string | number> }; // a catalogue sequence for this beat
 }
+
+/** Sequences the storyboard may use for a narrated beat (each is a short full-screen explainer cutaway). */
+export const STORY_SEQUENCES = ['bigStat', 'chartExplain', 'comparison', 'timelineHistory', 'processExplain', 'quoteStatement', 'mapInvestigation', 'mythVsFact', 'rankingCountdown', 'moneyBreakdown', 'causeEffect', 'questionReveal', 'dataStory', 'globalStats', 'newsHeadline'];
+
+/**
+ * Keep a planned sequence only if it is real, has every parameter it needs (so no sample text leaks in),
+ * and every number in it is actually said in the scene.
+ */
+export function cleanMotion(raw: unknown, text: string): StoryPlan['motion'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as { id?: unknown; params?: unknown };
+  const id = String(r.id ?? '');
+  const seq = SEQUENCES[id];
+  if (!seq || !STORY_SEQUENCES.includes(id)) return undefined;
+  const given = (r.params && typeof r.params === 'object' ? r.params : {}) as Record<string, unknown>;
+  const params: Record<string, string | number> = {};
+  const said = (text.match(/\d[\d,.]*/g) ?? []).map((n) => n.replace(/,/g, ''));
+  for (const key of Object.keys(seq.params)) {
+    if (key === 'bg') continue;
+    const v = given[key];
+    if (v === undefined || v === null || String(v).trim() === '') return undefined;
+    params[key] = typeof v === 'number' ? v : String(v).slice(0, 300);
+    const nums = String(v).match(/\d[\d,.]*/g) ?? [];
+    if (nums.some((n) => !said.some((s) => s === n.replace(/,/g, '') || s.startsWith(n.replace(/,/g, ''))))) return undefined;
+  }
+  return { id, params };
+}
+
 
 /** Scene mood from the narration (fallback when the LLM gives none). */
 export function moodOf(text: string): Expression {
@@ -150,6 +180,7 @@ For EVERY scene decide what we SEE (the picture must change with the story):
    motion: ${MOTIONS.join(' | ')}   (people/animals arriving → walkIn; birds → fly; trees → sway; objects → float)
    For PEOPLE also add "pose": ${POSES.join(' | ')} and "expression": ${EXPRESSIONS.join(' | ')} matching what they do and feel. Always call the same person by the same name (e.g. "Meera", not "the girl" later).
 - "mood": ${EXPRESSIONS.join(' | ')} — the feeling of the scene
+- "motion" (optional, at most every third scene): an explainer graphic for a beat that is about numbers, a comparison, dates, a process, a quote, a place or a myth. {"id": one of ${STORY_SEQUENCES.join(' | ')}, "params": {…}}. Params per id: ${STORY_SEQUENCES.map((id) => `${id}(${Object.keys(SEQUENCES[id].params).filter((k) => k !== 'bg').join(',')})`).join('; ')}. Use ONLY facts and numbers said in that scene; data is "Label:value, …"; events are "year|event; …". Leave "motion" out when unsure.
 - "camera": ${CAMERAS.join(' | ')}  (vary it scene to scene)
 - "graphic": ${GRAPHICS.join(' | ')}. title only for scene 0. stat only with a number in the scene → add "value","suffix","label". chart → "data" like "A:10, B:20". highlight → "highlight" (exact words). quote → "title" (short line).
 
@@ -199,6 +230,7 @@ Reply with ONLY JSON: {"scenes":[{"i":0,"place":"...","time":"day","actors":[{"n
       const plan: StoryPlan = {
         place: String(raw.place ?? fb.place).toLowerCase().slice(0, 40) || fb.place,
         mood: EXPRESSIONS.includes(raw.mood as Expression) ? (raw.mood as Expression) : fb.mood,
+        motion: cleanMotion(raw.motion, text),
         time: ['day', 'sunset', 'night', 'dawn'].includes(String(raw.time)) ? (raw.time as StoryPlan['time']) : undefined,
         actors: actors.length ? actors : fb.actors,
         camera: CAMERAS.includes(raw.camera as Camera) ? (raw.camera as Camera) : fb.camera,

@@ -17,6 +17,7 @@ import { UPLOADS_DIR } from './store.ts';
 import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
+import { SEQUENCES } from '../src/motion/sequences.ts';
 import { isTheme } from '../src/vector/theme.ts';
 import { languageOf } from './tts.ts';
 import { buildStoryScene, heuristicStory, llmStory, transitionAt, type StoryPlan } from './storyScenes.ts';
@@ -294,6 +295,12 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
     template,
     props: { ...TEMPLATES[template].defaults, ...props },
   });
+  // a planned explainer sequence replaces the simple graphic for this beat
+  if (plan.motion && SEQUENCES[plan.motion.id]) {
+    const seq = SEQUENCES[plan.motion.id];
+    const mlen = round(Math.max(2, Math.min(seq.duration, dur - 0.4)));
+    return [{ id: newId('mg'), kind: 'text', name: seq.label, track: 5, from: round(from + 0.3), duration: mlen, template: 'motion', props: { ...seq.params, ...plan.motion.params, fx: plan.motion.id } }];
+  }
   switch (plan.graphic) {
     case 'title':
       return [item('artBanner', { style, text: plan.title || shortTitle(text, 6), position: 'top', size: 1.6 }, 'Title')];

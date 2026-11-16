@@ -199,6 +199,8 @@ function Quote({ props }: { props: P }) {
   );
 }
 
+import { MotionFx } from '../motion/MotionFx.tsx';
+
 export const TEMPLATE_COMPONENTS: Record<TemplateId, (p: { props: P }) => React.ReactElement> = {
   title: Title,
   hook: Hook,
@@ -215,4 +217,5 @@ export const TEMPLATE_COMPONENTS: Record<TemplateId, (p: { props: P }) => React.
   artCard: ArtCard,
   artFrame: ArtFrame,
   artBanner: ArtBanner,
+  motion: MotionFx,
 };

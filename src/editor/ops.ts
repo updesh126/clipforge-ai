@@ -1,6 +1,8 @@
 /** Pure timeline helpers used by the editor UI. */
 import type { EditItem, EditProject, ItemKind } from './types.ts';
 import { EFFECTS, TEMPLATES } from './catalog.ts';
+import { EFFECTS_LIB } from '../motion/catalog.ts';
+import { SEQUENCES } from '../motion/sequences.ts';
 import type { EffectId, TemplateId } from './types.ts';
 
 export const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -29,6 +31,13 @@ export function topTrack(edit: EditProject) {
 export function newTemplateItem(template: TemplateId, from: number, track: number): EditItem {
   const t = TEMPLATES[template];
   return { id: uid('t'), kind: 'text', name: t.label, track, from: r2(from), duration: t.duration, template, props: { ...t.defaults } };
+}
+
+/** A motion-library item (effect preset or sequence) at the playhead. */
+export function newMotionItem(fx: string, from: number, track: number): EditItem {
+  const seq = SEQUENCES[fx];
+  const def = EFFECTS_LIB[fx];
+  return { id: uid('mg'), kind: 'text', name: seq?.label ?? def?.label ?? 'Motion graphic', track, from: r2(from), duration: seq?.duration ?? def?.duration ?? 4, template: 'motion', props: { fx, ...(seq ? seq.params : {}) } };
 }
 
 export function newEffectItem(effect: EffectId, from: number): EditItem {

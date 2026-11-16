@@ -10,6 +10,7 @@ import { segmentWords } from './hyperframes.ts';
 import type { CaptionLook, EditItem, EditProject, EffectId, ImageItem, TemplateId } from '../src/editor/types.ts';
 import { BRAND, FRAME_SIZES, editDuration } from '../src/editor/types.ts';
 import { EFFECTS, TEMPLATES } from '../src/editor/catalog.ts';
+import { isMotionId } from '../src/motion/sequences.ts';
 
 const EDITS_FILE = path.join(DATA_DIR, 'edits.json');
 
@@ -198,6 +199,16 @@ export function sanitiseItem(raw: Record<string, unknown>): EditItem | null {
       if (!(template in TEMPLATES)) return null;
       const props: Record<string, string | number | boolean> = { ...TEMPLATES[template].defaults };
       const given = (raw.props && typeof raw.props === 'object' ? raw.props : {}) as Record<string, unknown>;
+      if (template === 'motion') {
+        if (!isMotionId(given.fx)) return null;
+        for (const [k, v] of Object.entries(given).slice(0, 60)) {
+          if (!/^[a-zA-Z_][a-zA-Z0-9_]{0,30}$/.test(k)) continue;
+          if (typeof v === 'number' && Number.isFinite(v)) props[k] = Math.max(-1e12, Math.min(1e12, v));
+          else if (typeof v === 'boolean') props[k] = v;
+          else if (typeof v === 'string') props[k] = v.slice(0, 600);
+        }
+        return { ...base, kind: 'text', template, props };
+      }
       for (const f of TEMPLATES[template].fields) {
         const v = given[f.key];
         if (v === undefined) continue;

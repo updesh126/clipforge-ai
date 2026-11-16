@@ -207,6 +207,13 @@ export const TEMPLATES: Record<TemplateId, { label: string; description: string;
       { key: 'size', label: 'Size', type: 'number', min: 0.5, max: 2.5, step: 0.05 },
     ],
   },
+  motion: {
+    label: 'Motion graphic',
+    description: 'Any effect or sequence from the motion graphics library',
+    duration: 4,
+    defaults: { fx: 'bigStat' },
+    fields: [],
+  },
 };
 
 export const EFFECTS: Record<EffectId, { label: string; description: string; duration: number }> = {

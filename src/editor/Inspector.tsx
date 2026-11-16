@@ -3,6 +3,8 @@ import { Trash2, Copy, Scissors } from 'lucide-react';
 import type { CaptionLook, EditItem } from './types.ts';
 import { ART_STYLE_LABELS, ART_STYLE_OPTIONS, EFFECTS, TEMPLATES, type FieldDef } from './catalog.ts';
 import { KIND_STYLE, itemLabel } from './ops.ts';
+import { CATEGORIES, EFFECTS_LIB, fieldsFor } from '../motion/catalog.ts';
+import { SEQUENCES } from '../motion/sequences.ts';
 
 interface Props {
   item: EditItem;
@@ -44,16 +46,21 @@ function Field({ f, value, onChange }: { f: FieldDef; value: unknown; onChange: 
         <input className={inputCls} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />
       </div>
     );
+  const unset = value === undefined || value === null || value === '';
+  // unset = the effect uses its built-in default; show that honestly instead of a fake 0
+  if (f.type === 'number' && unset)
+    return <input type="number" className={inputCls} placeholder="auto" value="" min={f.min} max={f.max} step={f.step} onChange={(e) => e.target.value !== '' && onChange(Number(e.target.value))} />;
   if (f.type === 'number') return <Num value={Number(value)} min={f.min} max={f.max} step={f.step} onChange={onChange} />;
   if (f.type === 'select')
     return (
-      <select className={inputCls} value={String(value)} onChange={(e) => onChange(e.target.value)}>
+      <select className={inputCls} value={unset ? '' : String(value)} onChange={(e) => onChange(e.target.value)}>
+        {unset && <option value="">auto</option>}
         {f.options?.map((o) => (
           <option key={o}>{o}</option>
         ))}
       </select>
     );
-  return <input className={inputCls} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />;
+  return <input className={inputCls} placeholder={unset ? 'auto' : undefined} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />;
 }
 
 type VectorRef = { cast: string; pose: string; expression: string; theme: string };
@@ -100,6 +107,39 @@ function CharacterControls({ vector, onRendered }: { vector: VectorRef; onRender
       </Row>
       {error && <p className="text-[11px] text-red-400">{error}</p>}
     </div>
+  );
+}
+
+/** Motion graphic: choose any effect/sequence; fields come from that effect's schema. */
+function MotionFields({ item, set }: { item: Extract<EditItem, { kind: 'text' }>; set: (patch: Record<string, unknown>, commit?: boolean) => void }) {
+  const fx = String(item.props.fx ?? '');
+  const seq = SEQUENCES[fx];
+  const fields = seq ? seq.fields : fieldsFor(fx);
+  const defaults: Record<string, string | number | boolean> = seq ? seq.params : { ...(EFFECTS_LIB[fx]?.defaults ?? {}) };
+  return (
+    <>
+      <Row label="Effect">
+        <select className={inputCls} value={fx} onChange={(e) => {
+          const id = e.target.value;
+          const s = SEQUENCES[id];
+          set({ props: { fx: id, ...(s ? s.params : {}) }, name: s?.label ?? EFFECTS_LIB[id]?.label ?? item.name });
+        }}>
+          <optgroup label="Sequences">
+            {Object.values(SEQUENCES).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </optgroup>
+          {CATEGORIES.filter((c) => c.id !== 'sequences').map((c) => (
+            <optgroup key={c.id} label={c.label}>
+              {Object.values(EFFECTS_LIB).filter((e) => e.category === c.id).map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      </Row>
+      {fields.map((f) => (
+        <Row key={f.key} label={f.label}>
+          <Field f={f} value={item.props[f.key] ?? defaults[f.key]} onChange={(v) => set({ props: { ...item.props, [f.key]: v } })} />
+        </Row>
+      ))}
+    </>
   );
 }
 
@@ -205,6 +245,7 @@ export function Inspector({ item, onChange, onDelete, onDuplicate, onSplit }: Pr
               ))}
             </select>
           </Row>
+          {item.template === 'motion' && <MotionFields item={item} set={set} />}
           {TEMPLATES[item.template]?.fields.map((f) => (
             <Row key={f.key} label={f.label}>
               <Field f={f} value={item.props[f.key]} onChange={(v) => set({ props: { ...item.props, [f.key]: v } })} />

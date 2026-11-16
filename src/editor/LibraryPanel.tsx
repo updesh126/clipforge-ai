@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, FolderOpen, Loader2, Type, Zap, Film, Newspaper, Palette, Shapes } from 'lucide-react';
+import { Plus, FolderOpen, Loader2, Type, Zap, Film, Newspaper, Palette, Shapes, Sparkles } from 'lucide-react';
+import { MotionLibrary } from './MotionLibrary.tsx';
 import { AssetsPanel } from './AssetsPanel.tsx';
 import type { AssetEntry } from '../assetkit/types.ts';
 import type { EffectId, TemplateId } from './types.ts';
@@ -23,19 +24,22 @@ interface Props {
   projects: ClipProject[];
   onAddTemplate: (t: TemplateId, props?: Record<string, string | number>) => void;
   onAddEffect: (e: EffectId) => void;
+  onAddMotion: (fx: string) => void;
+  aspect?: { width: number; height: number };
   onAddFile: () => Promise<void>;
   onAddProjectVideo: (p: ClipProject) => void;
   onAddAsset: (a: AssetEntry) => void;
 }
 
-type Tab = 'assets' | 'graphics' | 'vox' | 'art' | 'effects' | 'media';
+type Tab = 'motion' | 'assets' | 'graphics' | 'vox' | 'art' | 'effects' | 'media';
 const VOX: TemplateId[] = ['paperTitle', 'markerHighlight', 'stat', 'barChart', 'callout'];
 const ART: TemplateId[] = ['artCard', 'artFrame', 'artBanner'];
 
-export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddFile, onAddProjectVideo, onAddAsset }: Props) {
-  const [tab, setTab] = useState<Tab>('graphics');
+export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddMotion, aspect, onAddFile, onAddProjectVideo, onAddAsset }: Props) {
+  const [tab, setTab] = useState<Tab>('motion');
   const [busy, setBusy] = useState(false);
   const tabs: Array<{ id: Tab; label: string; icon: typeof Type }> = [
+    { id: 'motion', label: 'Motion', icon: Sparkles },
     { id: 'assets', label: 'Assets', icon: Shapes },
     { id: 'graphics', label: 'Graphics', icon: Type },
     { id: 'vox', label: 'Vox', icon: Newspaper },
@@ -47,7 +51,7 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddFile, 
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="grid grid-cols-6 border-b border-zinc-900">
+      <div className="grid grid-cols-7 border-b border-zinc-900">
         {tabs.map((t) => {
           const I = t.icon;
           return (
@@ -64,7 +68,8 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddFile, 
         })}
       </div>
       {tab === 'assets' && <AssetsPanel onAdd={onAddAsset} />}
-      <div className={`flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 ${tab === 'assets' ? 'hidden' : ''}`}>
+      {tab === 'motion' && <MotionLibrary onAdd={onAddMotion} aspect={aspect ?? { width: 1080, height: 1920 }} />}
+      <div className={`flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 ${tab === 'assets' || tab === 'motion' ? 'hidden' : ''}`}>
         {(tab === 'graphics' || tab === 'vox') &&
           (Object.keys(TEMPLATES) as TemplateId[])
             .filter((id) => (tab === 'vox' ? VOX.includes(id) : !VOX.includes(id) && !ART.includes(id)))

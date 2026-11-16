@@ -7,6 +7,8 @@
  */
 import type { EditProject, EditWord } from '../src/editor/types.ts';
 import { EFFECTS, TEMPLATES } from '../src/editor/catalog.ts';
+import { CATEGORIES, EFFECTS_LIB } from '../src/motion/catalog.ts';
+import { isMotionId, SEQUENCES } from '../src/motion/sequences.ts';
 import { applyOps, type EditOp } from './edits.ts';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
@@ -73,6 +75,23 @@ export function normaliseOps(rawOps: unknown[], words: EditWord[], total: number
       // item fields put directly on the op
       let item = (op.item && typeof op.item === 'object' ? { ...(op.item as Record<string, unknown>) } : { ...op }) as Record<string, unknown>;
       delete item.op;
+      // motion graphics: {"kind":"motion","fx":"bigStat",…} or a bare catalogue id as kind/template/effect
+      {
+        const fxId = [item.fx, item.kind, item.template, item.effect].find((v) => isMotionId(v) && !(String(v) in TEMPLATES && v !== 'motion') && !(String(v) in EFFECTS));
+        if (item.kind === 'motion' || item.template === 'motion' || fxId) {
+          if (!isMotionId(fxId ?? item.fx)) continue; // invented id → drop the op
+          const id = String(fxId ?? item.fx);
+          const known = new Set(['op', 'kind', 'template', 'effect', 'fx', 'at', 'from', 'duration', 'track', 'name', 'props', 'when']);
+          const loose = Object.fromEntries(Object.entries(item).filter(([k]) => !known.has(k)));
+          item = { ...item, kind: 'text', template: 'motion', props: { ...(SEQUENCES[id]?.params ?? {}), ...loose, ...((item.props as object) ?? {}), fx: id } };
+          delete item.fx;
+          delete item.effect;
+          // never shorter than ~80% of the designed length, or the sequence is cut before it lands
+          const designed = SEQUENCES[id]?.duration ?? EFFECTS_LIB[id]?.duration ?? 4;
+          item.duration = Math.max(Number(item.duration) || 0, designed * 0.8);
+          if (!item.name) item.name = SEQUENCES[id]?.label ?? EFFECTS_LIB[id]?.label;
+        }
+      }
       // kind given as a template/effect id ({"kind":"stat"}) → proper kind; loose fields → props
       if (typeof item.kind === 'string' && item.kind in TEMPLATES) {
         const fieldKeys = TEMPLATES[item.kind as keyof typeof TEMPLATES].fields.map((f) => f.key);
@@ -99,7 +118,7 @@ export function normaliseOps(rawOps: unknown[], words: EditWord[], total: number
       }
       delete item.at;
       // sensible length when the model gives none or a tiny one
-      const def = item.kind === 'effect' ? EFFECTS[item.effect as keyof typeof EFFECTS]?.duration : TEMPLATES[item.template as keyof typeof TEMPLATES]?.duration;
+      const def = item.kind === 'effect' ? EFFECTS[item.effect as keyof typeof EFFECTS]?.duration : item.template === 'motion' ? Number(item.duration) || 4 : TEMPLATES[item.template as keyof typeof TEMPLATES]?.duration;
       const dur = Number(item.duration);
       if (def && (!Number.isFinite(dur) || dur < Math.min(1, def))) item.duration = def;
       const from = Number(item.from);
@@ -132,6 +151,7 @@ export async function editWithAI(edit: EditProject, instruction: string): Promis
   const templates = Object.entries(TEMPLATES)
     .map(([id, t]) => `- ${id}: ${t.description}. props: ${t.fields.map((f) => (f.options ? `${f.key} (${f.options.join('|')})` : f.key)).join(', ')}`)
     .join('\n');
+  const motion = motionCatalogueForPrompt();
   const effects = Object.entries(EFFECTS)
     .map(([id, e]) => `- ${id}: ${e.description}`)
     .join('\n');
@@ -151,11 +171,16 @@ ${templates}
 EFFECTS — add with kind "effect" and "effect" (they move the footage):
 ${effects}
 
+MOTION GRAPHICS LIBRARY — add with kind "motion" and "fx" set to EXACTLY one of these ids (never invent ids):
+${motion}
+Prefer a SEQUENCE when the request describes a storytelling beat (a big number, a chart with a point to make, a map, a quote, a timeline…).
+
 CAPTIONS item: look = karaoke | pop | bold | clean, position = bottom | middle | top.
 ART STYLES (for artCard / artFrame / artBanner "style" prop): madhubani, inkWash, shadowPuppet, paperCutout, stainedGlass, anime, warli, blueprint, ukiyoe, miniature. "Make it look like X" usually means adding an artFrame over the whole video plus artBanner captions in that style.
 
 OPERATION SHAPES (replace <...> with real values; never copy placeholders):
 add text:   {"op":"add","item":{"kind":"text","template":"<template id>","at":"<exact words from the transcript>","duration":<seconds>,"props":{<template props>}}}
+add motion: {"op":"add","item":{"kind":"motion","fx":"<motion id>","at":"<exact words from the transcript>","props":{<params, e.g. "value":40,"label":"…","data":"A:10, B:20">}}}
 add effect: {"op":"add","item":{"kind":"effect","effect":"<effect id>","at":"<exact words from the transcript>","duration":<seconds>,"intensity":<0.2-2>}}
 change:     {"op":"update","id":"<id from the timeline>","patch":{<fields or "props":{...}>}}
 remove:     {"op":"delete","id":"<id from the timeline>"}
@@ -198,4 +223,11 @@ Reply with ONLY JSON: {"reply":"<one short sentence of what you changed>","ops":
     ? String(parsed.reply || `Applied ${applied} change${applied === 1 ? '' : 's'}.`).slice(0, 300)
     : 'I could not turn that into a timeline change — try being more specific (what, where, when).';
   return { edit: next, reply, applied };
+}
+
+/** Compact, fixed catalogue for prompts: sequences with their parameters, effect ids grouped by category. */
+export function motionCatalogueForPrompt(): string {
+  const seqs = Object.values(SEQUENCES).map((q) => `- ${q.id}: ${q.description}. params: ${Object.keys(q.params).join(', ')}`);
+  const groups = CATEGORIES.filter((c) => c.id !== 'sequences').map((c) => `${c.label}: ${Object.values(EFFECTS_LIB).filter((e) => e.category === c.id).map((e) => e.id).join(', ')}`);
+  return ['SEQUENCES:', ...seqs, 'SINGLE EFFECTS (by category):', ...groups].join('\n');
 }

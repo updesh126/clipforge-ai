@@ -17,7 +17,8 @@
     "asset-sheet": "tsx scripts/asset-sheet.ts",
     "describe-assets": "tsx scripts/describe-assets.ts",
     "vector-demo": "tsx scripts/vector-demo.ts",
-    "theme-thumbs": "tsx scripts/gen-theme-thumbs.ts"
+    "theme-thumbs": "tsx scripts/gen-theme-thumbs.ts",
+    "motion-sheet": "tsx scripts/motion-sheet.ts"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.543",
@@ -27,6 +28,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@types/multer": "^2.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "d3-geo": "^3.1.1",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "gsap": "^3.15.1",
@@ -39,13 +41,17 @@
     "react-dom": "^19.0.1",
     "remotion": "4.0.543",
     "sharp": "0.34.5",
-    "vite": "^8.3.0"
+    "topojson-client": "^3.1.0",
+    "vite": "^8.3.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/topojson-client": "^3.1.5",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.3.3",

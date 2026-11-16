@@ -7,6 +7,7 @@ Pick a long video, get ranked vertical clips with captions. Everything runs on y
 
 ## Features
 
+- **Motion graphics library** — 200 explainer effects and 30 sequences (typography, charts, maps, annotations, layouts, timelines, diagrams, transitions…), all editable in the Inspector and pickable by the local AI. See [docs/MOTION_LIBRARY.md](docs/MOTION_LIBRARY.md)
 - **Procedural vector engine** — story characters and places are drawn at runtime as SVG, with no stock images and no GPU. The same characters appear in every scene with real poses and expressions, in four themes (storybook, cartoon, flat vector, hand-drawn). See [docs/VECTOR_ENGINE.md](docs/VECTOR_ENGINE.md)
 - **Script guide** — how to write a story script for the best pictures: [docs/STORY_SCRIPT_GUIDE.md](docs/STORY_SCRIPT_GUIDE.md) (also a "Use the story template" button on the Script page)
 - **Fully automatic** — local AI transcribes the video and picks the best moments

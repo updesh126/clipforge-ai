@@ -23,6 +23,8 @@ Icons are each site's favicon (shown via Google's favicon service when viewed on
 | <img src="https://www.google.com/s2/favicons?domain=airbnb.io&sz=32" width="16"> | 📦 [lottie-web](https://github.com/airbnb/lottie-web) + [@remotion/lottie](https://www.remotion.dev/docs/lottie) | Plays Lottie animations in videos | MIT / Remotion licence |
 | <img src="https://www.google.com/s2/favicons?domain=gsap.com&sz=32" width="16"> | 📦 [GSAP](https://gsap.com) | Timelines inside HyperFrames compositions | GSAP standard licence (free, incl. commercial) |
 | <img src="https://www.google.com/s2/favicons?domain=github.com&sz=32" width="16"> | 🔧 [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Local YouTube download | Unlicense |
+| <img src="https://www.google.com/s2/favicons?domain=d3js.org&sz=32" width="16"> | 📦 [d3-geo](https://github.com/d3/d3-geo) + [topojson-client](https://github.com/topojson/topojson-client) | Map projections, globe, great-circle routes in motion graphics | ISC |
+| <img src="https://www.google.com/s2/favicons?domain=naturalearthdata.com&sz=32" width="16"> | 🖼️ [world-atlas](https://github.com/topojson/world-atlas) / [Natural Earth](https://www.naturalearthdata.com) | Country shapes for map animations | ISC / public domain |
 | <img src="https://www.google.com/s2/favicons?domain=sharp.pixelplumbing.com&sz=32" width="16"> | 📦 [sharp](https://sharp.pixelplumbing.com) / [libvips](https://www.libvips.org) | Background removal, trimming, PNG output for imported images | Apache-2.0 / LGPL-2.1 |
 
 ## App libraries

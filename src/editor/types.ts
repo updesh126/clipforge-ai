@@ -72,7 +72,9 @@ export type TemplateId =
   // Art-style motion graphics (Madhubani, ink wash, Warli, ukiyo-e …)
   | 'artCard'
   | 'artFrame'
-  | 'artBanner';
+  | 'artBanner'
+  // motion graphics library (effects + sequences, src/motion) — props.fx picks which
+  | 'motion';
 
 export interface TextItem extends BaseItem {
   kind: 'text';

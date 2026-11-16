@@ -24,7 +24,7 @@ import { Timeline } from './Timeline.tsx';
 import { Inspector } from './Inspector.tsx';
 import { LibraryPanel } from './LibraryPanel.tsx';
 import { AiPanel, type ChatMsg } from './AiPanel.tsx';
-import { newEffectItem, newTemplateItem, r2, splitItem, topTrack, uid } from './ops.ts';
+import { newEffectItem, newMotionItem, newTemplateItem, r2, splitItem, topTrack, uid } from './ops.ts';
 import { createEdit, listEdits, loadEdit, saveEditRemote, type EditSummary } from './api.ts';
 import type { ClipProject, JobProgress, TranscriptSegment } from '../types.ts';
 import type { AssetEntry } from '../assetkit/types.ts';
@@ -321,6 +321,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
     addItem(item);
   };
   const addEffect = (fx: EffectId) => addItem(newEffectItem(fx, time));
+  const addMotion = (fx: string) => addItem(newMotionItem(fx, time, Math.max(6, topTrack(edit) + 1)));
   const deleteSelected = () => {
     if (!selected) return;
     apply((e) => ({ ...e, items: e.items.filter((i) => i.id !== selected.id) }));
@@ -581,7 +582,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       <div className="flex-1 min-h-0 flex">
         {/* Left: library */}
         <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-zinc-900 bg-surface">
-          <LibraryPanel projects={projects} onAddTemplate={addTemplate} onAddEffect={addEffect} onAddFile={addFromDisk} onAddProjectVideo={addProjectVideo} onAddAsset={addAsset} />
+          <LibraryPanel projects={projects} onAddTemplate={addTemplate} onAddEffect={addEffect} onAddMotion={addMotion} aspect={{ width: edit.width, height: edit.height }} onAddFile={addFromDisk} onAddProjectVideo={addProjectVideo} onAddAsset={addAsset} />
         </aside>
 
         {/* Centre: preview + timeline */}
