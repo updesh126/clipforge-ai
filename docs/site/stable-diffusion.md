@@ -12,13 +12,15 @@
 
 ## Quick install (Windows)
 
-One script downloads ComfyUI and the SDXL model (about 9 GB in total) and unpacks them next to the project folder. It needs [7-Zip](https://www.7-zip.org/) (`winget install 7zip.7zip`).
+One command downloads ComfyUI and the SDXL model (about 9 GB in total). It needs [7-Zip](https://www.7-zip.org/) (`winget install 7zip.7zip`).
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\setup-comfyui.ps1
+```bash
+npm run comfy:setup
 ```
 
-Add `-Dir D:\ComfyUI` to choose the folder, or `-SkipModel` if you already have a model. Then jump to [step 3](#3-start-comfyui).
+It installs into `tools/ComfyUI` inside the project (git-ignored), or reuses an existing `..\ComfyUI` install. Big downloads resume where they stopped — if your connection drops, just run it again. Add `-Dir D:\ComfyUI` to choose another folder, or `-SkipModel` if you already have a model.
+
+**That's all.** `npm run dev` now starts ComfyUI for you in the background, and a run with *AI painting* starts it too if it was stopped. Check everything with `npm run setup`.
 
 ## 1. Install ComfyUI by hand (Windows)
 
@@ -45,7 +47,13 @@ Check each model's licence before client work.
 
 ## 3. Start ComfyUI
 
-Double-click `run_nvidia_gpu.bat` in the ComfyUI folder. Wait until it prints `To see the GUI go to: http://127.0.0.1:8188`.
+You don't need to. ClipForge finds ComfyUI in `SD_COMFY_DIR`, `tools/ComfyUI` or `..\ComfyUI` and starts it:
+
+- when `npm run dev` starts (turn this off with `SD_AUTOSTART=false`)
+- when you create a video with *AI painting* and it isn't running
+- with `npm run comfy`, if you want it without ClipForge
+
+It runs in the background and keeps running across `npm run dev` reloads. Its output goes to `data/comfyui.log`. You can still start it by hand with `run_nvidia_gpu.bat`; ClipForge reuses a ComfyUI that is already running.
 
 ## 4. Check it in ClipForge
 
@@ -73,6 +81,9 @@ Put these in `.env` (see [Settings](#/docs/settings)):
 | `SD_CFG` | `6` | 1.5–2 for Lightning/Turbo |
 | `SD_SAMPLER` | `dpmpp_2m` | Any ComfyUI KSampler name |
 | `SD_SCHEDULER` | `karras` | Any ComfyUI scheduler name |
+| `SD_COMFY_DIR` | auto | Folder of your ComfyUI install, if it isn't in `tools/ComfyUI` or `..\ComfyUI` |
+| `SD_AUTOSTART` | `true` | `false` = start ComfyUI only when a painting is needed |
+| `SD_COMFY_ARGS` | — | Extra ComfyUI arguments, e.g. `--lowvram` |
 
 ## How prompts are built
 
@@ -86,8 +97,9 @@ Put these in `.env` (see [Settings](#/docs/settings)):
 
 | Problem | Fix |
 |---|---|
-| *Stable Diffusion is not running* | Start `run_nvidia_gpu.bat` and keep its window open |
+| *Stable Diffusion is not running* | Run `npm run comfy` and read `data/comfyui.log` for the error. If you see a `c10.dll` error, install the [VC++ redistributable](https://aka.ms/vc14/vc_redist.x64.exe); otherwise update your NVIDIA driver |
 | *ComfyUI has no checkpoint* | Put a `.safetensors` file in `models/checkpoints` and restart ComfyUI |
-| Out of memory | Close other GPU apps (games, browsers with video), or add `--lowvram` to the end of the line in `run_nvidia_gpu.bat` |
+| Out of memory | Close other GPU apps (games, browsers with video), or set `SD_COMFY_ARGS=--lowvram` |
+| Progress seems stuck on *Loading model* | Normal the first time after ComfyUI starts (10–30 s); then you'll see *step 1/28 … 28/28* per scene |
 | First scene is very slow | The model loads into VRAM on the first job; later scenes are faster |
 | Faces change between scenes | Name characters consistently in the script; keep scenes short and specific |

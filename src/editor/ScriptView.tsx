@@ -111,6 +111,11 @@ export function ScriptView({ engines, onCreated }: Props) {
   const [progress, setProgress] = useState<JobProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const polling = useRef(false);
+  const progressRef = useRef<HTMLDivElement | null>(null);
+  // bring the progress card into view once, when a run starts
+  useEffect(() => {
+    if (busy) window.setTimeout(() => progressRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  }, [busy]);
 
   const words = script.trim() ? script.trim().split(/\s+/).length : 0;
   const estSeconds = Math.round(words / 2.5);
@@ -229,7 +234,7 @@ export function ScriptView({ engines, onCreated }: Props) {
           )}
 
           {busy && (
-            <div className="mt-5 rounded-xl border border-zinc-800 bg-surface p-4">
+            <div ref={progressRef} className="mt-5 rounded-xl border border-zinc-800 bg-surface p-4" role="status" aria-live="polite">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white">{progress?.label || 'Starting…'}</span>
                 <span className="font-mono text-xs text-zinc-400">{progress?.pct ?? 0}%</span>
@@ -292,8 +297,14 @@ export function ScriptView({ engines, onCreated }: Props) {
                 ))}
               </div>
               {illustration === 'ai' && (
-                <p className={`mt-1.5 text-[10.5px] ${engines?.sd ? 'text-accent' : 'text-amber-400'}`}>
-                  {engines?.sd ? `Stable Diffusion ready · ${engines.sdModel}` : engines?.sdRunning ? 'ComfyUI is running but has no model — see Docs → Stable Diffusion.' : 'Stable Diffusion is not running — see Docs → Stable Diffusion setup.'}
+                <p className={`mt-1.5 text-[10.5px] ${engines?.sd || engines?.sdInstalled ? 'text-accent' : 'text-amber-400'}`}>
+                  {engines?.sd
+                    ? `Stable Diffusion ready · ${engines.sdModel}`
+                    : engines?.sdRunning
+                      ? 'ComfyUI is running but has no model — see Docs → Stable Diffusion.'
+                      : engines?.sdInstalled
+                        ? 'Stable Diffusion is installed — it starts automatically when you create the video.'
+                        : 'Stable Diffusion is not installed — run npm run comfy:setup (see Docs → Stable Diffusion setup).'}
                 </p>
               )}
             </section>

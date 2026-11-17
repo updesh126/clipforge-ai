@@ -11,7 +11,7 @@
 | Voice sounds robotic | That's the system voice — install Kokoro: `pip install kokoro-onnx soundfile` |
 | *Edit with AI* ignores the request | Use a bigger model: `OLLAMA_EDIT_MODEL=qwen2.5:7b`. Quote the exact words spoken |
 | First editor render is slow | Remotion bundles once and fetches headless Chrome; later renders are faster |
-| *AI painting* says Stable Diffusion is not running | Start ComfyUI (`run_nvidia_gpu.bat`) — see [Stable Diffusion setup](#/docs/stable-diffusion) |
+| *AI painting* says Stable Diffusion is not running | Install it with `npm run comfy:setup`, or check `data/comfyui.log` — see [Stable Diffusion setup](#/docs/stable-diffusion) |
 | Tool installed but setup still shows ✘ | Open a new terminal so PATH is refreshed |
 
 ## FAQ

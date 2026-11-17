@@ -50,4 +50,18 @@ try {
 } catch {
   console.log(`– Ollama not running (optional). Start it with: ollama serve  then: ollama pull ${model}`);
 }
+// Stable Diffusion (ComfyUI) for "AI painting" — optional; npm run dev starts it automatically when installed
+{
+  const { existsSync, readdirSync } = await import('node:fs');
+  const { join, resolve } = await import('node:path');
+  const dirs = [process.env.SD_COMFY_DIR, join(process.cwd(), 'tools', 'ComfyUI', 'ComfyUI_windows_portable'), resolve(process.cwd(), '..', 'ComfyUI', 'ComfyUI_windows_portable')].filter(Boolean);
+  const dir = dirs.find((d) => existsSync(join(d, 'ComfyUI', 'main.py')) || existsSync(join(d, 'main.py')));
+  const ckDir = dir && [join(dir, 'ComfyUI', 'models', 'checkpoints'), join(dir, 'models', 'checkpoints')].find((d) => existsSync(d));
+  const models = ckDir ? readdirSync(ckDir).filter((f) => /\.(safetensors|ckpt)$/i.test(f)) : [];
+  const fix = os === 'win32' ? 'npm run comfy:setup' : 'see docs/site/stable-diffusion.md';
+  if (!dir) console.log(`– Stable Diffusion / ComfyUI (AI painting, optional)  →  ${fix}`);
+  else if (!models.length) console.log(`✘ ComfyUI found in ${dir} but no model in models/checkpoints  →  ${fix}`);
+  else console.log(`✔ Stable Diffusion: ComfyUI + ${models[0]} (starts automatically with npm run dev)`);
+}
+
 console.log(ok ? '\nReady. Run: npm run dev' : '\nInstall the missing tools above, then run: npm run dev');

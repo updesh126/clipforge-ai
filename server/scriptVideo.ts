@@ -18,6 +18,7 @@ import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
 import { generateImage, sdSize, sdStatus, stylisedScene } from './imagegen.ts';
+import { ensureComfy } from './comfy.ts';
 import type { CharacterSpec } from '../src/vector/character.ts';
 import type { EffectId } from '../src/editor/types.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
@@ -328,7 +329,7 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
 const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blueprint', 'stainedGlass']);
 
 /** One Stable Diffusion painting for a scene, with a slow Ken Burns drift and the planned camera move. */
-async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string) => void): Promise<EditItem[]> {
+async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string, fraction: number) => void): Promise<EditItem[]> {
   const [width, height] = sdSize(aspect);
   // people named in the narration (or the only character a "she / he" can mean) always appear, and come first
   const actors = plan.actors.map((a) => a.name);
@@ -340,8 +341,8 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
     else if (named && has(c.name)) actors.sort((a, b) => Number(b.toLowerCase() === c.name.toLowerCase()) - Number(a.toLowerCase() === c.name.toLowerCase()));
   }
   const { prompt, negative } = stylisedScene({ place: plan.place, time: plan.time, actors, narration: text, mood: plan.mood }, style, cast);
-  onProgress(plan.place);
-  const img = await generateImage({ prompt, negative, width, height, seed, onProgress });
+  onProgress(plan.place, 0);
+  const img = await generateImage({ prompt, negative, width, height, seed, onProgress: (m, f) => onProgress(`${plan.place} · ${m}`, f) });
   const items: EditItem[] = [
     { id: newId('ai'), kind: 'image', name: `Painting · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: img.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 1, motion: 'kenBurns' },
   ];
@@ -378,6 +379,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
   let aiCast: CharacterSpec[] | null = null;
   const aiSeed = Math.floor(Math.random() * 2 ** 31);
   if (mode === 'story' && opts.illustration === 'ai') {
+    await ensureComfy((m) => progress('plan', m, 6));
     const st = await sdStatus(true);
     if (!st.running) throw new Error('AI illustration needs Stable Diffusion: start ComfyUI (see docs → Stable Diffusion setup), or switch Illustration to "Vector".');
     if (!st.checkpoint) throw new Error('ComfyUI is running but has no checkpoint. Put an SDXL model in ComfyUI/models/checkpoints and restart ComfyUI.');
@@ -420,7 +422,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
 
     if (mode === 'story') {
       progress('assets', `Drawing scene ${i + 1}: ${story[i].place}`, 8 + (80 * (i + 0.7)) / plans.length);
-      if (aiCast) items.push(...(await paintedScene(story[i], plan.text, sceneStart, sceneDur, style, aspect, aiCast, aiSeed, (m) => progress('assets', `Painting scene ${i + 1} of ${plans.length}: ${m}`, 8 + (80 * (i + 0.75)) / plans.length))));
+      if (aiCast) items.push(...(await paintedScene(story[i], plan.text, sceneStart, sceneDur, style, aspect, aiCast, aiSeed, (m, f) => progress('assets', `Painting scene ${i + 1} of ${plans.length}: ${m}`, 8 + (80 * (i + 0.7 + 0.28 * f)) / plans.length))));
       else items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));
       items.push(...storyGraphic(story[i], plan.text, sceneStart, sceneDur, style, i));
       if (i > 0) items.push(transitionAt(sceneStart, i));

@@ -42,6 +42,7 @@ import { isTheme, THEME_IDS, type ThemeId } from './src/vector/theme.ts';
 import type { EditProject } from './src/editor/types.ts';
 import { refreshWindowsPath } from './scripts/win-path.mjs';
 import { GENERATED_DIR, generateImage, sdSize, sdStatus } from './server/imagegen.ts';
+import { autostartComfy, ensureComfy, findComfy } from './server/comfy.ts';
 import { buildNegativePrompt, buildSdPrompt } from './src/artstyles/prompt.ts';
 
 refreshWindowsPath(); // pick up tools installed after this terminal was opened (winget etc.)
@@ -116,11 +117,20 @@ const upload = multer({
 // Local engine health (ffmpeg / whisper.cpp / Ollama)
 app.get('/api/health', async (_req, res) => {
   const [engines, sd] = await Promise.all([getEngineStatus(), sdStatus()]);
-  res.json({ ...engines, sd: sd.running && Boolean(sd.checkpoint), sdRunning: sd.running, sdModel: sd.checkpoint, sdUrl: sd.url });
+  res.json({ ...engines, sd: sd.running && Boolean(sd.checkpoint), sdRunning: sd.running, sdModel: sd.checkpoint, sdUrl: sd.url, sdInstalled: Boolean(findComfy()) });
 });
 
 // Stable Diffusion: status, and a one-off test painting in an art style (used by the docs / setup check)
 app.get('/api/sd/status', async (_req, res) => {
+  res.json({ ...(await sdStatus(true)), installedAt: findComfy()?.dir ?? null });
+});
+// start ComfyUI now (used by the Script page when AI painting is picked and it isn't running)
+app.post('/api/sd/start', async (_req, res) => {
+  if (!findComfy()) {
+    res.status(404).json({ error: 'ComfyUI is not installed. Run: powershell -ExecutionPolicy Bypass -File scripts\\setup-comfyui.ps1' });
+    return;
+  }
+  await ensureComfy();
   res.json(await sdStatus(true));
 });
 app.post('/api/sd/test', async (req, res) => {
@@ -128,6 +138,7 @@ app.post('/api/sd/test', async (req, res) => {
   const style = String(b.style || 'storybook');
   const scene = String(b.prompt || 'a child and a dog walking along a village path under a big tree').slice(0, 400);
   try {
+    await ensureComfy();
     const [width, height] = sdSize(String(b.aspect || '16:9'));
     const img = await generateImage({ prompt: buildSdPrompt(scene, style), negative: `${buildNegativePrompt(style)}, text, watermark, blurry`, width, height, seed: Number(b.seed) || 7 });
     res.json(img);
@@ -973,6 +984,7 @@ async function startServer() {
 
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`ClipForge AI local studio listening on http://localhost:${PORT}`);
+    autostartComfy(); // local Stable Diffusion for "AI painting", when installed
   });
   // Long uploads and hour-long transcriptions must not be cut off by Node's default 5-minute limits
   server.requestTimeout = 0;

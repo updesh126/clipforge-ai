@@ -69,8 +69,8 @@ export interface GenerateOptions {
   seed?: number;
   steps?: number;
   cfg?: number;
-  /** progress text while ComfyUI works */
-  onProgress?: (msg: string) => void;
+  /** progress while ComfyUI works: a short label and 0..1 for this image */
+  onProgress?: (msg: string, fraction: number) => void;
 }
 
 /** Basic SDXL text-to-image workflow in ComfyUI's API format. */
@@ -102,6 +102,31 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
   if (fs.existsSync(file)) return { url, file, cached: true };
 
   const clientId = crypto.randomUUID();
+  // live sampler steps over ComfyUI's WebSocket (the HTTP history only reports when the image is done)
+  let phase = 'Waiting for the GPU';
+  let fraction = 0;
+  let ws: WebSocket | null = null;
+  try {
+    ws = new WebSocket(`${SD_URL.replace(/^http/, 'ws')}/ws?clientId=${clientId}`);
+    ws.onmessage = (ev) => {
+      if (typeof ev.data !== 'string') return; // binary = preview frames
+      try {
+        const m = JSON.parse(ev.data) as { type: string; data?: { value?: number; max?: number; node?: string | null } };
+        if (m.type === 'progress' && m.data?.max) {
+          fraction = Math.min(0.97, (m.data.value ?? 0) / m.data.max);
+          phase = `step ${m.data.value}/${m.data.max}`;
+        } else if (m.type === 'executing' && m.data?.node === '1') phase = 'Loading model (first time only)';
+        else if (m.type === 'executing' && m.data?.node === '6') {
+          phase = 'Finishing';
+          fraction = 0.98;
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+  } catch {
+    ws = null; // no WebSocket: fall back to elapsed time
+  }
   const queued = await getJson<{ prompt_id: string }>(
     `${SD_URL}/prompt`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: workflow(st.checkpoint, o), client_id: clientId }) },
@@ -110,13 +135,15 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
   // poll history until the image is saved (first run loads the model: allow several minutes)
   const started = Date.now();
   type Hist = Record<string, { status?: { status_str?: string; messages?: unknown[] }; outputs?: Record<string, { images?: Array<{ filename: string; subfolder: string; type: string }> }> }>;
+  try {
   for (;;) {
     if (Date.now() - started > 10 * 60_000) throw new Error('Stable Diffusion took longer than 10 minutes for one image.');
     await new Promise((r) => setTimeout(r, 1000));
     const hist = await getJson<Hist>(`${SD_URL}/history/${queued.prompt_id}`, undefined, 10_000).catch(() => ({}) as Hist);
     const h = hist[queued.prompt_id];
     if (!h) {
-      opts.onProgress?.(`Painting… ${Math.round((Date.now() - started) / 1000)}s`);
+      const secs = Math.round((Date.now() - started) / 1000);
+      opts.onProgress?.(ws ? `${phase} · ${secs}s` : `Painting… ${secs}s`, ws ? fraction : Math.min(0.9, secs / 30));
       continue;
     }
     if (h.status?.status_str === 'error') throw new Error(`ComfyUI failed: ${JSON.stringify(h.status.messages ?? []).slice(0, 400)}`);
@@ -126,7 +153,11 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
     const res = await fetch(`${SD_URL}/view?${q}`, { signal: AbortSignal.timeout(30_000) });
     if (!res.ok) throw new Error(`Could not download the image from ComfyUI (${res.status}).`);
     fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()));
+    opts.onProgress?.('Done', 1);
     return { url, file, cached: false };
+  }
+  } finally {
+    ws?.close();
   }
 }
 

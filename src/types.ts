@@ -36,6 +36,8 @@ export interface EngineStatus {
   sdRunning?: boolean;
   sdModel?: string | null;
   sdUrl?: string;
+  /** ComfyUI found on disk (ClipForge starts it automatically) */
+  sdInstalled?: boolean;
 }
 
 export interface JobProgress {

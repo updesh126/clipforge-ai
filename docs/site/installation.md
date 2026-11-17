@@ -57,7 +57,7 @@ npm run setup
 | Extra | Why | How |
 |---|---|---|
 | Kokoro voices | Natural narration instead of the system voice | `pip install kokoro-onnx soundfile` |
-| Stable Diffusion | Painted, high-detail story scenes | See [Stable Diffusion setup](#/docs/stable-diffusion) |
+| Stable Diffusion | Painted, high-detail story scenes | `npm run comfy:setup` — then it starts with `npm run dev`. See [Stable Diffusion setup](#/docs/stable-diffusion) |
 | Bigger LLM | Better scene plans and *Edit with AI* | `ollama pull qwen2.5:7b`, then set `OLLAMA_EDIT_MODEL` |
 
 ## Run
@@ -66,4 +66,4 @@ npm run setup
 npm run dev
 ```
 
-Open **http://localhost:3000**. The top bar shows how many engines are ready; click it for details. Stop the server with **Ctrl + C**.
+This also starts ComfyUI in the background when it is installed. Open **http://localhost:3000**. The top bar shows how many engines are ready; click it for details. Stop the server with **Ctrl + C**.

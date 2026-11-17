@@ -35,6 +35,9 @@ Copy `.env.example` to `.env` and change what you need. Restart `npm run dev` af
 | `SD_STEPS` | `28` | 6–8 for Lightning/Turbo models |
 | `SD_CFG` | `6` | 1.5–2 for Lightning/Turbo models |
 | `SD_SAMPLER` / `SD_SCHEDULER` | `dpmpp_2m` / `karras` | Any ComfyUI names |
+| `SD_COMFY_DIR` | auto | ComfyUI folder (default: `tools/ComfyUI`, then `..\ComfyUI`) |
+| `SD_AUTOSTART` | `true` | Start ComfyUI with `npm run dev` |
+| `SD_COMFY_ARGS` | — | Extra ComfyUI arguments, e.g. `--lowvram` |
 
 ## Export (Clip workspace)
 

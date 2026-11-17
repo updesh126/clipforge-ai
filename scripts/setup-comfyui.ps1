@@ -4,9 +4,14 @@
 #   ComfyUI_windows_portable_nvidia.7z   ~2.1 GB  github.com/comfyanonymous/ComfyUI releases
 #   sd_xl_base_1.0.safetensors           ~6.9 GB  huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
 param(
-  [string]$Dir = (Join-Path (Split-Path -Parent (Get-Location)) 'ComfyUI'),
+  [string]$Dir = '',
   [switch]$SkipModel
 )
+# default: reuse an existing ..\ComfyUI install, otherwise install inside the project (tools\ComfyUI, git-ignored)
+if (-not $Dir) {
+  $sibling = Join-Path (Split-Path -Parent (Get-Location)) 'ComfyUI'
+  $Dir = if (Test-Path (Join-Path $sibling 'ComfyUI_windows_portable')) { $sibling } else { Join-Path (Get-Location) 'tools\ComfyUI' }
+}
 $ErrorActionPreference = 'Stop'
 
 # Big files over flaky connections: resume (-C -), retry on resets, verify the size, then rename into place.

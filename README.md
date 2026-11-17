@@ -10,7 +10,7 @@ Pick a long video, get ranked vertical clips with captions. Everything runs on y
 
 ## Features
 
-- **AI painting (optional)** — paint every story scene with local **Stable Diffusion** (SDXL via ComfyUI) in any of the 14 art styles, with the same characters and seed in every scene. One-script setup: `scripts/setup-comfyui.ps1`. See [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md)
+- **AI painting (optional)** — paint every story scene with local **Stable Diffusion** (SDXL via ComfyUI) in any of the 14 art styles, with the same characters and seed in every scene. One-command setup: `npm run comfy:setup`, then it starts automatically with `npm run dev`. See [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md)
 - **Art-style specs** — one detailed JSON per style in [`src/artstyles/`](src/artstyles/) (palette, line, texture, characters, composition, motion, prompt modifiers and negative prompts), rebuilt with `npm run artstyles`
 
 - **Motion graphics library** — 200 explainer effects and 30 sequences (typography, charts, maps, annotations, layouts, timelines, diagrams, transitions…), all editable in the Inspector and pickable by the local AI. See [docs/MOTION_LIBRARY.md](docs/MOTION_LIBRARY.md)
@@ -119,11 +119,11 @@ npm run setup
 
 `npm install` also installs **HyperFrames** (motion captions, hook titles, intro cards). It renders with your installed Chrome, or downloads a headless Chrome the first time. Needs Node.js 22 or newer.
 
-**Optional — AI painting (Stable Diffusion).** Needs an NVIDIA GPU with 8 GB+ VRAM (12 GB recommended). On Windows, one script downloads ComfyUI and the SDXL base model (~9 GB) — it needs 7-Zip:
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\setup-comfyui.ps1
+**Optional — AI painting (Stable Diffusion).** Needs an NVIDIA GPU with 8 GB+ VRAM (12 GB recommended). On Windows, one command downloads ComfyUI and the SDXL base model (~9 GB, resumes if interrupted) into `tools/ComfyUI` — it needs 7-Zip:
+```bash
+npm run comfy:setup
 ```
-Then start ComfyUI with `run_nvidia_gpu.bat` and choose **Illustration → AI painting** on the Script page. Full guide: [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md).
+After that, `npm run dev` starts ComfyUI for you in the background (or run `npm run comfy`). Choose **Illustration → AI painting** on the Script page. Full guide: [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md).
 
 **Optional — natural AI voices.** Voice intros use your system voice by default. For Kokoro voices, install Python 3 and run:
 ```bash
@@ -140,7 +140,7 @@ The Whisper speech model (~140 MB) downloads automatically the first time you pr
 npm run dev
 ```
 
-Open **http://localhost:3000** in your browser. The server reloads by itself when code changes.
+Open **http://localhost:3000** in your browser. The server reloads by itself when code changes. If Stable Diffusion (ComfyUI) is installed, it starts in the background too — its log is `data/comfyui.log`.
 
 To stop: press **Ctrl + C** in the terminal.
 
@@ -184,6 +184,8 @@ Copy `.env.example` to `.env` and change what you need:
 | `SD_URL` | `http://127.0.0.1:8188` | ComfyUI address for AI painting |
 | `SD_CHECKPOINT` | first SDXL model | Checkpoint file name as ComfyUI lists it |
 | `SD_STEPS` / `SD_CFG` | `28` / `6` | Use `6` / `2` for Lightning or Turbo models |
+| `SD_COMFY_DIR` | auto | ComfyUI folder if not in `tools/ComfyUI` or `../ComfyUI` |
+| `SD_AUTOSTART` | `true` | `false` = start ComfyUI only when a painting is needed |
 
 **Low-spec PC?** Use `WHISPER_MODEL=tiny` and `OLLAMA_MODEL=qwen2.5:1.5b`.
 **No Ollama?** ClipForge still works — a built-in scorer picks clips automatically.
@@ -204,7 +206,7 @@ Copy `.env.example` to `.env` and change what you need:
 | Voice intro sounds robotic | That's the system voice — install Kokoro: `pip install kokoro-onnx soundfile` |
 | *Edit with AI* ignores what I asked | Small models struggle — set `OLLAMA_EDIT_MODEL=qwen3.5:4b` (or bigger) in `.env`. Name the exact words spoken ("when they say …") |
 | First editor render is slow | Remotion bundles the graphics and fetches headless Chrome once; later renders are faster |
-| *AI painting* says Stable Diffusion is not running | Start ComfyUI (`run_nvidia_gpu.bat`) and keep its window open — see [Stable Diffusion setup](docs/site/stable-diffusion.md) |
+| *AI painting* says Stable Diffusion is not running | Run `npm run comfy` and check `data/comfyui.log` — see [Stable Diffusion setup](docs/site/stable-diffusion.md) |
 | Tool installed but setup still says ✘ | Fixed automatically on Windows (the latest PATH is read at start). Otherwise open a new terminal |
 
 ---

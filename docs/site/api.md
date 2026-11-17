@@ -9,6 +9,7 @@ The app talks to a local Express server. You can call the same endpoints from sc
 | GET | `/api/health` | Engine status: FFmpeg, Whisper, Ollama, Kokoro voices, Stable Diffusion (`sd`, `sdModel`) |
 | GET | `/api/jobs/:id` | Live progress of a long job (`stage`, `label`, `pct`) |
 | GET | `/api/sd/status` | ComfyUI status, checkpoints and the one in use |
+| POST | `/api/sd/start` | Start ComfyUI now (when installed) and return its status |
 | POST | `/api/sd/test` | Paints one test image. Body: `{ style, prompt?, aspect?, seed? }` |
 
 ## Clip projects
