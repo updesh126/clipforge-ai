@@ -49,6 +49,19 @@ async function ask(question, def = true) {
   return a ? a.startsWith('y') : def;
 }
 
+/** Numbered choice; returns the chosen option's value. --yes takes option 1 (the recommended one). */
+async function choose(question, options) {
+  console.log(`  ${question}`);
+  options.forEach((o, i) => console.log(`    ${i + 1}) ${o.label}`));
+  if (CHECK_ONLY) return options[0].value;
+  if (YES) {
+    console.log(`  ${dim('→ 1 (--yes)')}`);
+    return options[0].value;
+  }
+  const a = Number((await rl.question(`  Pick 1–${options.length} ${dim('[1]')} `)).trim() || 1);
+  return (options[a - 1] ?? options[0]).value;
+}
+
 /** Windows needs a shell to find .cmd shims (npm, npx, winget); pass one quoted command line instead of args + shell. */
 const commandLine = (cmd, cmdArgs) => [cmd, ...cmdArgs].map((a) => (/[\s&|<>^]/.test(a) && !/^".*"$/.test(a) ? `"${a}"` : a)).join(' ');
 
@@ -97,12 +110,19 @@ function pkgInstall({ winget, brew, apt }) {
   return false;
 }
 
+/** Set KEY=value in .env, line by line (works with Windows CRLF files; never merges lines). */
 function setEnv(key, value) {
-  let text = fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8') : '';
+  const text = fs.existsSync(ENV_FILE) ? fs.readFileSync(ENV_FILE, 'utf8') : '';
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const lines = text.split(/\r?\n/);
   const line = `${key}=${value}`;
-  const re = new RegExp(`^#?\\s*${key}=.*$`, 'm');
-  text = re.test(text) ? text.replace(re, line) : `${text.replace(/\s*$/, '')}\n${line}\n`;
-  fs.writeFileSync(ENV_FILE, text);
+  const at = lines.findIndex((l) => l.replace(/^[ \t]*#?[ \t]*/, '').startsWith(`${key}=`));
+  if (at >= 0) lines[at] = line;
+  else {
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    lines.push(line, '');
+  }
+  fs.writeFileSync(ENV_FILE, lines.join(eol));
   process.env[key] = value;
 }
 
@@ -354,41 +374,90 @@ function gpuInfo() {
   }
 }
 
-async function stepStableDiffusion() {
-  section('Stable Diffusion (ComfyUI)', 'optional: AI-painted story scenes and style thumbnails');
-  const dirs = [process.env.SD_COMFY_DIR, path.join(TOOLS, 'ComfyUI', 'ComfyUI_windows_portable'), path.resolve(ROOT, '..', 'ComfyUI', 'ComfyUI_windows_portable')].filter(Boolean);
+/** ComfyUI is installed (and looked for) only outside the project: ..\ComfyUI, %LOCALAPPDATA%\ClipForge\ComfyUI, ~/ClipForge/ComfyUI */
+function comfyHomes() {
+  const home = process.env.USERPROFILE || process.env.HOME || '';
+  return [
+    path.resolve(ROOT, '..', 'ComfyUI'),
+    ...(PLATFORM === 'win32' && process.env.LOCALAPPDATA ? [path.join(process.env.LOCALAPPDATA, 'ClipForge', 'ComfyUI')] : []),
+    ...(home ? [path.join(home, 'ClipForge', 'ComfyUI')] : []),
+  ];
+}
+
+function comfyState() {
+  const dirs = [process.env.SD_COMFY_DIR, ...comfyHomes().flatMap((h) => [path.join(h, 'ComfyUI_windows_portable'), h])].filter(Boolean);
   const dir = dirs.find((d) => fs.existsSync(path.join(d, 'ComfyUI', 'main.py')) || fs.existsSync(path.join(d, 'main.py')));
-  const ck = dir && [path.join(dir, 'ComfyUI', 'models', 'checkpoints'), path.join(dir, 'models', 'checkpoints')].find((d) => fs.existsSync(d));
-  const models = ck ? fs.readdirSync(ck).filter((f) => /\.(safetensors|ckpt)$/i.test(f) && !/\.part$/i.test(f)) : [];
-  if (dir && models.length) {
-    console.log(`  ${OK} ComfyUI + ${models[0]} ${dim(`(${dir})`)}`);
+  const models = (sub) => {
+    const d = dir && [path.join(dir, 'ComfyUI', 'models', sub), path.join(dir, 'models', sub)].find((x) => fs.existsSync(x));
+    return d ? fs.readdirSync(d).filter((f) => /\.(safetensors|ckpt)$/i.test(f)) : [];
+  };
+  const ck = models('checkpoints');
+  const te = models('text_encoders');
+  const ltx = ck.find((m) => /ltx-?v/i.test(m)) && te.some((f) => /t5xxl/i.test(f)) ? ck.find((m) => /ltx-?v/i.test(m)) : null;
+  const wanModel = models('diffusion_models').find((f) => /wan2\.?2.*ti2v.*5b/i.test(f));
+  const wan = wanModel && te.some((f) => /umt5/i.test(f)) && models('vae').some((f) => /wan2\.?2.*vae/i.test(f)) ? wanModel : null;
+  return {
+    dir,
+    image: ck.find((m) => !/ltx|wan|hunyuan/i.test(m)),
+    ltx,
+    wan,
+    video: [ltx && `${ltx} (fast)`, wan && `${wan} (best)`].filter(Boolean).join(' + ') || null,
+  };
+}
+
+async function stepStableDiffusion() {
+  section('Stable Diffusion (ComfyUI)', 'AI-painted scenes, Motion (moving scenes) and style thumbnails');
+  let st = comfyState();
+  if (st.dir && st.image && st.video) {
+    console.log(`  ${OK} ComfyUI ${dim(`(${st.dir})`)}`);
+    console.log(`  ${OK} AI painting: ${st.image}`);
+    console.log(`  ${OK} Motion: ${st.video}`);
+    // one Motion model installed → offer the other (default no: it's a big download)
+    if (PLATFORM === 'win32' && (!st.ltx || !st.wan)) {
+      const other = st.ltx ? { id: 'wan', label: 'Best — Wan 2.2 5B, smoother motion (18.2 GB)' } : { id: 'ltx', label: 'Fast — LTX-Video 2B (11.5 GB)' };
+      if (await ask(`Also add the ${other.label} Motion model?`, false)) run('powershell', ['-ExecutionPolicy', 'Bypass', '-File', 'scripts/setup-comfyui.ps1', '-Dir', path.dirname(st.dir), '-SkipModel', '-Motion', other.id]);
+    }
     const running = startComfy();
-    return report('Stable Diffusion', running ? 'ok' : 'optional', running ? `${models[0]} · running` : `${models[0]} · not started, see data/comfyui.log`);
+    return report('Stable Diffusion', running ? 'ok' : 'optional', running ? 'all models · running' : 'not started, see data/comfyui.log');
   }
   const gpu = gpuInfo();
   if (!gpu) {
-    console.log(`  ${OPT} no NVIDIA GPU found — skip it; story videos use the built-in vector art`);
+    console.log(`  ${OPT} no NVIDIA GPU found — skipped; story videos use the built-in vector art`);
     return report('Stable Diffusion', 'optional', 'no NVIDIA GPU');
   }
   console.log(`  ${dim(`GPU: ${gpu.name}, ${gpu.vramGb} GB`)}`);
   if (gpu.vramGb < 8) {
-    console.log(`  ${OPT} SDXL needs 8 GB+ of GPU memory — skipping (vector art still works)`);
+    console.log(`  ${OPT} AI painting needs 8 GB+ of GPU memory — skipped (vector art still works)`);
     return report('Stable Diffusion', 'optional', `${gpu.vramGb} GB VRAM`);
   }
   if (PLATFORM !== 'win32') {
-    console.log(dim('  macOS / Linux: install ComfyUI by hand — see docs/site/stable-diffusion.md, then set SD_COMFY_DIR in .env'));
+    console.log(dim('  macOS / Linux: install ComfyUI by hand in ~/ClipForge/ComfyUI (see docs/site/stable-diffusion.md) — it is found automatically'));
     return report('Stable Diffusion', 'optional', 'manual install');
   }
-  console.log(`  ${OPT} ${dir ? 'ComfyUI found but no model yet' : 'not installed'}`);
-  if (!(await ask('Install ComfyUI + SDXL model now (~9 GB download, resumes if interrupted)?', false))) return report('Stable Diffusion', 'optional', 'npm run comfy:setup');
-  const sevenZip = [`${process.env.ProgramFiles}\\7-Zip\\7z.exe`, `${process.env['ProgramFiles(x86)']}\\7-Zip\\7z.exe`].some((p) => fs.existsSync(p));
-  if (!sevenZip) {
-    console.log('  7-Zip is needed to unpack ComfyUI.');
-    if (await ask('Install 7-Zip?')) pkgInstall({ winget: '7zip.7zip' });
+  const missing = [!st.dir && 'ComfyUI (~2 GB)', !st.image && 'SDXL painting model (~7 GB)', !st.video && 'a Motion model'].filter(Boolean);
+  console.log(`  ${OPT} missing: ${missing.join(', ')}`);
+  // Motion = image-to-video: pick the model(s) to download
+  let motion = 'none';
+  if (!st.video) {
+    motion = await choose('Which Motion (moving scenes) model?', [
+      { value: 'ltx', label: `Fast — LTX-Video 2B, ~1 min per scene, 11.5 GB ${dim('(recommended to start)')}` },
+      { value: 'wan', label: 'Best — Wan 2.2 5B, smoother motion, several min per scene, 18.2 GB' },
+      { value: 'both', label: 'Both — choose per video on the Script page, 29.7 GB' },
+      { value: 'none', label: 'None — still paintings only' },
+    ]);
   }
-  const ok = run('powershell', ['-ExecutionPolicy', 'Bypass', '-File', 'scripts/setup-comfyui.ps1']);
+  if (!(await ask(`Install ${missing.length > 1 ? 'them' : 'it'} now? Downloads resume if interrupted.`))) return report('Stable Diffusion', 'optional', 'npm run comfy:setup');
+  const sevenZip = [process.env.ProgramFiles, process.env['ProgramFiles(x86)']].filter(Boolean).some((d) => fs.existsSync(path.join(d, '7-Zip', '7z.exe')));
+  if (!st.dir && !sevenZip) {
+    console.log('  7-Zip is needed to unpack ComfyUI — installing it.');
+    pkgInstall({ winget: '7zip.7zip' });
+  }
+  // the script only downloads what's missing; an existing install is reused in place (never inside the project)
+  const args = ['-ExecutionPolicy', 'Bypass', '-File', 'scripts/setup-comfyui.ps1', ...(st.dir ? ['-Dir', path.dirname(st.dir)] : []), '-Motion', motion, ...(st.image ? ['-SkipModel'] : [])];
+  const ok = run('powershell', args);
+  st = comfyState();
   const running = ok && startComfy();
-  report('Stable Diffusion', ok ? 'ok' : 'optional', ok ? (running ? 'installed · running' : 'installed') : 'run npm run comfy:setup again to resume');
+  report('Stable Diffusion', ok && st.image ? 'ok' : 'optional', ok ? `${st.video ? 'all models' : 'painting only'}${running ? ' · running' : ''}` : 'run npm run comfy:setup again to resume');
 }
 
 /** Start ComfyUI in the background (same launcher npm run dev uses) and wait until it answers. Skipped in --check. */

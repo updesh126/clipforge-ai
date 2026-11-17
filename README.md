@@ -62,26 +62,283 @@ Steps:
 
 ---
 
-## Quick start (new computer)
+## Setup
 
-You only need **Node.js 22+** and **git**. Everything else is installed for you by the setup wizard.
+Everything runs on your own computer. Setup is a one-time job of 15–60 minutes, most of it downloads.
+
+### What you need
+
+| | Minimum | Recommended |
+|---|---|---|
+| System | Windows 10/11, macOS 13+, or Ubuntu/Debian Linux | Windows 11 or macOS on Apple silicon |
+| Memory | 8 GB RAM | 16 GB+ RAM |
+| Disk | 10 GB free | 40 GB free, if you want AI painting and Motion |
+| Graphics | Any (vector art and clipping need no GPU) | NVIDIA with 12 GB VRAM for AI painting and Motion (an RTX 3060 12 GB works) |
+| Software | **Node.js 22+** and **git** | — |
+
+### One-click setup
+
+- **Windows:** double-click **`setup.cmd`** in the project folder. It installs Node.js if needed, then everything else, then starts ClipForge and opens your browser.
+- **macOS / Linux:** run `sh setup.sh`.
+
+Afterwards, start ClipForge any day with **`start.cmd`** (Windows) or `npm run dev`.
+
+Stable Diffusion (ComfyUI) and its models are **always installed outside the project folder**: an existing `..\ComfyUI`, otherwise `%LOCALAPPDATA%\ClipForge\ComfyUI` on Windows (`~/ClipForge/ComfyUI` on macOS/Linux). So the project stays small and nothing big ends up in git.
+
+### Quick start: the setup wizard (step by step)
 
 ```bash
 git clone <this repo> clipforge-ai
+```
+
+```bash
 cd clipforge-ai
+```
+
+```bash
 npm install
+```
+
+```bash
 npm run setup
 ```
 
-`npm run setup` goes through every engine in turn: FFmpeg, Whisper, Ollama (and its model), Kokoro voices, HyperFrames and Stable Diffusion. For each one it says what it's for, checks whether it's there and **asks before installing** it with the right tool for your system (winget on Windows, Homebrew on macOS, apt on Linux). It creates your `.env`, downloads models, starts ComfyUI (Stable Diffusion) in the background when it's installed, and offers to start the app when everything is ready.
+`npm run setup` goes through every engine in order. For each one it says what it's for, checks whether it's there, and **asks before installing** it with your system's own tool (winget on Windows, Homebrew on macOS, apt on Linux). It also creates `.env`, downloads models, starts ComfyUI in the background when it's installed, and offers to start the app at the end.
 
 | Command | What it does |
 |---|---|
 | `npm run setup` | Guided setup — asks before each install |
-| `npm run setup -- --yes` | Install everything that's missing with the recommended answers |
-| `npm run check` | Just report what's installed (changes nothing) |
+| `npm run setup -- --yes` | Installs everything missing with the recommended answers, without asking |
+| `npm run check` | Only reports what's installed (changes nothing) |
 
-Then run `npm run dev` and open http://localhost:3000. The sections below explain the same steps by hand, if you prefer.
+If a tool was just installed but the wizard still can't find it, open a **new terminal** and run `npm run setup` again. Windows only picks up the new PATH in a new window.
+
+### What gets installed
+
+| Engine | Used for | Needed? | Download | How the wizard installs it |
+|---|---|---|---|---|
+| **Node.js 22+** | Runs ClipForge | Required | — | You install it first ([nodejs.org](https://nodejs.org)) |
+| **npm packages** (Remotion, HyperFrames, React…) | Editor, rendering, motion captions | Required | ~1 GB | `npm install` |
+| **FFmpeg** | Cutting, framing, encoding | Required | ~100 MB | winget `Gyan.FFmpeg` · brew `ffmpeg-full` · apt `ffmpeg` |
+| **Whisper** (whisper.cpp) + speech model | Speech-to-text with word timings | Required | ~10 MB + 140 MB model on first use | Windows: downloads `whisper-bin-x64.zip` into `tools/whisper` and sets `WHISPER_BIN` · macOS: brew · Linux: build guide |
+| **Ollama** + `qwen2.5:3b` | Picks highlights, plans scenes, *Edit with AI* | Strongly recommended | ~1.9 GB | winget / brew / install script, then `ollama pull` |
+| **Kokoro voices** (Python) | Natural narration | Optional — system voice otherwise | ~350 MB | Python 3.12 if needed, then `pip install kokoro-onnx soundfile` |
+| **ComfyUI + SDXL** | AI-painted scenes and style thumbnails | Optional — needs NVIDIA 8 GB+ | ~9 GB | 7-Zip if needed, then `npm run comfy:setup` |
+| **Motion model** (in ComfyUI) — you pick | **Motion**: painted scenes that move | Optional — needs ComfyUI | **Fast**: LTX-Video 2B, 11.5 GB · **Best**: Wan 2.2 5B, 18.2 GB · Both: 29.7 GB | The wizard asks which; or `npm run comfy:setup -- -Motion ltx` / `wan` / `both` |
+
+### Optional extras by hand
+
+**Natural voices (Kokoro).** Install Python 3, then:
+
+```bash
+pip install kokoro-onnx soundfile
+```
+
+**AI painting (Stable Diffusion via ComfyUI).** Windows, needs [7-Zip](https://www.7-zip.org/) (`winget install 7zip.7zip`):
+
+```bash
+npm run comfy:setup
+```
+
+This downloads ComfyUI portable (~2.1 GB), the SDXL base model (~6.9 GB) and the Fast Motion model (~11.5 GB). Downloads resume if your connection drops, so just run it again. It reuses an existing `..\ComfyUI` install, otherwise it installs into `%LOCALAPPDATA%\ClipForge\ComfyUI`. It refuses to install inside the project folder. On macOS or Linux, install ComfyUI by hand in `~/ClipForge/ComfyUI` (found automatically) or set `SD_COMFY_DIR` in `.env`. Full guide: [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md).
+
+**Motion (moving scenes).** Pick the model that suits you. Both run in the same ComfyUI:
+
+| Choice | Model | Speed (12 GB GPU) | Download | Command |
+|---|---|---|---|---|
+| **Fast** (installed by default) | LTX-Video 2B distilled + T5 encoder | ~1 min per scene | 11.5 GB | `npm run comfy:setup -- -Motion ltx` |
+| **Best** | Wan 2.2 TI2V 5B + UMT5 encoder + VAE | several min per scene, smoother motion | 18.2 GB | `npm run comfy:setup -- -Motion wan` |
+| Both | all of the above | choose per video | 29.7 GB | `npm run comfy:setup -- -Motion both` |
+
+Then tick **Motion — bring paintings to life** under *AI painting* on the Script page. With both installed, pick **Fast** or **Best** right there.
+
+**A smarter planner.** Bigger Ollama models plan scenes and follow *Edit with AI* much better:
+
+```bash
+ollama pull qwen2.5:7b
+```
+
+Then set `OLLAMA_EDIT_MODEL=qwen2.5:7b` in `.env`.
+
+### Manual install (instead of the wizard)
+
+<details>
+<summary><b>macOS</b></summary>
+
+1. Install **Homebrew** if you don't have it, then run the two "Next steps" lines it prints:
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+2. Install Node.js, FFmpeg (full build, with caption support), whisper.cpp and Ollama:
+   ```bash
+   brew install node ffmpeg-full whisper-cpp ollama
+   ```
+3. Start Ollama as a background service and download the model (~1.9 GB):
+   ```bash
+   brew services start ollama
+   ```
+   ```bash
+   ollama pull qwen2.5:3b
+   ```
+</details>
+
+<details>
+<summary><b>Windows</b></summary>
+
+1. Install Node.js, FFmpeg and Ollama:
+   ```powershell
+   winget install OpenJS.NodeJS Gyan.FFmpeg Ollama.Ollama
+   ```
+2. Open a **new** terminal so `ffmpeg` is on your PATH.
+3. Download `whisper-bin-x64.zip` from the [whisper.cpp releases](https://github.com/ggml-org/whisper.cpp/releases). It's attached to the build releases (`bNNNN`), not the version tags. Unzip it into `tools\whisper`, then set `WHISPER_BIN` in `.env` to the full path of `whisper-cli.exe`.
+4. Download the planning model:
+   ```bash
+   ollama pull qwen2.5:3b
+   ```
+</details>
+
+<details>
+<summary><b>Linux (Ubuntu/Debian)</b></summary>
+
+```bash
+sudo apt install nodejs npm ffmpeg zenity
+```
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+```bash
+ollama pull qwen2.5:3b
+```
+
+Build whisper.cpp from [github.com/ggml-org/whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`cmake -B build && cmake --build build -j`) and put `build/bin/whisper-cli` on your PATH, or set `WHISPER_BIN` to its full path.
+</details>
+
+Then, in the project folder:
+
+```bash
+npm install
+```
+
+```bash
+npm run check
+```
+
+### Run
+
+```bash
+npm run dev
+```
+
+Open **http://localhost:3000**. The top bar shows how many engines are ready; click it for details and fixes.
+
+`npm run dev` also starts ComfyUI in the background when it's installed (log: `data/comfyui.log`). The server reloads by itself when code changes. Stop it with **Ctrl + C**. ComfyUI keeps running; it's reused next time.
+
+| Service | Address |
+|---|---|
+| ClipForge | http://localhost:3000 |
+| ComfyUI (Stable Diffusion) | http://127.0.0.1:8188 |
+| Ollama | http://127.0.0.1:11434 |
+
+> **Tip:** ClipForge sends its own workflows to ComfyUI. If you open ComfyUI's page in the browser and it says *Missing Models* for a sample template, ClipForge doesn't need those files.
+
+### All commands
+
+| Command | What it does |
+|---|---|
+| `npm run setup` / `npm run check` | Guided setup / status report |
+| `npm run dev` | Start ClipForge (and ComfyUI) |
+| `npm run comfy` | Start ComfyUI only |
+| `npm run comfy:setup` | Install ComfyUI + SDXL + Fast Motion model (Windows). Options: `-- -Motion ltx\|wan\|both\|none`, `-- -SkipModel` (no SDXL), `-- -Dir D:\ComfyUI` |
+| `npm run thumbs:ai` | Repaint the art-style picker thumbnails with Stable Diffusion (`-- warli anime` for some) |
+| `npm run artstyles` | Rebuild `src/artstyles/*.json` from the style presets |
+| `npm run prompts` | Write image-generation prompts for every style and asset to `assets/prompts/` |
+| `npm run thumbs` | Make the older vector (procedural) style thumbnails |
+| `npm run lint` | Type-check |
+| `npm run build` / `npm start` | Production build / run it |
+
+### Where your files live
+
+| Folder | What's in it | In git? |
+|---|---|---|
+| `data/` | Projects, edits, uploads, exports, voice-overs, AI paintings and clips (`generated/`), Whisper model, logs | No |
+| `tools/` | whisper.cpp (Windows) | No |
+| `..\ComfyUI\` or `%LOCALAPPDATA%\ClipForge\ComfyUI\` | ComfyUI and its models (`models/checkpoints`, `diffusion_models`, `text_encoders`, `vae`) — always **outside** the project | No |
+| `.env` | Your settings | No |
+| `src/artstyles/`, `assets/library/`, `public/styles/` | Art-style specs, asset library, style thumbnails | Yes |
+
+Set `CLIPFORGE_DATA_DIR` to keep `data/` on a bigger drive.
+
+### Moving to another laptop
+
+1. On the new laptop: `git clone`, then double-click `setup.cmd` (or `npm install` and `npm run setup`). It installs what's missing.
+2. To skip big downloads, copy the ComfyUI folder across first: put it next to the project as `..\ComfyUI`, or in `%LOCALAPPDATA%\ClipForge\ComfyUI`, or set `SD_COMFY_DIR`. Setup finds it and only downloads missing models.
+3. To bring your projects too, copy `data/` and `.env`.
+
+### Settings (`.env`)
+
+The wizard creates `.env` from `.env.example`. Change what you need and restart `npm run dev`.
+
+| Setting | Default | Notes |
+|---|---|---|
+| `PORT` | `3000` | Web app port |
+| `CLIPFORGE_DATA_DIR` | `./data` | Keep projects, models and exports on another drive |
+| **AI models** | | |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama address |
+| `OLLAMA_MODEL` | `qwen2.5:3b` | Lighter: `qwen2.5:1.5b`, `gemma2:2b` · Better: `llama3.1:8b` |
+| `OLLAMA_EDIT_MODEL` | `OLLAMA_MODEL` | Model for *Edit with AI* and story planning; 4B+ works much better (`qwen2.5:7b`) |
+| `WHISPER_BIN` | `whisper-cli` | Full path if it isn't on PATH (the wizard sets this on Windows) |
+| `WHISPER_MODEL` | `base` | `tiny` (fastest) · `small` / `medium` (more accurate) |
+| `WHISPER_LANG` | `auto` | e.g. `en`, `hi` |
+| **Voice** | | |
+| `TTS_VOICE` | `af_heart` | Default Kokoro voice (`bf_emma`, `am_adam`, `bm_george` …) |
+| `HYPERFRAMES_PYTHON` | auto | Python that has `kokoro-onnx` installed |
+| **Stable Diffusion (ComfyUI)** | | |
+| `SD_URL` | `http://127.0.0.1:8188` | ComfyUI address |
+| `SD_COMFY_DIR` | auto | ComfyUI folder if it isn't in `../ComfyUI` or `%LOCALAPPDATA%\ClipForge\ComfyUI` |
+| `SD_AUTOSTART` | `true` | `false` = start ComfyUI only when a painting is needed |
+| `SD_COMFY_ARGS` | — | Extra ComfyUI arguments, e.g. `--lowvram` |
+| `SD_PREVIEW` | `taesd` | Live preview while painting: `taesd`, `latent2rgb`, `auto` or `none` |
+| `SD_CHECKPOINT` | first SDXL model | Image checkpoint file name as ComfyUI lists it |
+| `SD_STEPS` / `SD_CFG` | `28` / `6` | Use `6` / `2` for Lightning or Turbo models |
+| `SD_SAMPLER` / `SD_SCHEDULER` | `dpmpp_2m` / `karras` | Any ComfyUI names |
+| `SD_VIDEO_ENGINE` | `ltx` | Default Motion engine when both are installed: `ltx` (Fast) or `wan` (Best) |
+| `SD_VIDEO_CHECKPOINT` | first LTX-Video model | Fast Motion checkpoint |
+| `SD_VIDEO_TEXT_ENCODER` | first `t5xxl` file | Motion text encoder |
+| `SD_VIDEO_STEPS` | `8` | Fast (LTX) sampling steps |
+| `SD_WAN_STEPS` | `20` | Best (Wan 2.2) sampling steps |
+| **Clip exports** | | |
+| `EXPORT_CRF` | `17` | Lower = higher quality, bigger file (15–23); also the editor's *High* MP4 |
+| `EXPORT_PRESET` | `medium` | `fast` = quicker export, `slow` = smaller file |
+| `FFMPEG_DIR` | auto | Folder of a custom FFmpeg build |
+| `HYPERFRAMES_QUALITY` | `high` | Motion caption render quality: `draft` · `standard` · `high` |
+| `HYPERFRAMES_WHISPER_PATH` | — | Windows: path to `whisper-cli.exe` for HyperFrames |
+
+**Low-spec PC?** Use `WHISPER_MODEL=tiny` and `OLLAMA_MODEL=qwen2.5:1.5b`, and choose **Vector** illustration.
+**No Ollama?** ClipForge still works: a built-in scorer picks clips. Script → video needs Ollama for planning.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `address already in use :3000` | Another copy is running. Close it, or set `PORT=3001` in `.env` |
+| Tool installed but setup still says ✘ | Open a new terminal (Windows PATH refresh) and run `npm run setup` again |
+| "Ollama unavailable, using heuristic" | Start Ollama (the Ollama app, `ollama serve`, or `brew services start ollama`) |
+| Captions not burned into the video | Install the full FFmpeg: `brew install ffmpeg-full` (macOS) |
+| File picker doesn't appear | It may be behind the browser window. Check the taskbar or Dock |
+| Voice sounds robotic | That's the system voice. Install Kokoro: `pip install kokoro-onnx soundfile` |
+| *Edit with AI* ignores what I asked | Use a bigger model (`OLLAMA_EDIT_MODEL=qwen2.5:7b`) and name the exact words spoken |
+| First editor render is slow | Remotion bundles the graphics and fetches headless Chrome once; later renders are faster |
+| *AI painting* says Stable Diffusion is not running | `npm run comfy`, then read `data/comfyui.log`. A `c10.dll` error needs the [VC++ redistributable](https://aka.ms/vc14/vc_redist.x64.exe); otherwise update the NVIDIA driver |
+| ComfyUI runs out of GPU memory | Close other GPU apps, or set `SD_COMFY_ARGS=--lowvram` |
+| Model download stopped part-way | Run the same command again (`npm run comfy:setup`, or double-click `setup.cmd`). It resumes |
+| Motion switch says the model is missing | `npm run comfy:setup -- -Motion ltx` (or `wan`), then reload the Script page |
+| A `ComfyUI_windows_portable` folder appeared inside the project | It's ignored by git, but ComfyUI belongs outside. Move it to `..\ComfyUI` (or delete it if you already have one there) |
+| A scene came out wrong (extra person, wrong time of day) | Name the character and the time in that scene's sentence, or repaint it. See [docs/STORY_SCRIPT_GUIDE.md](docs/STORY_SCRIPT_GUIDE.md) |
+| HyperFrames render failed, used FFmpeg instead | The clip still exported. `npx hyperframes doctor` shows what's missing (usually Chrome) |
+
+Full documentation is built into the app: open **Docs** in the top bar.
 
 ---
 
@@ -98,91 +355,7 @@ The director skill drives the running app through `node .claude/skills/clipforge
 
 ---
 
-## 1. Install the tools (one time)
-
-### macOS
-
-1. Install **Homebrew** if you don't have it (it will ask for your Mac password in the terminal):
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-   Then run the two "Next steps" lines it prints (adds `brew` to your PATH).
-
-2. Install **Node.js**, **FFmpeg (full, with caption support)**, **whisper.cpp** and **Ollama**:
-   ```bash
-   brew install node ffmpeg-full whisper-cpp ollama
-   ```
-
-3. Start Ollama as a background service (keeps running after restarts) and download the AI model (~1.9 GB):
-   ```bash
-   brew services start ollama
-   ```
-   ```bash
-   ollama pull qwen2.5:3b
-   ```
-
-### Windows
-
-```powershell
-winget install OpenJS.NodeJS Gyan.FFmpeg Ollama.Ollama
-```
-Open a **new** terminal afterwards so `ffmpeg` is on your PATH.
-Download `whisper-bin-x64.zip` from https://github.com/ggml-org/whisper.cpp/releases, unzip it, and add that folder to your PATH. Then run `ollama pull qwen2.5:3b`.
-
-### Linux (Ubuntu/Debian)
-
-```bash
-sudo apt install nodejs npm ffmpeg zenity
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull qwen2.5:3b
-```
-Build whisper.cpp from https://github.com/ggml-org/whisper.cpp and put `whisper-cli` on your PATH.
-
----
-
-## 2. Set up the project (one time)
-
-```bash
-cd clipforge-ai
-```
-```bash
-npm install
-```
-```bash
-npm run setup
-```
-`npm run setup` checks every tool and offers to install anything missing (see *Quick start* above). `npm run check` only reports.
-
-`npm install` also installs **HyperFrames** (motion captions, hook titles, intro cards). It renders with your installed Chrome, or downloads a headless Chrome the first time. Needs Node.js 22 or newer.
-
-**Optional — AI painting (Stable Diffusion).** Needs an NVIDIA GPU with 8 GB+ VRAM (12 GB recommended). On Windows, one command downloads ComfyUI and the SDXL base model (~9 GB, resumes if interrupted) into `tools/ComfyUI` — it needs 7-Zip:
-```bash
-npm run comfy:setup
-```
-After that, `npm run dev` starts ComfyUI for you in the background (or run `npm run comfy`). Choose **Illustration → AI painting** on the Script page. Full guide: [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md).
-
-**Optional — natural AI voices.** Voice intros use your system voice by default. For Kokoro voices, install Python 3 and run:
-```bash
-pip install kokoro-onnx soundfile
-```
-
-The Whisper speech model (~140 MB) downloads automatically the first time you process a video.
-
----
-
-## 3. Run
-
-```bash
-npm run dev
-```
-
-Open **http://localhost:3000** in your browser. The server reloads by itself when code changes. If Stable Diffusion (ComfyUI) is installed, it starts in the background too — its log is `data/comfyui.log`.
-
-To stop: press **Ctrl + C** in the terminal.
-
----
-
-## 4. Use it
+## Use it
 
 1. **Select Local Video** → choose a file in your computer's file picker (it may open behind the browser — check the Dock/taskbar). The file is used in place, never copied.
    Other ways in: paste a file path, paste a YouTube link, or try the sample.
@@ -195,55 +368,7 @@ To stop: press **Ctrl + C** in the terminal.
    - **Motion & voice** (right panel): switch on *Hook title* and/or *Voice intro*, and pick a voice.
 4. **Export MP4** (or **Export all**) → watermark-free MP4 + SRT, saved in `data/exports/`. Motion exports take a little longer because HyperFrames renders each frame.
 
----
-
-## Settings (optional)
-
-Copy `.env.example` to `.env` and change what you need:
-
-| Setting | Default | Notes |
-|---|---|---|
-| `PORT` | `3000` | Web app port |
-| `OLLAMA_MODEL` | `qwen2.5:3b` | Lighter: `qwen2.5:1.5b`, `gemma2:2b` · Better: `llama3.1:8b` |
-| `WHISPER_MODEL` | `base` | `tiny` (fastest) · `small` / `medium` (more accurate) |
-| `WHISPER_LANG` | `auto` | e.g. `en`, `hi` |
-| `EXPORT_CRF` | `17` | Lower = higher quality, bigger file (15–23) |
-| `EXPORT_PRESET` | `medium` | `fast` = quicker export, `slow` = smaller file |
-| `FFMPEG_DIR` | auto | Folder of a custom FFmpeg build |
-| `HYPERFRAMES_QUALITY` | `high` | Motion render quality: `draft` · `standard` · `high` |
-| `TTS_VOICE` | `af_heart` | Default Kokoro voice (`bf_emma`, `am_adam`, `bm_george` …) |
-| `HYPERFRAMES_PYTHON` | auto | Python that has `kokoro-onnx` installed |
-| `HYPERFRAMES_WHISPER_PATH` | — | Windows: path to `whisper-cli.exe` if it isn't on PATH |
-| `CLIPFORGE_DATA_DIR` | `./data` | Keep projects, models and exports on another drive |
-| `OLLAMA_EDIT_MODEL` | `OLLAMA_MODEL` | Model for *Edit with AI*. 4B+ models work much better: `qwen3.5:4b`, `qwen2.5:7b` |
-| `WHISPER_BIN` | `whisper-cli` | Full path to `whisper-cli` if it isn't on PATH |
-| `SD_URL` | `http://127.0.0.1:8188` | ComfyUI address for AI painting |
-| `SD_CHECKPOINT` | first SDXL model | Checkpoint file name as ComfyUI lists it |
-| `SD_STEPS` / `SD_CFG` | `28` / `6` | Use `6` / `2` for Lightning or Turbo models |
-| `SD_COMFY_DIR` | auto | ComfyUI folder if not in `tools/ComfyUI` or `../ComfyUI` |
-| `SD_AUTOSTART` | `true` | `false` = start ComfyUI only when a painting is needed |
-
-**Low-spec PC?** Use `WHISPER_MODEL=tiny` and `OLLAMA_MODEL=qwen2.5:1.5b`.
-**No Ollama?** ClipForge still works — a built-in scorer picks clips automatically.
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
-|---|---|
-| `address already in use :3000` | Another copy is running. Close it, or run `PORT=3001 npm run dev` |
-| Log says "Ollama unavailable, using heuristic" | Start Ollama: `brew services start ollama` |
-| Captions not burned into the video | Install the full FFmpeg: `brew install ffmpeg-full` |
-| `File too large` | You're on old server code — stop with Ctrl + C and run `npm run dev` again |
-| File picker doesn't appear | It may be behind the browser window — check the Dock/taskbar |
-| YouTube video looks blurry | Re-import it; older imports were saved at 360p |
-| Export says "HyperFrames render failed, used FFmpeg instead" | The clip still exported with FFmpeg captions. Run `npx hyperframes doctor` to see what's missing (usually Chrome or FFmpeg) |
-| Voice intro sounds robotic | That's the system voice — install Kokoro: `pip install kokoro-onnx soundfile` |
-| *Edit with AI* ignores what I asked | Small models struggle — set `OLLAMA_EDIT_MODEL=qwen3.5:4b` (or bigger) in `.env`. Name the exact words spoken ("when they say …") |
-| First editor render is slow | Remotion bundles the graphics and fetches headless Chrome once; later renders are faster |
-| *AI painting* says Stable Diffusion is not running | Run `npm run comfy` and check `data/comfyui.log` — see [Stable Diffusion setup](docs/site/stable-diffusion.md) |
-| Tool installed but setup still says ✘ | Fixed automatically on Windows (the latest PATH is read at start). Otherwise open a new terminal |
+For script → video, open **Script**, paste your story, pick a look, illustration (Vector or AI painting, with optional Motion), art style, format and voice, then **Create video**. Writing tips: [docs/STORY_SCRIPT_GUIDE.md](docs/STORY_SCRIPT_GUIDE.md).
 
 ---
 

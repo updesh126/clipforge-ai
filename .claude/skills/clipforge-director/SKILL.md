@@ -25,6 +25,7 @@ Ask everything you need **in one message**, with a recommended default for each,
 | Narration language | English (`en`) or Hindi (`hi`) |
 | Art style | your recommendation from step 2, with one alternative |
 | Illustration | `ai` (Stable Diffusion paintings) if available, else `vector` |
+| Motion (moving scenes) | on for reels and stories if `cf.mjs health` shows Motion ready (adds ~1 min per scene); off for quick drafts |
 | Storyboard first? | No — but offer it for anything client-facing |
 
 If the user already gave a full script, skip the story questions and only confirm format, style and illustration.
@@ -68,7 +69,7 @@ Open the PNG (Read tool) and check it against section 7. If the style or subject
 Write `data/director/<slug>/brief.json`:
 
 ```json
-{ "title": "…", "script": "scene 1…\n\nscene 2…", "aspect": "9:16", "style": "storybook", "mode": "story", "illustration": "ai", "language": "en", "voice": "af_heart", "captions": "karaoke" }
+{ "title": "…", "script": "scene 1…\n\nscene 2…", "aspect": "9:16", "style": "storybook", "mode": "story", "illustration": "ai", "animate": true, "language": "en", "voice": "af_heart", "captions": "karaoke" }
 ```
 
 `cf.mjs make data/director/<slug>/brief.json` — prints live progress (scene x of n, painted count) and the edit id at the end. About 25–40 s per scene with AI painting.
@@ -83,6 +84,7 @@ Write `data/director/<slug>/brief.json`:
 | The scene shows what the narration says (place, action, time of day) | repaint with the place and action first in the prompt |
 | Style is right (Madhubani colourful, Warli white-on-terracotta, ukiyo-e waves…) | repaint; if it drifts again, the style's `sd_hint` in `scripts/data/art-style-presets.json` may need a cue (see clipforge-art-style skill) |
 | No painted text, letters, extra limbs, duplicated people | repaint with a new seed |
+| Motion clips (when on): faces don't melt, characters don't morph into someone else | regenerate the video for that scene, or turn Motion off for a calm scene; still paintings are fine for quiet moments |
 | Title / quote banner small and readable, not covering a face | `cf.mjs ai <id> "move the title to the bottom"` or edit in the app |
 | Captions readable over the picture | change caption look in the app (bold / clean) |
 | Atmosphere fits (no stars at noon, no confetti at a funeral) | `cf.mjs ai <id> "remove the confetti in scene 3"` |

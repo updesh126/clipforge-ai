@@ -30,7 +30,9 @@ function render(md: string): { html: string; headings: Heading[]; title: string 
     renderer: {
       heading({ tokens, depth }) {
         const text = this.parser.parseInline(tokens);
-        const plain = text.replace(/<[^>]+>/g, '');
+        const plain = text
+          .replace(/<[^>]+>/g, '')
+          .replace(/&(amp|lt|gt|quot|#39);/g, (_m, e: string) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" })[e] ?? _m);
         if (depth === 1 && !title) {
           title = plain;
           return ''; // the page header shows the title

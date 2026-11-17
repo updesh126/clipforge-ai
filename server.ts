@@ -41,7 +41,7 @@ import { ENV_KINDS, normaliseEnv, type EnvSpec } from './src/vector/environment.
 import { isTheme, THEME_IDS, type ThemeId } from './src/vector/theme.ts';
 import type { EditProject } from './src/editor/types.ts';
 import { refreshWindowsPath } from './scripts/win-path.mjs';
-import { GENERATED_DIR, generateImage, sdSize, sdStatus } from './server/imagegen.ts';
+import { GENERATED_DIR, generateImage, sdSize, sdStatus, videoModel, videoModels } from './server/imagegen.ts';
 import { autostartComfy, ensureComfy, findComfy } from './server/comfy.ts';
 import { buildNegativePrompt, buildSdPrompt } from './src/artstyles/prompt.ts';
 
@@ -117,7 +117,9 @@ const upload = multer({
 // Local engine health (ffmpeg / whisper.cpp / Ollama)
 app.get('/api/health', async (_req, res) => {
   const [engines, sd] = await Promise.all([getEngineStatus(), sdStatus()]);
-  res.json({ ...engines, sd: sd.running && Boolean(sd.checkpoint), sdRunning: sd.running, sdModel: sd.checkpoint, sdUrl: sd.url, sdInstalled: Boolean(findComfy()) });
+  const video = sd.running ? await videoModel() : null;
+  const engines2 = sd.running ? await videoModels() : null;
+  res.json({ ...engines, sd: sd.running && Boolean(sd.checkpoint), sdRunning: sd.running, sdModel: sd.checkpoint, sdUrl: sd.url, sdInstalled: Boolean(findComfy()), sdVideo: video?.checkpoint ?? null, sdVideoEngines: engines2 ? (['ltx', 'wan'] as const).filter((e) => engines2[e]) : [] });
 });
 
 // Stable Diffusion: status, and a one-off test painting in an art style (used by the docs / setup check)
@@ -890,7 +892,7 @@ app.post('/api/script-video', async (req, res) => {
   }
   try {
     const edit = await scriptToVideo(
-      { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, language: b.language === 'hi' ? 'hi' : b.language === 'en' ? 'en' : undefined, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story', illustration: b.illustration === 'ai' ? 'ai' : 'vector' },
+      { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, language: b.language === 'hi' ? 'hi' : b.language === 'en' ? 'en' : undefined, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story', illustration: b.illustration === 'ai' ? 'ai' : 'vector', animate: String(b.animate) === 'true', motionEngine: b.motionEngine === 'wan' ? 'wan' : b.motionEngine === 'ltx' ? 'ltx' : undefined },
       progressFor(b.jobId)
     );
     finishJob(b.jobId, { editId: edit.id }); // lets a reloaded page open the result

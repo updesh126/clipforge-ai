@@ -53,7 +53,7 @@ export async function sdStatus(fresh = false): Promise<SdStatus> {
     const info = await getJson<Record<string, { input: { required: { ckpt_name: [string[]] } } }>>(`${SD_URL}/object_info/CheckpointLoaderSimple`, undefined, 4000);
     const checkpoints = info.CheckpointLoaderSimple?.input.required.ckpt_name[0] ?? [];
     const wanted = process.env.SD_CHECKPOINT;
-    const checkpoint = (wanted && checkpoints.find((c) => c === wanted || path.basename(c) === wanted)) || checkpoints.find((c) => /xl/i.test(c)) || checkpoints[0] || null;
+    const checkpoint = (wanted && checkpoints.find((c) => c === wanted || path.basename(c) === wanted)) || checkpoints.find((c) => /xl/i.test(c) && !/ltx|wan|hunyuan/i.test(c)) || checkpoints.find((c) => !/ltx|wan|hunyuan/i.test(c)) || null;
     value = { running: true, url: SD_URL, checkpoints, checkpoint, gpu: stats.devices?.[0]?.name };
   } catch {
     // not running — keep the default
@@ -61,6 +61,9 @@ export async function sdStatus(fresh = false): Promise<SdStatus> {
   statusCache = { at: Date.now(), value };
   return value;
 }
+
+/** Live progress from a ComfyUI job: a short label, 0..1, the latest preview frame URL and sampler step. */
+export type ComfyProgress = (msg: string, fraction: number, live?: { preview?: string; step?: number; steps?: number }) => void;
 
 export interface GenerateOptions {
   prompt: string;
@@ -70,8 +73,7 @@ export interface GenerateOptions {
   seed?: number;
   steps?: number;
   cfg?: number;
-  /** progress while ComfyUI works: a short label, 0..1 for this image, the latest preview frame URL and sampler step */
-  onProgress?: (msg: string, fraction: number, live?: { preview?: string; step?: number; steps?: number }) => void;
+  onProgress?: ComfyProgress;
 }
 
 /** Basic SDXL text-to-image workflow in ComfyUI's API format. */
@@ -87,27 +89,23 @@ function workflow(ckpt: string, o: Required<Omit<GenerateOptions, 'onProgress'>>
   };
 }
 
-/**
- * Generate one image and return its URL (/media/generated/<hash>.png).
- * Same prompt + size + seed + checkpoint → same file, so re-running a script costs nothing.
- */
-export async function generateImage(opts: GenerateOptions): Promise<{ url: string; file: string; cached: boolean }> {
-  const st = await sdStatus(true);
-  if (!st.running) throw new Error(`Stable Diffusion (ComfyUI) is not running at ${SD_URL}. Start ComfyUI, then try again.`);
-  if (!st.checkpoint) throw new Error('ComfyUI has no checkpoint. Put an SDXL .safetensors file in ComfyUI/models/checkpoints and restart it.');
-  const o = { prompt: opts.prompt, negative: opts.negative ?? '', width: opts.width, height: opts.height, seed: opts.seed ?? 1, steps: opts.steps ?? STEPS, cfg: opts.cfg ?? CFG };
-  const key = crypto.createHash('sha1').update(JSON.stringify({ ...o, ckpt: st.checkpoint, SAMPLER, SCHEDULER })).digest('hex').slice(0, 20);
-  fs.mkdirSync(GENERATED_DIR, { recursive: true });
-  const file = path.join(GENERATED_DIR, `${key}.png`);
-  const url = `/media/generated/${key}.png`;
-  if (fs.existsSync(file)) return { url, file, cached: true };
+interface ComfyFile {
+  filename: string;
+  subfolder: string;
+  type: string;
+}
 
+/**
+ * Queue a workflow on ComfyUI, report live progress (steps over the WebSocket, preview frames when ComfyUI was started
+ * with --preview-method), and download the first saved output into `out`.
+ *   loadNode / decodeNode: node ids that mean "loading the model" and "finishing" in the progress label
+ */
+async function runComfy(wf: Record<string, unknown>, out: string, opts: { onProgress?: ComfyProgress; steps: number; loadNode: string; decodeNode: string; what: string; timeoutMin: number }) {
   const clientId = crypto.randomUUID();
-  // live sampler steps over ComfyUI's WebSocket (the HTTP history only reports when the image is done)
   let phase = 'Waiting for the GPU';
   let fraction = 0;
   let step = 0;
-  let steps = o.steps;
+  let steps = opts.steps;
   let preview: string | undefined;
   let lastWrite = 0;
   const liveFile = path.join(LIVE_DIR, `${clientId}.jpg`);
@@ -117,7 +115,7 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
     ws.binaryType = 'arraybuffer';
     ws.onmessage = (ev) => {
       if (typeof ev.data !== 'string') {
-        // preview frame: [u32 event][u32 image type | u32 metadata length + metadata][image bytes] (needs --preview-method)
+        // preview frame: [u32 event][u32 image type | u32 metadata length + metadata][image bytes]
         const buf = Buffer.from(ev.data as ArrayBuffer);
         if (buf.length < 12) return;
         const event = buf.readUInt32BE(0);
@@ -144,8 +142,8 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
           step = m.data.value ?? 0;
           steps = m.data.max;
           phase = `step ${step}/${steps}`;
-        } else if (m.type === 'executing' && m.data?.node === '1') phase = 'Loading model (first time only)';
-        else if (m.type === 'executing' && m.data?.node === '6') {
+        } else if (m.type === 'executing' && m.data?.node === opts.loadNode) phase = 'Loading model (first time only)';
+        else if (m.type === 'executing' && m.data?.node === opts.decodeNode) {
           phase = 'Finishing';
           fraction = 0.98;
         }
@@ -156,39 +154,208 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
   } catch {
     ws = null; // no WebSocket: fall back to elapsed time
   }
-  const queued = await getJson<{ prompt_id: string }>(
-    `${SD_URL}/prompt`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: workflow(st.checkpoint, o), client_id: clientId }) },
-    15_000,
-  );
-  // poll history until the image is saved (first run loads the model: allow several minutes)
-  const started = Date.now();
-  type Hist = Record<string, { status?: { status_str?: string; messages?: unknown[] }; outputs?: Record<string, { images?: Array<{ filename: string; subfolder: string; type: string }> }> }>;
   try {
-  for (;;) {
-    if (Date.now() - started > 10 * 60_000) throw new Error('Stable Diffusion took longer than 10 minutes for one image.');
-    await new Promise((r) => setTimeout(r, 1000));
-    const hist = await getJson<Hist>(`${SD_URL}/history/${queued.prompt_id}`, undefined, 10_000).catch(() => ({}) as Hist);
-    const h = hist[queued.prompt_id];
-    if (!h) {
-      const secs = Math.round((Date.now() - started) / 1000);
-      opts.onProgress?.(ws ? `${phase} · ${secs}s` : `Painting… ${secs}s`, ws ? fraction : Math.min(0.9, secs / 30), { preview, step, steps });
-      continue;
+    const queued = await getJson<{ prompt_id: string }>(
+      `${SD_URL}/prompt`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: wf, client_id: clientId }) },
+      15_000,
+    );
+    const started = Date.now();
+    type Hist = Record<string, { status?: { status_str?: string; messages?: unknown[] }; outputs?: Record<string, Record<string, unknown>> }>;
+    for (;;) {
+      if (Date.now() - started > opts.timeoutMin * 60_000) throw new Error(`ComfyUI took longer than ${opts.timeoutMin} minutes for one ${opts.what}.`);
+      await new Promise((r) => setTimeout(r, 1000));
+      const hist = await getJson<Hist>(`${SD_URL}/history/${queued.prompt_id}`, undefined, 10_000).catch(() => ({}) as Hist);
+      const h = hist[queued.prompt_id];
+      if (!h) {
+        const secs = Math.round((Date.now() - started) / 1000);
+        opts.onProgress?.(ws ? `${phase} · ${secs}s` : `Working… ${secs}s`, ws ? fraction : Math.min(0.9, secs / 60), { preview, step, steps });
+        continue;
+      }
+      if (h.status?.status_str === 'error') throw new Error(`ComfyUI failed: ${JSON.stringify(h.status.messages ?? []).slice(0, 500)}`);
+      // images, gifs and videos all come back as lists of {filename, subfolder, type}
+      const file = Object.values(h.outputs ?? {})
+        .flatMap((o) => Object.values(o).filter(Array.isArray).flat() as unknown[])
+        .find((x): x is ComfyFile => Boolean(x && typeof x === 'object' && 'filename' in (x as object)));
+      if (!file) continue;
+      const q = new URLSearchParams({ filename: file.filename, subfolder: file.subfolder, type: file.type });
+      const res = await fetch(`${SD_URL}/view?${q}`, { signal: AbortSignal.timeout(120_000) });
+      if (!res.ok) throw new Error(`Could not download the ${opts.what} from ComfyUI (${res.status}).`);
+      fs.writeFileSync(out, Buffer.from(await res.arrayBuffer()));
+      return { steps };
     }
-    if (h.status?.status_str === 'error') throw new Error(`ComfyUI failed: ${JSON.stringify(h.status.messages ?? []).slice(0, 400)}`);
-    const img = Object.values(h.outputs ?? {}).flatMap((x) => x.images ?? [])[0];
-    if (!img) continue;
-    const q = new URLSearchParams({ filename: img.filename, subfolder: img.subfolder, type: img.type });
-    const res = await fetch(`${SD_URL}/view?${q}`, { signal: AbortSignal.timeout(30_000) });
-    if (!res.ok) throw new Error(`Could not download the image from ComfyUI (${res.status}).`);
-    fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()));
-    opts.onProgress?.('Done', 1, { preview: url, step: steps, steps });
-    return { url, file, cached: false };
-  }
   } finally {
     ws?.close();
-    fs.rm(liveFile, { force: true }, () => {}); // the final image replaces the live preview
+    fs.rm(liveFile, { force: true }, () => {}); // the final file replaces the live preview
   }
+}
+
+/**
+ * Generate one image and return its URL (/media/generated/<hash>.png).
+ * Same prompt + size + seed + checkpoint → same file, so re-running a script costs nothing.
+ */
+export async function generateImage(opts: GenerateOptions): Promise<{ url: string; file: string; cached: boolean }> {
+  const st = await sdStatus(true);
+  if (!st.running) throw new Error(`Stable Diffusion (ComfyUI) is not running at ${SD_URL}. Start ComfyUI, then try again.`);
+  if (!st.checkpoint) throw new Error('ComfyUI has no checkpoint. Put an SDXL .safetensors file in ComfyUI/models/checkpoints and restart it.');
+  const o = { prompt: opts.prompt, negative: opts.negative ?? '', width: opts.width, height: opts.height, seed: opts.seed ?? 1, steps: opts.steps ?? STEPS, cfg: opts.cfg ?? CFG };
+  const key = crypto.createHash('sha1').update(JSON.stringify({ ...o, ckpt: st.checkpoint, SAMPLER, SCHEDULER })).digest('hex').slice(0, 20);
+  fs.mkdirSync(GENERATED_DIR, { recursive: true });
+  const file = path.join(GENERATED_DIR, `${key}.png`);
+  const url = `/media/generated/${key}.png`;
+  if (fs.existsSync(file)) return { url, file, cached: true };
+  const { steps } = await runComfy(workflow(st.checkpoint, o), file, { onProgress: opts.onProgress, steps: o.steps, loadNode: '1', decodeNode: '6', what: 'image', timeoutMin: 10 });
+  opts.onProgress?.('Done', 1, { preview: url, step: steps, steps });
+  return { url, file, cached: false };
+}
+
+// ---------------------------------------------------------------- image → video (Motion)
+
+/**
+ * Two image-to-video engines, both through ComfyUI (install with: npm run comfy:setup):
+ *   ltx — LTX-Video 2B distilled: fast (~30 s per 4 s clip on a 12 GB GPU), 11.5 GB
+ *         models/checkpoints/ltxv-2b-*.safetensors + models/text_encoders/t5xxl_*.safetensors
+ *   wan — Wan 2.2 TI2V 5B: best motion and style hold, several minutes per clip, 18.2 GB
+ *         models/diffusion_models/wan2.2_ti2v_5B_*.safetensors + models/text_encoders/umt5_xxl_*.safetensors + models/vae/wan2.2_vae.safetensors
+ * SD_VIDEO_ENGINE (ltx | wan) picks the default when both are installed.
+ */
+export const VIDEO_FPS = 24;
+export type VideoEngine = 'ltx' | 'wan';
+const LTX_STEPS = Number(process.env.SD_VIDEO_STEPS) || 8; // distilled model: 8 steps, cfg 1
+const WAN_STEPS = Number(process.env.SD_WAN_STEPS) || 20;
+const LTX_SIZES: Record<string, [number, number]> = { '9:16': [544, 960], '16:9': [960, 544], '1:1': [768, 768], '4:5': [640, 800] };
+const WAN_SIZES: Record<string, [number, number]> = { '9:16': [480, 832], '16:9': [832, 480], '1:1': [640, 640], '4:5': [544, 672] };
+export const videoSize = (aspect: string, engine: VideoEngine = 'ltx'): [number, number] => (engine === 'wan' ? WAN_SIZES : LTX_SIZES)[aspect] ?? (engine === 'wan' ? WAN_SIZES : LTX_SIZES)['9:16'];
+
+export interface VideoModels {
+  ltx?: { checkpoint: string; textEncoder: string };
+  wan?: { model: string; textEncoder: string; vae: string };
+  /** engine used when none is asked for */
+  default: VideoEngine | null;
+}
+
+async function loaderList(node: string, input: string): Promise<string[]> {
+  const d = await getJson<Record<string, { input: { required: Record<string, [string[]]> } }>>(`${SD_URL}/object_info/${node}`, undefined, 4000);
+  return d[node]?.input.required[input]?.[0] ?? [];
+}
+
+/** Which image-to-video engines ComfyUI can run right now. */
+export async function videoModels(): Promise<VideoModels> {
+  try {
+    const [cks, tes, unets, vaes] = await Promise.all([loaderList('CheckpointLoaderSimple', 'ckpt_name'), loaderList('CLIPLoader', 'clip_name'), loaderList('UNETLoader', 'unet_name'), loaderList('VAELoader', 'vae_name')]);
+    const ltxCk = (process.env.SD_VIDEO_CHECKPOINT && cks.find((c) => c === process.env.SD_VIDEO_CHECKPOINT)) || cks.find((c) => /ltx-?v/i.test(c) && /distill/i.test(c)) || cks.find((c) => /ltx-?v/i.test(c));
+    const t5 = (process.env.SD_VIDEO_TEXT_ENCODER && tes.find((c) => c === process.env.SD_VIDEO_TEXT_ENCODER)) || tes.find((c) => /t5xxl/i.test(c));
+    const wanModel = unets.find((u) => /wan2\.?2.*ti2v.*5b/i.test(u));
+    const umt5 = tes.find((c) => /umt5/i.test(c));
+    const wanVae = vaes.find((v) => /wan2\.?2.*vae/i.test(v));
+    const ltx = ltxCk && t5 ? { checkpoint: ltxCk, textEncoder: t5 } : undefined;
+    const wan = wanModel && umt5 && wanVae ? { model: wanModel, textEncoder: umt5, vae: wanVae } : undefined;
+    const pref = process.env.SD_VIDEO_ENGINE === 'wan' ? 'wan' : process.env.SD_VIDEO_ENGINE === 'ltx' ? 'ltx' : null;
+    const def: VideoEngine | null = pref && (pref === 'wan' ? wan : ltx) ? pref : ltx ? 'ltx' : wan ? 'wan' : null;
+    return { ltx, wan, default: def };
+  } catch {
+    return { default: null };
+  }
+}
+
+/** Kept for callers that only need "is Motion available": the default engine's main file name. */
+export async function videoModel(): Promise<{ engine: VideoEngine; checkpoint: string } | null> {
+  const m = await videoModels();
+  if (m.default === 'ltx' && m.ltx) return { engine: 'ltx', checkpoint: m.ltx.checkpoint };
+  if (m.default === 'wan' && m.wan) return { engine: 'wan', checkpoint: m.wan.model };
+  return null;
+}
+
+export interface AnimateOptions {
+  image: string; // local PNG/JPG path (e.g. a scene painting)
+  prompt: string; // what moves
+  negative?: string;
+  aspect: string;
+  frames?: number; // ≈ seconds × 24
+  seed?: number;
+  engine?: VideoEngine; // default: the installed one (SD_VIDEO_ENGINE when both are)
+  onProgress?: ComfyProgress;
+}
+
+/** Upload a local image to ComfyUI's input folder and return the name to load it by. */
+async function uploadImage(file: string): Promise<string> {
+  const form = new FormData();
+  const name = `clipforge_${crypto.createHash('sha1').update(file).digest('hex').slice(0, 12)}${path.extname(file) || '.png'}`;
+  form.append('image', new Blob([fs.readFileSync(file)]), name);
+  form.append('overwrite', 'true');
+  const res = await fetch(`${SD_URL}/upload/image`, { method: 'POST', body: form, signal: AbortSignal.timeout(60_000) });
+  if (!res.ok) throw new Error(`Could not send the picture to ComfyUI (${res.status}).`);
+  const d = (await res.json()) as { name: string; subfolder?: string };
+  return d.subfolder ? `${d.subfolder}/${d.name}` : d.name;
+}
+
+/**
+ * Animate a still picture into a short clip (WebM, VP9) and return its URL (/media/generated/<hash>.webm).
+ * Cached like images: same picture + prompt + seed + engine → same clip.
+ */
+export async function animateImage(opts: AnimateOptions): Promise<{ url: string; file: string; cached: boolean; seconds: number; engine: VideoEngine }> {
+  const st = await sdStatus(true);
+  if (!st.running) throw new Error(`Stable Diffusion (ComfyUI) is not running at ${SD_URL}.`);
+  const models = await videoModels();
+  const engine: VideoEngine | null = opts.engine && models[opts.engine] ? opts.engine : models.default;
+  if (!engine) throw new Error('Motion needs a video model. Install it with: npm run comfy:setup');
+  const [width, height] = videoSize(opts.aspect, engine);
+  // LTX wants 8n+1 frames, Wan 4n+1
+  const step = engine === 'ltx' ? 8 : 4;
+  const frames = Math.max(step + 1, Math.round(((opts.frames ?? 97) - 1) / step) * step + 1);
+  const seed = opts.seed ?? 1;
+  const steps = engine === 'ltx' ? LTX_STEPS : WAN_STEPS;
+  const src = fs.readFileSync(opts.image);
+  const key = crypto.createHash('sha1').update(src).update(JSON.stringify({ p: opts.prompt, n: opts.negative, width, height, frames, seed, steps, engine, m: models[engine] })).digest('hex').slice(0, 20);
+  fs.mkdirSync(GENERATED_DIR, { recursive: true });
+  const file = path.join(GENERATED_DIR, `${key}.webm`);
+  const url = `/media/generated/${key}.webm`;
+  const seconds = frames / VIDEO_FPS;
+  if (fs.existsSync(file)) return { url, file, cached: true, seconds, engine };
+  const input = await uploadImage(opts.image);
+  const negative = opts.negative || 'worst quality, inconsistent motion, blurry, jittery, distorted, morphing faces, extra limbs, text, watermark';
+  const save = (images: [string, number]) => ({ class_type: 'SaveWEBM', inputs: { images, filename_prefix: 'clipforge_video', codec: 'vp9', fps: VIDEO_FPS, crf: 24 } });
+
+  let wf: Record<string, unknown>;
+  let decodeNode: string;
+  if (engine === 'ltx') {
+    const m = models.ltx!;
+    wf = {
+      '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: m.checkpoint } },
+      '2': { class_type: 'CLIPLoader', inputs: { clip_name: m.textEncoder, type: 'ltxv' } },
+      '3': { class_type: 'CLIPTextEncode', inputs: { text: opts.prompt, clip: ['2', 0] } },
+      '4': { class_type: 'CLIPTextEncode', inputs: { text: negative, clip: ['2', 0] } },
+      '5': { class_type: 'LoadImage', inputs: { image: input } },
+      '6': { class_type: 'LTXVPreprocess', inputs: { image: ['5', 0], img_compression: 35 } },
+      '7': { class_type: 'LTXVImgToVideo', inputs: { positive: ['3', 0], negative: ['4', 0], vae: ['1', 2], image: ['6', 0], width, height, length: frames, batch_size: 1, strength: 1 } },
+      '8': { class_type: 'LTXVConditioning', inputs: { positive: ['7', 0], negative: ['7', 1], frame_rate: VIDEO_FPS } },
+      '9': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler' } },
+      '10': { class_type: 'LTXVScheduler', inputs: { steps, max_shift: 2.05, base_shift: 0.95, stretch: true, terminal: 0.1, latent: ['7', 2] } },
+      '11': { class_type: 'SamplerCustom', inputs: { model: ['1', 0], add_noise: true, noise_seed: seed, cfg: 1, positive: ['8', 0], negative: ['8', 1], sampler: ['9', 0], sigmas: ['10', 0], latent_image: ['7', 2] } },
+      '12': { class_type: 'VAEDecode', inputs: { samples: ['11', 0], vae: ['1', 2] } },
+      '13': save(['12', 0]),
+    };
+    decodeNode = '12';
+  } else {
+    const m = models.wan!;
+    wf = {
+      '1': { class_type: 'UNETLoader', inputs: { unet_name: m.model, weight_dtype: 'default' } },
+      '2': { class_type: 'CLIPLoader', inputs: { clip_name: m.textEncoder, type: 'wan' } },
+      '3': { class_type: 'VAELoader', inputs: { vae_name: m.vae } },
+      '4': { class_type: 'CLIPTextEncode', inputs: { text: opts.prompt, clip: ['2', 0] } },
+      '5': { class_type: 'CLIPTextEncode', inputs: { text: negative, clip: ['2', 0] } },
+      '6': { class_type: 'LoadImage', inputs: { image: input } },
+      '7': { class_type: 'Wan22ImageToVideoLatent', inputs: { vae: ['3', 0], width, height, length: frames, batch_size: 1, start_image: ['6', 0] } },
+      '8': { class_type: 'ModelSamplingSD3', inputs: { model: ['1', 0], shift: 8 } },
+      '9': { class_type: 'KSampler', inputs: { model: ['8', 0], positive: ['4', 0], negative: ['5', 0], latent_image: ['7', 0], seed, steps, cfg: 5, sampler_name: 'uni_pc', scheduler: 'simple', denoise: 1 } },
+      '10': { class_type: 'VAEDecode', inputs: { samples: ['9', 0], vae: ['3', 0] } },
+      '11': save(['10', 0]),
+    };
+    decodeNode = '10';
+  }
+  const done = await runComfy(wf, file, { onProgress: opts.onProgress, steps, loadNode: '1', decodeNode, what: 'video clip', timeoutMin: engine === 'wan' ? 40 : 20 });
+  opts.onProgress?.('Done', 1, { step: done.steps, steps: done.steps });
+  return { url, file, cached: false, seconds, engine };
 }
 
 // ---------------------------------------------------------------- story → scene prompts

@@ -1,0 +1,655 @@
+{
+  "_note": "Image-generation art direction per style (supplied reference data). Merged into src/artstyles/<id>.json by `npm run artstyles`. Keys are ClipForge style ids; sourceId is the id in the original preset set. Optional sd_hint / sd_negative add short colour and layout cues for Stable Diffusion when a style drifts.",
+  "style_system": {
+    "version": "1.0",
+    "type": "universal_art_style_presets",
+    "purpose": "Apply a selected visual art style to any user prompt without changing its semantic meaning.",
+    "application": {
+      "mode": "style_injection",
+      "preserve_original_prompt": true,
+      "preserve_subject": true,
+      "preserve_actions": true,
+      "preserve_environment": true,
+      "preserve_composition_intent": true,
+      "preserve_character_identity": true,
+      "style_strength": 0.85,
+      "instruction": "Transform only the visual rendering, artistic treatment, materials, textures, colors, lighting and linework according to the selected art style. Do not change the objects, people, characters, actions, locations or meaning described in the original prompt."
+    }
+  },
+  "styles": {
+    "auto": {
+      "sourceId": "ai_picks",
+      "name": "AI Picks",
+      "category": "automatic",
+      "description": "Automatically selects the most suitable visual art style based on the story, characters, environment, mood and target audience.",
+      "visual_identity": "Adaptive artistic direction with professional composition and visually appealing storytelling.",
+      "color_palette": {
+        "approach": "Dynamic",
+        "saturation": "Context dependent",
+        "contrast": "Optimized for readability",
+        "colors": [
+          "Adaptive",
+          "Harmonious",
+          "Story driven"
+        ]
+      },
+      "linework": "Automatically selects suitable outlines, edges and detailing.",
+      "textures": "Automatically selects painting, illustration or digital rendering textures.",
+      "characters": "Characters must maintain consistent facial features, clothing, proportions and appearance throughout the story.",
+      "backgrounds": "Selects environments that complement the story and character design.",
+      "lighting": "Automatically adapts to the scene mood and environment.",
+      "composition": "Cinematic storytelling composition with clear subject hierarchy.",
+      "best_for": [
+        "General storytelling",
+        "Mixed genres",
+        "Educational videos",
+        "Fantasy stories"
+      ],
+      "generation_instructions": "Analyze the complete scene description and select an appropriate visual art direction. Maintain visual consistency across all scenes.",
+      "negative_prompt": "Inconsistent characters, conflicting art styles, poor composition, random colors, distorted anatomy.",
+      "prompt_modifier": "Choose the most visually appropriate professional illustration style for the subject and context. Create a cohesive, polished image with balanced colors, strong composition, clear visual hierarchy and suitable artistic rendering. Preserve the original subject and scene.",
+      "negative_modifier": "Inconsistent visual style, poor composition, distorted subjects, visual clutter."
+    },
+    "mix": {
+      "sourceId": "mix_all",
+      "name": "Mix All",
+      "category": "mixed_media",
+      "description": "Combines multiple compatible artistic techniques into one creative visual composition.",
+      "visual_identity": "A controlled combination of illustration, painting, textures, graphic design and mixed media.",
+      "color_palette": {
+        "approach": "Expressive and varied",
+        "saturation": "Medium to high",
+        "contrast": "Dynamic",
+        "colors": [
+          "Warm orange",
+          "Deep blue",
+          "Golden yellow",
+          "Vibrant pink",
+          "Natural green"
+        ]
+      },
+      "linework": "Combination of clean digital outlines, hand-drawn marks and painterly edges.",
+      "textures": "Layered paper, watercolor, digital paint, grain, brush strokes and collage textures.",
+      "characters": "Characters use one consistent primary design language while allowing mixed-media surface treatments.",
+      "backgrounds": "Can combine painted landscapes, geometric elements, photographic-inspired textures and illustrated environments.",
+      "lighting": "Expressive lighting with layered highlights and shadows.",
+      "composition": "Collage-inspired compositions with multiple visual layers and balanced focal points.",
+      "best_for": [
+        "Experimental storytelling",
+        "Music videos",
+        "Creative shorts",
+        "Fantasy",
+        "Promotional visuals"
+      ],
+      "generation_instructions": "Blend two or more compatible artistic techniques while preserving a coherent visual identity. Avoid making characters look disconnected from their environment.",
+      "negative_prompt": "Unintentional style clashes, messy collage, excessive textures, inconsistent character rendering, visual clutter.",
+      "prompt_modifier": "Render using a sophisticated mixed-media art aesthetic combining compatible illustration techniques, painterly textures, layered materials, graphic elements and artistic surface details. Blend techniques harmoniously while maintaining visual coherence and preserving the original subject.",
+      "negative_modifier": "Chaotic collage, conflicting artistic styles, random textures, excessive visual noise."
+    },
+    "storybook": {
+      "sourceId": "childrens_story",
+      "name": "Children's Story",
+      "category": "storybook_illustration",
+      "description": "Soft, colorful, friendly storybook illustrations designed for children's storytelling.",
+      "visual_identity": "Warm, magical, welcoming and imaginative picture-book illustration.",
+      "color_palette": {
+        "approach": "Soft pastel and cheerful colors",
+        "saturation": "Medium to high",
+        "contrast": "Soft and readable",
+        "colors": [
+          "Sky blue",
+          "Pastel pink",
+          "Mint green",
+          "Sunny yellow",
+          "Peach",
+          "Lavender"
+        ]
+      },
+      "linework": "Soft, rounded and slightly organic outlines.",
+      "textures": "Watercolor washes, subtle paper grain, soft digital brush strokes.",
+      "characters": "Cute expressive characters with rounded faces, large friendly eyes, simplified anatomy and approachable proportions.",
+      "backgrounds": "Colorful villages, forests, gardens, magical castles, cozy houses and imaginative landscapes.",
+      "lighting": "Soft daylight, warm sunlight, gentle ambient lighting and magical glows.",
+      "composition": "Clear foreground characters, readable environments, balanced negative space and simple visual storytelling.",
+      "best_for": [
+        "Children aged 3-13",
+        "Fairy tales",
+        "Moral stories",
+        "Bedtime stories",
+        "Animal stories"
+      ],
+      "generation_instructions": "Create a charming children's picture-book illustration. Use friendly character expressions, soft rounded shapes, colorful environments and a warm emotional atmosphere. Keep character designs identical across all scenes.",
+      "negative_prompt": "Horror, frightening expressions, disturbing imagery, aggressive realism, dark disturbing atmosphere, overly complex details, adult themes.",
+      "prompt_modifier": "Render as a charming children's picture-book illustration with soft rounded shapes, friendly expressive characters, gentle watercolor textures, warm pastel colors, playful details, whimsical environments and soft natural lighting. Use approachable proportions, cheerful expressions and a magical storybook atmosphere.",
+      "negative_modifier": "Horror, frightening expressions, disturbing imagery, aggressive realism, adult themes, overly dark atmosphere."
+    },
+    "cartoon": {
+      "sourceId": "cartoon",
+      "name": "Cartoon",
+      "category": "2d_cartoon",
+      "description": "Bold, playful cartoon illustrations with exaggerated expressions and vibrant colors.",
+      "visual_identity": "Classic modern 2D animated cartoon aesthetic.",
+      "color_palette": {
+        "approach": "Bright and vibrant",
+        "saturation": "High",
+        "contrast": "Strong",
+        "colors": [
+          "Bright red",
+          "Royal blue",
+          "Lemon yellow",
+          "Orange",
+          "Green",
+          "Purple"
+        ]
+      },
+      "linework": "Bold, clean, dark outlines with smooth curves.",
+      "textures": "Mostly smooth digital coloring with minimal texture and subtle gradients.",
+      "characters": "Exaggerated facial expressions, large eyes, expressive mouths, simplified anatomy and distinctive silhouettes.",
+      "backgrounds": "Stylized cities, colorful homes, forests, parks and simplified cartoon environments.",
+      "lighting": "Bright and even lighting with simple shadows.",
+      "composition": "Dynamic poses, clear silhouettes, expressive close-ups and readable action.",
+      "best_for": [
+        "Comedy",
+        "Funny stories",
+        "Adventure",
+        "Kids animation",
+        "Character-driven shorts"
+      ],
+      "generation_instructions": "Generate a high-quality 2D cartoon illustration with bold outlines, vibrant flat colors and exaggerated but consistent character expressions. Use clear silhouettes and playful poses.",
+      "negative_prompt": "Photorealism, realistic skin pores, complex painterly textures, thin inconsistent outlines, muted colors, anatomical distortion.",
+      "prompt_modifier": "Render as a high-quality 2D cartoon illustration with bold clean outlines, exaggerated expressive features, simplified anatomy, vibrant saturated colors, smooth digital shading and playful visual shapes. Use strong silhouettes, energetic poses and clear readable forms.",
+      "negative_modifier": "Photorealism, realistic skin pores, muddy colors, inconsistent outlines, overly complex textures, 3D plastic appearance."
+    },
+    "flatVector": {
+      "sourceId": "flat_vector",
+      "name": "Flat Vector",
+      "category": "vector_illustration",
+      "description": "Clean geometric illustrations using simple shapes, solid colors and minimal details.",
+      "visual_identity": "Modern minimal flat vector graphic design.",
+      "color_palette": {
+        "approach": "Limited harmonious color palette",
+        "saturation": "Medium to high",
+        "contrast": "High",
+        "colors": [
+          "Blue",
+          "Yellow",
+          "Coral",
+          "Mint",
+          "White",
+          "Dark navy"
+        ]
+      },
+      "linework": "Clean geometric edges with minimal or no outlines.",
+      "textures": "Flat solid fills with very limited gradients and almost no surface texture.",
+      "characters": "Simplified geometric human figures with minimal facial details and recognizable silhouettes.",
+      "backgrounds": "Minimal buildings, geometric trees, hills, roads, clouds and simple landscapes.",
+      "lighting": "Minimal lighting with subtle directional shadows.",
+      "composition": "Balanced geometric layouts, clear spacing and simple visual hierarchy.",
+      "best_for": [
+        "Explainer videos",
+        "Educational content",
+        "Infographics",
+        "Business storytelling",
+        "Simple animations"
+      ],
+      "generation_instructions": "Create a clean flat vector illustration using geometric shapes, solid fills, minimal details and consistent proportions. Maintain a limited palette across scenes.",
+      "negative_prompt": "Photorealistic rendering, heavy textures, complex gradients, realistic shadows, noisy backgrounds, excessive details.",
+      "prompt_modifier": "Render as clean modern flat vector artwork using geometric shapes, simplified silhouettes, solid color fills, minimal details, crisp edges, balanced spacing and a limited harmonious color palette. Use minimal shadows and clean graphic design principles.",
+      "negative_modifier": "Photorealism, painterly brush strokes, heavy textures, complex gradients, excessive shadows, noisy details."
+    },
+    "handDrawn": {
+      "sourceId": "hand_drawn",
+      "name": "Hand-drawn",
+      "category": "traditional_drawing",
+      "description": "Organic illustrations that look manually drawn using pencils, pens and traditional sketching techniques.",
+      "visual_identity": "Personal, artistic and expressive sketchbook illustration.",
+      "color_palette": {
+        "approach": "Natural and slightly muted",
+        "saturation": "Low to medium",
+        "contrast": "Medium",
+        "colors": [
+          "Pencil grey",
+          "Warm beige",
+          "Olive green",
+          "Muted blue",
+          "Brown",
+          "Soft yellow"
+        ]
+      },
+      "linework": "Visible pencil strokes, imperfect contours, sketch marks and varied line weights.",
+      "textures": "Paper grain, graphite, colored pencil strokes, cross-hatching and light watercolor.",
+      "characters": "Natural hand-drawn proportions, expressive faces and imperfect organic shapes.",
+      "backgrounds": "Sketchy landscapes, trees, houses, countryside and hand-rendered environmental details.",
+      "lighting": "Natural soft lighting with hand-shaded shadows.",
+      "composition": "Loose organic compositions with visible drawing details and sketchbook aesthetics.",
+      "best_for": [
+        "Personal stories",
+        "Emotional storytelling",
+        "Adventure books",
+        "Educational illustrations",
+        "Journal-style videos"
+      ],
+      "generation_instructions": "Create an illustration that appears genuinely hand-drawn using pencils and colored pencils. Preserve visible strokes, paper texture and slightly imperfect contours.",
+      "negative_prompt": "Perfect vector geometry, glossy 3D rendering, photorealism, overly smooth surfaces, plastic textures.",
+      "prompt_modifier": "Render as an authentic hand-drawn illustration with organic pencil strokes, visible sketch lines, imperfect contours, colored pencil shading, subtle graphite marks, natural paper texture and expressive hand-rendered details. Preserve an artistic handmade appearance.",
+      "negative_modifier": "Perfect vector edges, glossy 3D rendering, photorealistic surfaces, overly smooth digital appearance."
+    },
+    "madhubani": {
+      "sourceId": "madhubani",
+      "name": "Madhubani",
+      "category": "indian_folk_art",
+      "description": "Traditional Mithila folk painting characterized by intricate patterns, decorative borders and symbolic Indian motifs.",
+      "visual_identity": "Traditional Indian folk painting with dense ornamental detailing and flat decorative compositions.",
+      "color_palette": {
+        "approach": "Rich traditional colors",
+        "saturation": "High",
+        "contrast": "Strong",
+        "colors": [
+          "Vermilion red",
+          "Turmeric yellow",
+          "Leaf green",
+          "Indigo",
+          "Black",
+          "White"
+        ]
+      },
+      "linework": "Bold black outlines, double-line borders, repetitive patterns and intricate decorative detailing.",
+      "textures": "Hand-painted pigment appearance with patterned fills, dots, fine lines and traditional motifs.",
+      "characters": "Stylized figures with large expressive eyes, decorative clothing, patterned bodies and traditional ornaments.",
+      "backgrounds": "Filled with flowers, leaves, fish, birds, trees, suns, geometric patterns and ornamental borders.",
+      "lighting": "Flat decorative treatment without realistic lighting or dimensional shadows.",
+      "composition": "Dense symmetrical or balanced compositions with little empty space and intricate borders.",
+      "best_for": [
+        "Indian folklore",
+        "Cultural stories",
+        "Mythology",
+        "Traditional festivals",
+        "Indian heritage"
+      ],
+      "generation_instructions": "Create an authentic Madhubani-inspired Mithila folk painting with intricate hand-drawn black outlines, decorative patterns, symbolic motifs and rich flat colors. Use traditional visual vocabulary and ornamental borders.",
+      "negative_prompt": "3D realism, photographic lighting, western comic style, glossy gradients, empty minimal backgrounds, modern vector aesthetics.",
+      "prompt_modifier": "Render in traditional Madhubani Mithila folk painting style with intricate black outlines, double-line borders, decorative patterns, repetitive motifs, flat vibrant pigments and densely patterned surfaces. Incorporate traditional floral, botanical and geometric ornamentation appropriate to the subject. Use authentic folk-art visual language.",
+      "negative_modifier": "Photorealism, 3D lighting, glossy gradients, western cartoon aesthetics, minimalist vector styling, modern digital painting.",
+      "sd_hint": "vivid vermilion red, turmeric yellow, leaf green and indigo blue colours filling every shape, cream handmade paper",
+      "sd_negative": "monochrome, greyscale, pencil sketch, desaturated"
+    },
+    "inkWash": {
+      "sourceId": "ink_wash",
+      "name": "Ink Wash",
+      "category": "traditional_ink_painting",
+      "description": "Expressive traditional ink painting using fluid brush strokes, diluted ink and atmospheric landscapes.",
+      "visual_identity": "Minimalist East Asian ink wash painting with poetic atmospheric depth.",
+      "color_palette": {
+        "approach": "Monochromatic with occasional accent colors",
+        "saturation": "Very low",
+        "contrast": "Variable",
+        "colors": [
+          "Black",
+          "Charcoal",
+          "Grey",
+          "Off-white",
+          "Muted brown"
+        ]
+      },
+      "linework": "Fluid brush strokes, spontaneous marks and varying ink density.",
+      "textures": "Rice paper texture, ink bleeding, dry brush effects and watercolor-like gradients.",
+      "characters": "Simplified expressive silhouettes with minimal facial details and natural gestures.",
+      "backgrounds": "Misty mountains, bamboo forests, rivers, temples, clouds and atmospheric scenery.",
+      "lighting": "Soft diffused light with fog and atmospheric depth.",
+      "composition": "Large negative spaces, layered mountains, asymmetrical balance and delicate focal subjects.",
+      "best_for": [
+        "Nature stories",
+        "Historical storytelling",
+        "Meditative videos",
+        "Poetry",
+        "Traditional Asian themes"
+      ],
+      "generation_instructions": "Create an expressive ink wash painting with fluid brushwork, diluted ink, textured rice paper, atmospheric mountains and subtle tonal transitions. Use negative space intentionally.",
+      "negative_prompt": "Neon colors, photorealistic textures, hard digital gradients, thick comic outlines, excessive sharp details.",
+      "prompt_modifier": "Render as traditional East Asian ink wash painting using expressive black ink brushwork, diluted grey washes, fluid strokes, soft atmospheric gradients, textured rice paper and elegant negative space. Create depth through varying ink density, mist and delicate brush techniques.",
+      "negative_modifier": "Neon colors, glossy digital rendering, thick comic outlines, photorealism, hard geometric gradients, excessive sharp details."
+    },
+    "shadowPuppet": {
+      "sourceId": "shadow_puppet",
+      "name": "Shadow Puppet",
+      "category": "silhouette_theatre",
+      "description": "Theatrical storytelling using cutout silhouettes, dramatic backlighting and layered shadows.",
+      "visual_identity": "Traditional shadow theatre with handcrafted puppet silhouettes.",
+      "color_palette": {
+        "approach": "Dark silhouettes against warm illuminated backgrounds",
+        "saturation": "Low to medium",
+        "contrast": "Very high",
+        "colors": [
+          "Black",
+          "Dark brown",
+          "Amber",
+          "Golden yellow",
+          "Burnt orange"
+        ]
+      },
+      "linework": "Sharp silhouette contours with decorative cutout patterns.",
+      "textures": "Translucent parchment, handmade leather, paper and subtle theatre-screen textures.",
+      "characters": "Black silhouette figures with distinctive profiles, articulated limbs and decorative puppet shapes.",
+      "backgrounds": "Illuminated theatre screens, palace interiors, forests, villages and stylized landscapes.",
+      "lighting": "Strong backlighting with glowing amber and golden illumination.",
+      "composition": "Layered silhouettes with clear separation between foreground, characters and background.",
+      "best_for": [
+        "Folklore",
+        "Indian mythology",
+        "Historical tales",
+        "Traditional storytelling",
+        "Dramatic scenes"
+      ],
+      "generation_instructions": "Create a shadow puppet theatre scene with handcrafted black character silhouettes, warm amber backlighting, intricate puppet cutouts and layered theatrical scenery.",
+      "negative_prompt": "Full-color realistic characters, 3D plastic objects, photographic faces, soft character gradients, modern comic rendering.",
+      "prompt_modifier": "Render as traditional shadow puppet theatre artwork with handcrafted black silhouettes, decorative cutout patterns, articulated puppet-like figures, warm amber backlighting, glowing golden backgrounds and layered theatrical shadows. Keep silhouettes clearly recognizable and visually separated.",
+      "negative_modifier": "Photorealistic faces, full-color realistic characters, glossy 3D objects, complex natural skin textures, soft indistinct silhouettes."
+    },
+    "paperCutout": {
+      "sourceId": "paper_cutout",
+      "name": "Paper Cutout",
+      "category": "paper_craft",
+      "description": "Layered illustrations that look like colorful pieces of paper cut, arranged and glued together.",
+      "visual_identity": "Handcrafted layered paper collage with tactile dimensional shapes.",
+      "color_palette": {
+        "approach": "Bright natural colors",
+        "saturation": "Medium to high",
+        "contrast": "Clear separation between layers",
+        "colors": [
+          "Sky blue",
+          "Grass green",
+          "Yellow",
+          "Orange",
+          "Coral",
+          "Brown"
+        ]
+      },
+      "linework": "Defined paper-cut edges without conventional drawn outlines.",
+      "textures": "Visible paper fibers, rough cut edges, cardstock grain and layered paper surfaces.",
+      "characters": "Simplified characters built from overlapping geometric paper shapes.",
+      "backgrounds": "Layered hills, trees, clouds, houses, mountains and colorful paper landscapes.",
+      "lighting": "Soft directional light creating subtle shadows between paper layers.",
+      "composition": "Distinct depth planes with foreground, middle ground and background paper layers.",
+      "best_for": [
+        "Children's stories",
+        "Craft storytelling",
+        "Educational animations",
+        "Nature stories",
+        "Fairy tales"
+      ],
+      "generation_instructions": "Create a handcrafted paper cutout illustration. Every object should look constructed from separate colored paper pieces with visible edges, overlapping layers and soft cast shadows.",
+      "negative_prompt": "Photorealism, smooth 3D plastic, digital vector gradients, painted brush strokes, metallic materials.",
+      "prompt_modifier": "Render as handcrafted layered paper-cut illustration with overlapping colored paper shapes, visible cut edges, tactile cardstock textures, subtle paper fibers and soft cast shadows. Create distinct foreground, middle-ground and background layers with a charming handmade collage aesthetic.",
+      "negative_modifier": "Photorealism, glossy plastic surfaces, metallic materials, smooth 3D modeling, realistic skin textures."
+    },
+    "stainedGlass": {
+      "sourceId": "stained_glass",
+      "name": "Stained Glass",
+      "category": "glass_art",
+      "description": "Illustrations inspired by stained glass windows with vibrant colored glass sections separated by dark leading.",
+      "visual_identity": "Decorative luminous glass mosaic artwork.",
+      "color_palette": {
+        "approach": "Rich jewel tones",
+        "saturation": "Very high",
+        "contrast": "Strong",
+        "colors": [
+          "Ruby red",
+          "Sapphire blue",
+          "Emerald green",
+          "Golden yellow",
+          "Purple",
+          "Orange"
+        ]
+      },
+      "linework": "Thick dark lead lines separating individual glass pieces.",
+      "textures": "Translucent colored glass, subtle imperfections, glass grain and luminous surfaces.",
+      "characters": "Stylized figures divided into colorful geometric glass segments.",
+      "backgrounds": "Decorative windows, castles, flowers, landscapes, churches and geometric patterns.",
+      "lighting": "Bright transmitted light, glowing glass and luminous highlights.",
+      "composition": "Panel-based compositions with clearly separated geometric segments and decorative borders.",
+      "best_for": [
+        "Fantasy",
+        "Fairy tales",
+        "Mythology",
+        "Magical stories",
+        "Decorative visuals"
+      ],
+      "generation_instructions": "Create a stained glass artwork using vibrant translucent glass pieces separated by bold dark leading. Illuminate the composition from behind to reveal rich jewel-tone colors.",
+      "negative_prompt": "Paper texture, pencil sketch, realistic skin, flat vector without glass divisions, blurry boundaries, photographic rendering.",
+      "prompt_modifier": "Render as intricate stained glass artwork with translucent jewel-toned glass pieces, bold dark leading lines, geometric glass segments, luminous transmitted light, subtle glass imperfections and decorative mosaic patterns. Divide the subject into visually coherent glass sections.",
+      "negative_modifier": "Paper textures, pencil sketches, photorealistic skin, flat unsegmented vector shapes, blurry glass divisions."
+    },
+    "anime": {
+      "sourceId": "anime",
+      "name": "Anime",
+      "category": "japanese_animation",
+      "description": "Japanese animation-inspired illustration with expressive characters, cinematic lighting and detailed environments.",
+      "visual_identity": "Polished 2D Japanese anime aesthetic.",
+      "color_palette": {
+        "approach": "Cinematic and expressive",
+        "saturation": "Medium to high",
+        "contrast": "Dynamic",
+        "colors": [
+          "Sky blue",
+          "Cherry blossom pink",
+          "Violet",
+          "Warm orange",
+          "Deep navy",
+          "Golden sunlight"
+        ]
+      },
+      "linework": "Clean controlled outlines, delicate facial details and variable line weights.",
+      "textures": "Smooth cel shading, soft painted backgrounds and subtle atmospheric effects.",
+      "characters": "Large expressive eyes, stylized hair, defined facial features and consistent anime proportions.",
+      "backgrounds": "Detailed Japanese streets, schools, countryside, fantasy cities, skies and natural environments.",
+      "lighting": "Cinematic rim lighting, dramatic sunsets, soft bloom and atmospheric illumination.",
+      "composition": "Cinematic framing, expressive close-ups, dynamic perspective and emotional character poses.",
+      "best_for": [
+        "Adventure",
+        "Emotional stories",
+        "Fantasy",
+        "Romance",
+        "Action",
+        "Coming-of-age stories"
+      ],
+      "generation_instructions": "Create a high-quality 2D anime illustration with expressive character faces, detailed environments, clean linework, controlled cel shading and cinematic lighting. Maintain identical character designs across scenes.",
+      "negative_prompt": "Photorealistic human faces, western flat cartoon, low-detail characters, inconsistent hairstyles, distorted eyes, plastic 3D rendering.",
+      "prompt_modifier": "Render as high-quality Japanese anime illustration with expressive eyes, stylized character anatomy, clean controlled linework, detailed hair, polished cel shading, atmospheric painted backgrounds, cinematic lighting, vibrant colors and emotional visual storytelling.",
+      "negative_modifier": "Photorealistic human faces, western flat cartoon aesthetics, distorted anatomy, inconsistent character features, plastic 3D rendering."
+    },
+    "warli": {
+      "sourceId": "warli",
+      "name": "Warli",
+      "category": "indian_tribal_art",
+      "description": "Traditional Warli tribal art from Maharashtra using simple geometric human figures and white motifs on earthy backgrounds.",
+      "visual_identity": "Minimal traditional tribal storytelling through geometric symbols and rhythmic figures.",
+      "color_palette": {
+        "approach": "Earthy monochromatic",
+        "saturation": "Low",
+        "contrast": "High",
+        "colors": [
+          "Terracotta brown",
+          "Mud brown",
+          "White",
+          "Off-white",
+          "Natural ochre"
+        ]
+      },
+      "linework": "Thin white hand-drawn geometric lines and repetitive patterns.",
+      "textures": "Rough mud-wall texture, handmade pigment and natural surface grain.",
+      "characters": "Human figures constructed from two triangles joined at the apex, circular heads and simple geometric limbs.",
+      "backgrounds": "Trees, village huts, farming, animals, sun, moon and traditional community scenes.",
+      "lighting": "Flat graphic treatment with no realistic shading.",
+      "composition": "Rhythmic storytelling arrangements, circular dances and repeating motifs.",
+      "best_for": [
+        "Indian folk stories",
+        "Village life",
+        "Cultural education",
+        "Nature",
+        "Community storytelling"
+      ],
+      "generation_instructions": "Create a traditional Warli-inspired tribal artwork using simple white geometric stick figures, circular heads, triangular torsos and earthy mud-wall backgrounds. Use traditional motifs and rhythmic compositions.",
+      "negative_prompt": "Photorealism, colorful gradients, 3D characters, realistic anatomy, modern cartoon faces, complex digital textures.",
+      "prompt_modifier": "Render in traditional Warli tribal art style using simple white geometric human figures, circular heads, triangular torsos, thin hand-drawn lines, earthy terracotta backgrounds and traditional motifs. Represent objects and activities through simplified symbolic shapes and rhythmic folk-art compositions.",
+      "negative_modifier": "Photorealism, colorful gradients, realistic anatomy, 3D characters, modern cartoon faces, glossy digital textures.",
+      "sd_hint": "white rice-paste stick figures on a solid terracotta red-brown mud wall background",
+      "sd_negative": "white background, dark figures on light background, brown figures, colourful"
+    },
+    "blueprint": {
+      "sourceId": "blueprint",
+      "name": "Blueprint",
+      "category": "technical_illustration",
+      "description": "Technical schematic artwork using precise white line drawings on deep blue engineering-style backgrounds.",
+      "visual_identity": "Architectural, mechanical and engineering blueprint aesthetics.",
+      "color_palette": {
+        "approach": "Monochromatic technical palette",
+        "saturation": "Low",
+        "contrast": "High",
+        "colors": [
+          "Deep blueprint blue",
+          "Navy",
+          "White",
+          "Cyan",
+          "Light blue"
+        ]
+      },
+      "linework": "Precise thin technical outlines, dimension lines, measurement marks and construction geometry.",
+      "textures": "Subtle engineering grid, technical paper grain and schematic markings.",
+      "characters": "Simplified technical silhouettes or wireframe representations when required.",
+      "backgrounds": "Architectural plans, machine diagrams, city layouts, mechanical structures and technical schematics.",
+      "lighting": "Flat technical rendering without realistic lighting.",
+      "composition": "Organized technical layouts with multiple views, labels, grids and annotations.",
+      "best_for": [
+        "Science education",
+        "Engineering stories",
+        "Technology explainers",
+        "Inventions",
+        "Educational videos"
+      ],
+      "generation_instructions": "Create a clean engineering blueprint illustration with precise white technical linework on a deep blue grid background. Include schematic details and measurement indicators where appropriate.",
+      "negative_prompt": "Photorealism, colorful cartoon rendering, painterly textures, unnecessary 3D lighting, messy unreadable annotations.",
+      "prompt_modifier": "Render as a technical engineering blueprint illustration with precise thin white linework, deep blueprint-blue background, subtle measurement grids, schematic outlines, dimension markings, geometric construction lines and technical drafting details. Preserve the subject's recognizable structure.",
+      "negative_modifier": "Photorealism, painterly textures, cartoon rendering, unnecessary 3D lighting, colorful gradients, messy technical lines."
+    },
+    "ukiyoe": {
+      "sourceId": "ukiyo_e",
+      "name": "Ukiyo-e",
+      "category": "japanese_woodblock",
+      "description": "Traditional Japanese woodblock-print-inspired artwork featuring bold outlines, stylized landscapes and decorative flat colors.",
+      "visual_identity": "Classical Japanese ukiyo-e printmaking aesthetic.",
+      "color_palette": {
+        "approach": "Traditional woodblock colors",
+        "saturation": "Medium",
+        "contrast": "Strong",
+        "colors": [
+          "Indigo",
+          "Prussian blue",
+          "Muted red",
+          "Cream",
+          "Ochre",
+          "Charcoal"
+        ]
+      },
+      "linework": "Strong flowing contours, controlled outlines and decorative patterned details.",
+      "textures": "Woodblock print grain, handmade paper fibers and subtle ink imperfections.",
+      "characters": "Stylized traditional Japanese figures, expressive poses and simplified facial details.",
+      "backgrounds": "Mount Fuji, ocean waves, Japanese villages, bridges, cherry blossoms and mountain landscapes.",
+      "lighting": "Flat graphic lighting with atmospheric natural elements.",
+      "composition": "Layered landscape compositions, strong silhouettes, decorative framing and asymmetrical balance.",
+      "best_for": [
+        "Historical Japanese stories",
+        "Nature",
+        "Folklore",
+        "Adventure",
+        "Cultural storytelling"
+      ],
+      "generation_instructions": "Create a traditional Japanese ukiyo-e woodblock-print-inspired illustration using bold flowing outlines, flat natural pigments, stylized waves and mountains, and visible handmade print textures.",
+      "negative_prompt": "Photorealism, 3D rendering, modern anime appearance, glossy gradients, western comic style, excessive soft shadows.",
+      "prompt_modifier": "Render as traditional Japanese Ukiyo-e woodblock print artwork with bold flowing outlines, flat natural pigments, stylized organic shapes, decorative patterns, textured handmade paper, controlled color blocking and classical Japanese printmaking aesthetics.",
+      "negative_modifier": "Photorealism, glossy 3D rendering, modern anime appearance, smooth digital gradients, western comic style."
+    },
+    "miniature": {
+      "sourceId": "miniature_painting",
+      "name": "Miniature Painting",
+      "category": "indian_classical_art",
+      "description": "Intricate Indian miniature painting inspired by traditional Mughal, Rajput and Pahari painting traditions.",
+      "visual_identity": "Highly detailed classical Indian miniature artwork with ornamental compositions.",
+      "color_palette": {
+        "approach": "Rich traditional pigments",
+        "saturation": "High",
+        "contrast": "Medium to high",
+        "colors": [
+          "Royal red",
+          "Emerald green",
+          "Turquoise",
+          "Gold",
+          "Deep blue",
+          "Warm ivory"
+        ]
+      },
+      "linework": "Extremely fine outlines, precise detailing and delicate ornamental strokes.",
+      "textures": "Hand-painted pigment, fine paper grain, delicate brushwork and gold-inspired decorative detailing.",
+      "characters": "Stylized royal figures, expressive profiles, elaborate garments, jewelry and intricate patterns.",
+      "backgrounds": "Palaces, gardens, courtyards, rivers, royal architecture and decorative landscapes.",
+      "lighting": "Flat traditional painting treatment with controlled tonal details.",
+      "composition": "Dense decorative compositions, intricate borders, balanced figures and detailed architecture.",
+      "best_for": [
+        "Indian history",
+        "Royal stories",
+        "Historical mythology",
+        "Cultural storytelling",
+        "Folklore"
+      ],
+      "generation_instructions": "Create a detailed traditional Indian miniature painting inspired by Mughal, Rajput or Pahari schools. Use delicate brushwork, ornamental clothing, fine facial details, elaborate architecture and rich natural pigments.",
+      "negative_prompt": "Modern cartoon style, photorealistic 3D, thick comic outlines, minimal vector design, loose abstract brush strokes.",
+      "prompt_modifier": "Render as traditional Indian miniature painting inspired by Mughal, Rajput and Pahari painting traditions. Use extremely fine brushwork, delicate outlines, intricate ornamental details, elaborate patterns, rich natural pigments, decorative borders and carefully detailed architecture and clothing.",
+      "negative_modifier": "Modern cartoon style, photorealistic 3D, thick comic outlines, minimalist vector graphics, loose abstract brush strokes."
+    }
+  },
+  "global_generation_rules": {
+    "character_consistency": {
+      "enabled": true,
+      "rules": [
+        "Maintain identical facial features across all scenes.",
+        "Maintain consistent hairstyle, clothing and accessories.",
+        "Preserve body proportions and character age.",
+        "Do not randomly change character colors.",
+        "Use the same character reference for every generated scene."
+      ]
+    },
+    "environment_consistency": {
+      "enabled": true,
+      "rules": [
+        "Maintain consistent architecture and landscape design.",
+        "Preserve the time of day unless the story changes it.",
+        "Maintain visual continuity between connected scenes.",
+        "Keep background details consistent when revisiting a location."
+      ]
+    },
+    "composition_rules": [
+      "One clear primary subject per scene.",
+      "Avoid unnecessary visual clutter.",
+      "Use readable foreground, middle ground and background separation.",
+      "Ensure characters are fully visible when required.",
+      "Keep important story actions visually clear."
+    ],
+    "output_quality": {
+      "aspect_ratio": "16:9",
+      "resolution": "1920x1080",
+      "format": "PNG",
+      "quality": "High",
+      "text_in_image": false
+    }
+  },
+  "output_rules": {
+    "preserve_prompt_meaning": true,
+    "preserve_scene_objects": true,
+    "preserve_character_count": true,
+    "preserve_actions": true,
+    "preserve_requested_camera_angle": true,
+    "preserve_requested_aspect_ratio": true,
+    "apply_style_consistently": true,
+    "do_not_add_unrequested_objects": true,
+    "do_not_generate_text_unless_requested": true
+  }
+}

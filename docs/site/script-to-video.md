@@ -22,6 +22,15 @@ With **AI painting**, every scene becomes one painted frame with a slow Ken Burn
 - **Transitions** — each style hands one scene to the next in its own way: paper tear for paper cutout, grid wipe for stained glass, a soft dip for ink wash, iris for storybook.
 - **Titles and quotes** — a style-matched banner, sized from the shorter side of the frame so it stays small in both 9:16 and 16:9; long lines wrap instead of shrinking. The same character descriptions and the same seed are used in every scene, so people keep their look. Paintings are cached in `data/generated/`, so re-running a script costs nothing.
 
+## Motion: moving scenes
+
+With **AI painting** on, tick **Motion — bring paintings to life**. After each scene is painted, LTX-Video (image-to-video, also through ComfyUI) turns the painting into a short clip — people move and breathe, leaves sway, lights flicker, and the camera drifts the way the scene plans. Because the clip starts from ClipForge's own painting, the art style and characters stay the same.
+
+- Each clip is 2–5 seconds, played in gentle slow motion to fill its scene; the still painting stays underneath, so there is never a blank frame.
+- Choose **Fast** (LTX-Video, about a minute per scene) or **Best** (Wan 2.2, smoother, several minutes per scene) when both are installed. Install them with `npm run comfy:setup -- -Motion ltx` / `wan` / `both`.
+- If the model isn't installed, or one clip fails, that scene simply stays a still painting.
+- Clips are cached in `data/generated/` like paintings.
+
 ## Watching it being made
 
 While the video is built, the progress card shows:

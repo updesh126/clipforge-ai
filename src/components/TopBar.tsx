@@ -49,7 +49,7 @@ function engineRows(e: EngineStatus | null): Array<{ name: string; detail: strin
     {
       name: 'ComfyUI',
       detail: e.sd
-        ? `AI painting · ${String(e.sdModel ?? '').replace(/\.(safetensors|ckpt)$/i, '')}`
+        ? `AI painting · ${String(e.sdModel ?? '').replace(/\.(safetensors|ckpt)$/i, '')}${e.sdVideo ? ' · Motion ✓' : ''}`
         : e.sdRunning
           ? 'Running, but no model in models/checkpoints'
           : e.sdInstalled

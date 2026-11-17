@@ -17,13 +17,13 @@ import { UPLOADS_DIR } from './store.ts';
 import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
-import { generateImage, sdSize, sdStatus, stylisedScene } from './imagegen.ts';
+import { animateImage, describeCharacter, generateImage, sdSize, sdStatus, stylisedScene, VIDEO_FPS, videoModel } from './imagegen.ts';
 import { ensureComfy } from './comfy.ts';
 import type { CharacterSpec } from '../src/vector/character.ts';
 import type { EffectId } from '../src/editor/types.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
 import { EFFECTS_LIB } from '../src/motion/catalog.ts';
-import { ART_STYLE_SPECS, type StyleSpecId } from '../src/artstyles/prompt.ts';
+import { ART_STYLE_SPECS, buildNegativePrompt, type StyleSpecId } from '../src/artstyles/prompt.ts';
 import { EFFECTS } from '../src/editor/catalog.ts';
 import { isTheme } from '../src/vector/theme.ts';
 import { languageOf } from './tts.ts';
@@ -63,6 +63,10 @@ export interface ScriptVideoOptions {
   mode?: 'story' | 'graphics'; // story = changing places + animated characters; graphics = art backdrops + infographics
   /** story mode: 'ai' paints each scene with local Stable Diffusion (ComfyUI); 'vector' draws it procedurally (default) */
   illustration?: 'vector' | 'ai';
+  /** AI illustration only: turn each painting into a moving clip with LTX-Video (image-to-video) */
+  animate?: boolean;
+  /** which image-to-video engine: ltx (fast) or wan (best); default = the installed one */
+  motionEngine?: 'ltx' | 'wan';
 }
 
 interface ScenePlan {
@@ -388,8 +392,21 @@ function styleTransition(style: string, cut: number, index: number): EditItem {
 
 const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blueprint', 'stainedGlass']);
 
+/**
+ * What should move, for image-to-video. LTX-Video likes one plain paragraph: the main action first,
+ * then small secondary motion and the camera — and it must not change the picture's style.
+ */
+function motionPrompt(plan: StoryPlan, text: string, cast: CharacterSpec[], style: string): string {
+  let action = text.replace(/\s+/g, ' ').trim();
+  for (const c of cast) action = action.split(c.name).join(describeCharacter(c, { named: false }).split(' with ')[0].replace(/^a /, 'the '));
+  const camera: Record<string, string> = { pushIn: 'The camera slowly pushes in.', pullOut: 'The camera slowly pulls back.', panLeft: 'The camera pans slowly to the left.', panRight: 'The camera pans slowly to the right.', tiltUp: 'The camera tilts slowly upward.' };
+  const ambient = /night/i.test(plan.time ?? '') ? 'Lights flicker softly and stars twinkle.' : 'Leaves and grass sway gently in the breeze.';
+  const label = (ART_STYLE_SPECS[style as StyleSpecId] as { label?: string } | undefined)?.label ?? 'illustrated';
+  return `${action} Natural, gentle movement: hair and clothes move slightly, people blink and breathe. ${ambient} ${camera[plan.camera] ?? 'The camera holds steady.'} A hand-painted 2D ${label} illustration brought to life, flat painted look kept in every frame, same art style, colours and characters throughout, smooth and consistent motion.`;
+}
+
 /** One Stable Diffusion painting for a scene, with a slow Ken Burns drift and the planned camera move. */
-async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string, fraction: number, live?: { preview?: string; step?: number; steps?: number; done?: string }) => void): Promise<EditItem[]> {
+async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string, fraction: number, live?: { preview?: string; step?: number; steps?: number; done?: string }) => void, animate = false, engine?: 'ltx' | 'wan'): Promise<EditItem[]> {
   const [width, height] = sdSize(aspect);
   // people named in the narration (or the only character a "she / he" can mean) always appear, and come first
   const actors = plan.actors.map((a) => a.name);
@@ -401,12 +418,36 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
     else if (named && has(c.name)) actors.sort((a, b) => Number(b.toLowerCase() === c.name.toLowerCase()) - Number(a.toLowerCase() === c.name.toLowerCase()));
   }
   const { prompt, negative } = stylisedScene({ place: plan.place, time: plan.time, actors, narration: text, mood: plan.mood }, style, cast);
+  // painting takes the first part of this scene's progress; animating (if on) the rest
+  const paintShare = animate ? 0.45 : 1;
   onProgress(plan.place, 0);
-  const img = await generateImage({ prompt, negative, width, height, seed, onProgress: (m, f, live) => onProgress(`${plan.place} · ${m}`, f, live) });
-  onProgress(`${plan.place} · done`, 1, { preview: img.url, done: img.url });
+  const img = await generateImage({ prompt, negative, width, height, seed, onProgress: (m, f, live) => onProgress(`${plan.place} · ${m}`, f * paintShare, live) });
+  onProgress(`${plan.place} · painted`, paintShare, { preview: img.url, done: img.url });
   const items: EditItem[] = [
     { id: newId('ai'), kind: 'image', name: `Painting · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: img.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 1, motion: 'kenBurns' },
   ];
+  if (animate) {
+    // a 3–5 s clip, played in gentle slow motion so it fills the scene; the painting underneath covers any gap
+    const clipSecs = Math.min(5, Math.max(2, dur * 0.6));
+    const frames = Math.round((clipSecs * VIDEO_FPS) / 8) * 8 + 1;
+    try {
+      const clip = await animateImage({
+        image: img.file,
+        prompt: motionPrompt(plan, text, cast, style),
+        // keep it a 2D illustration: LTX drifts towards photo-real faces without this
+        negative: `${buildNegativePrompt(style)}, photorealistic, realistic skin, 3D render, CGI, morphing face, distorted hands, jittery, flicker, blurry, text, watermark`,
+        aspect,
+        frames,
+        seed,
+        engine,
+        onProgress: (m, f) => onProgress(`${plan.place} · moving · ${m}`, paintShare + f * (1 - paintShare), { preview: img.url }),
+      });
+      const speed = Math.max(0.4, Math.min(1, clip.seconds / dur));
+      items.push({ id: newId('mv'), kind: 'video', name: `Motion · ${plan.place}`, track: 2, from: round(from), duration: round(Math.min(dur, clip.seconds / speed)), src: clip.url, sourceStart: 0, volume: 0, speed: round(speed), fit: 'cover', zoom: 1, panX: 50, panY: 50 });
+    } catch (err) {
+      console.warn('[clipforge] image-to-video failed, keeping the still painting:', (err as Error).message);
+    }
+  }
   if (plan.camera !== 'none') items.push({ id: newId('cam'), kind: 'effect', name: `Camera · ${plan.camera}`, track: 1, from: round(from), duration: round(dur), effect: plan.camera as EffectId, intensity: 0.6 });
   return items;
 }
@@ -445,6 +486,12 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
     if (!st.running) throw new Error('AI illustration needs Stable Diffusion: start ComfyUI (see docs → Stable Diffusion setup), or switch Illustration to "Vector".');
     if (!st.checkpoint) throw new Error('ComfyUI is running but has no checkpoint. Put an SDXL model in ComfyUI/models/checkpoints and restart ComfyUI.');
     aiCast = (await planStorySpecs(opts.script)).characters.map((c) => c.spec);
+  }
+  // moving scenes need the LTX-Video model; without it the paintings stay still (and we say so)
+  let animate = false;
+  if (aiCast && opts.animate) {
+    animate = Boolean(await videoModel());
+    if (!animate) progress('plan', 'Motion is off: the LTX-Video model is not installed (npm run comfy:setup -- -Video)', 7);
   }
 
   const stamp = Date.now();
@@ -489,7 +536,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
         items.push(
           ...(await paintedScene(story[i], plan.text, sceneStart, sceneDur, style, aspect, aiCast, aiSeed, (m, f, live) => {
             if (live?.done) painted.push(live.done);
-            progress('assets', `Painting scene ${i + 1} of ${n} (${painted.length} done): ${m}`, 8 + (80 * (i + 0.7 + 0.28 * f)) / n, {
+            progress('assets', `${animate ? 'Making' : 'Painting'} scene ${i + 1} of ${n} (${painted.length} done): ${m}`, 8 + (80 * (i + 0.7 + 0.28 * f)) / n, {
               sceneIndex: i + 1,
               sceneTotal: n,
               aspect,
@@ -498,7 +545,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
               ...(live ? (live.preview ? { preview: live.preview } : {}) : { preview: undefined, step: 0 }),
               ...(live?.steps ? { step: live.step, steps: live.steps } : {}),
             });
-          })),
+          }, animate, opts.motionEngine)),
         );
       }
       else items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));

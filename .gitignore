@@ -136,7 +136,7 @@ dist
 .pnp.*
 
 # ClipForge local data — videos, exports, AI models, temp files (never commit)
-data/
+/data/
 *.mp4
 *.mov
 *.mkv
@@ -157,3 +157,10 @@ assets/library/vector/demo/
 # local Stable Diffusion install (npm run comfy:setup)
 tools/ComfyUI/
 tools/whisper/
+
+# Stable Diffusion lives OUTSIDE the project (..\ComfyUI or %LOCALAPPDATA%\ClipForge\ComfyUI) — never commit it
+ComfyUI/
+ComfyUI_windows_portable/
+*.7z
+*.safetensors
+*.ckpt

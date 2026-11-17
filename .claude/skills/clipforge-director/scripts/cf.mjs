@@ -14,7 +14,7 @@
  *   node cf.mjs ai <editId> "instruction"                Edit with AI (local LLM)
  *   node cf.mjs render <editId> [--format mp4|webm|gif] [--quality high|standard|draft]
  *
- * brief.json: { "script", "title", "aspect", "style", "mode": "story", "illustration": "ai"|"vector", "voice", "language", "captions" }
+ * brief.json: { "script", "title", "aspect", "style", "mode": "story", "illustration": "ai"|"vector", "animate": true|false, "voice", "language", "captions" }
  * Set CLIPFORGE_URL if the server isn't on http://localhost:3000.
  */
 import fs from 'node:fs';
@@ -83,6 +83,7 @@ const commands = {
     row('Whisper', h.whisper, h.whisperName);
     row('Ollama', h.ollama && h.ollamaModelInstalled, h.ollamaModel);
     row('Voices (Kokoro)', h.tts, `${h.voices?.length ?? 0} voices`);
+    row('Motion (video)', Boolean(h.sdVideo), h.sdVideo ?? 'not installed → npm run comfy:setup -- -Motion ltx (or wan)');
     row('Stable Diffusion', h.sd, h.sd ? h.sdModel : h.sdInstalled ? 'installed, not running (starts on demand)' : 'not installed → vector illustration only');
   },
 

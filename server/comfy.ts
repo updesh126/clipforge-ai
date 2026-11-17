@@ -2,7 +2,8 @@
  * Starts ComfyUI (local Stable Diffusion) for you, so "AI painting" works without opening it by hand.
  *
  *   SD_COMFY_DIR   folder of the portable build (the one with run_nvidia_gpu.bat) — auto-detected otherwise:
- *                  ./tools/ComfyUI/ComfyUI_windows_portable, then ../ComfyUI/ComfyUI_windows_portable
+ *                  ../ComfyUI/ComfyUI_windows_portable, then %LOCALAPPDATA%/ClipForge/ComfyUI (Windows) or ~/ClipForge/ComfyUI.
+ *                  ComfyUI is never kept inside the project folder.
  *   SD_AUTOSTART   true (default) = start ComfyUI when ClipForge starts; false = only when a painting is needed
  *   SD_COMFY_ARGS  extra arguments, e.g. "--lowvram"
  *   SD_PREVIEW     live preview while painting: taesd (default), latent2rgb, auto or none
@@ -18,11 +19,19 @@ import { SD_URL, sdStatus } from './imagegen.ts';
 
 export const COMFY_LOG = path.join(DATA_DIR, 'comfyui.log');
 
+/** Where ClipForge installs / looks for ComfyUI — always outside the project. */
+export function comfyHomes(): string[] {
+  const home = process.env.USERPROFILE || process.env.HOME || '';
+  return [
+    path.resolve(process.cwd(), '..', 'ComfyUI'),
+    ...(process.platform === 'win32' && process.env.LOCALAPPDATA ? [path.join(process.env.LOCALAPPDATA, 'ClipForge', 'ComfyUI')] : []),
+    ...(home ? [path.join(home, 'ClipForge', 'ComfyUI')] : []),
+  ];
+}
+
 const CANDIDATES = [
   process.env.SD_COMFY_DIR,
-  path.join(process.cwd(), 'tools', 'ComfyUI', 'ComfyUI_windows_portable'),
-  path.join(process.cwd(), 'tools', 'ComfyUI'),
-  path.resolve(process.cwd(), '..', 'ComfyUI', 'ComfyUI_windows_portable'),
+  ...comfyHomes().flatMap((h) => [path.join(h, 'ComfyUI_windows_portable'), h]),
 ].filter((d): d is string => Boolean(d));
 
 interface Install {

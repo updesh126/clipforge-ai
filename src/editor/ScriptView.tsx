@@ -86,6 +86,8 @@ interface Draft {
   captions: string;
   mode: 'story' | 'graphics';
   illustration?: 'vector' | 'ai';
+  animate?: boolean;
+  motionEngine?: 'ltx' | 'wan';
 }
 
 export function ScriptView({ engines, onCreated }: Props) {
@@ -107,6 +109,11 @@ export function ScriptView({ engines, onCreated }: Props) {
   const [captions, setCaptions] = useState(draft?.captions ?? 'karaoke');
   const [mode, setMode] = useState<'story' | 'graphics'>(draft?.mode ?? 'story');
   const [illustration, setIllustration] = useState<'vector' | 'ai'>(draft?.illustration ?? 'vector');
+  const [animate, setAnimate] = useState<boolean>(draft?.animate ?? false);
+  const [motionEngine, setMotionEngine] = useState<'ltx' | 'wan'>(draft?.motionEngine ?? 'ltx');
+  const engines2 = engines?.sdVideoEngines ?? [];
+  // use what's installed: the chosen engine if present, otherwise the one that is
+  const engineToUse: 'ltx' | 'wan' | undefined = engines2.includes(motionEngine) ? motionEngine : engines2[0];
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<JobProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,8 +129,8 @@ export function ScriptView({ engines, onCreated }: Props) {
 
   // save the draft as you type
   useEffect(() => {
-    store.set(DRAFT_KEY, { script, title, aspect, style, voice, language, captions, mode, illustration });
-  }, [script, title, aspect, style, voice, language, captions, mode, illustration]);
+    store.set(DRAFT_KEY, { script, title, aspect, style, voice, language, captions, mode, illustration, animate, motionEngine });
+  }, [script, title, aspect, style, voice, language, captions, mode, illustration, animate, motionEngine]);
 
   /** Follow a job by id until it reports its finished edit (works after a reload too). */
   const follow = async (jobId: string) => {
@@ -176,7 +183,7 @@ export function ScriptView({ engines, onCreated }: Props) {
     const jobId = newJobId();
     store.set(JOB_KEY, { jobId, at: Date.now() });
     // start the job; the result is picked up by polling, so a reload mid-run doesn't lose it
-    postJson('/api/script-video', { script, title, aspect, style, voice, language, captions, mode, illustration: mode === 'story' ? illustration : 'vector', jobId }).catch(() => {
+    postJson('/api/script-video', { script, title, aspect, style, voice, language, captions, mode, illustration: mode === 'story' ? illustration : 'vector', animate: mode === 'story' && illustration === 'ai' && animate, motionEngine: engineToUse, jobId }).catch(() => {
       /* errors are reported through the job */
     });
     await follow(jobId);
@@ -186,7 +193,7 @@ export function ScriptView({ engines, onCreated }: Props) {
     ['plan', 'Plan scenes', 'Ollama'],
     ['voice', 'Voice-over', engines?.tts ? 'Kokoro' : 'System voice'],
     ['voice2', 'Word timing', 'Whisper'],
-    ['assets', mode === 'story' && illustration === 'ai' ? 'Paint scenes' : 'Draw scenes', mode === 'story' && illustration === 'ai' ? 'Stable Diffusion' : 'Asset library'],
+    ['assets', mode === 'story' && illustration === 'ai' ? (animate ? 'Paint & animate' : 'Paint scenes') : 'Draw scenes', mode === 'story' && illustration === 'ai' ? 'Stable Diffusion' : 'Asset library'],
     ['save', 'Build edit', 'Remotion'],
   ];
   const stageIdx = !progress ? -1 : progress.stage === 'plan' ? 0 : progress.stage === 'voice' ? (progress.label.startsWith('Timing') ? 2 : 1) : progress.stage === 'assets' ? 3 : 4;
@@ -307,6 +314,42 @@ export function ScriptView({ engines, onCreated }: Props) {
                         ? 'Stable Diffusion is installed — it starts automatically when you create the video.'
                         : 'Stable Diffusion is not installed — run npm run comfy:setup (see Docs → Stable Diffusion setup).'}
                 </p>
+              )}
+              {illustration === 'ai' && (
+                <label className={`mt-2 flex items-start gap-2 rounded-lg border p-2.5 cursor-pointer ${animate ? 'border-accent bg-accent/5' : 'border-zinc-800 hover:border-zinc-600'}`}>
+                  <input type="checkbox" checked={animate} onChange={(e) => setAnimate(e.target.checked)} className="mt-0.5 accent-[var(--color-accent)]" />
+                  <span>
+                    <span className="block text-xs font-semibold text-white">Motion — bring paintings to life</span>
+                    <span className="mt-0.5 block text-[10.5px] leading-snug text-zinc-500">
+                      {engines2.length
+                        ? 'Each painting becomes a short moving clip, keeping its style and characters.'
+                        : 'Needs a Motion model — run npm run comfy:setup. Paintings stay still until then.'}
+                    </span>
+                  </span>
+                </label>
+              )}
+              {illustration === 'ai' && animate && engines2.length > 0 && (
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  {([
+                    ['ltx', 'Fast', 'LTX-Video · ~1 min per scene'],
+                    ['wan', 'Best', 'Wan 2.2 · smoother, several min per scene'],
+                  ] as const).map(([id, label, hint]) => {
+                    const installed = engines2.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        disabled={!installed}
+                        onClick={() => setMotionEngine(id)}
+                        title={installed ? hint : 'Not installed — npm run comfy:setup and choose it'}
+                        className={`rounded-lg border p-2 text-left ${!installed ? 'cursor-not-allowed border-zinc-900 opacity-50' : engineToUse === id ? 'cursor-pointer border-accent bg-accent/5' : 'cursor-pointer border-zinc-800 hover:border-zinc-600'}`}
+                      >
+                        <span className="block text-xs font-semibold text-white">{label}</span>
+                        <span className="mt-0.5 block text-[10.5px] leading-snug text-zinc-500">{installed ? hint : 'Not installed'}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </section>
           )}

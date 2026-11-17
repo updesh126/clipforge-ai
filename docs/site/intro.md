@@ -18,6 +18,7 @@ It does three jobs:
 - **Kokoro** (optional) gives natural AI voices; otherwise your system voice is used.
 - **Remotion** previews and renders the editor timeline as an MP4.
 - **Stable Diffusion via ComfyUI** (optional) paints story scenes in any art style.
+- **LTX-Video via ComfyUI** (optional, *Motion*) turns those paintings into short moving clips.
 
 > **Tip:** start with [Installation](#/docs/installation), then follow [Your first video](#/docs/first-video).
 

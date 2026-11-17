@@ -18,7 +18,7 @@ One command downloads ComfyUI and the SDXL model (about 9 GB in total). It needs
 npm run comfy:setup
 ```
 
-It installs into `tools/ComfyUI` inside the project (git-ignored), or reuses an existing `..\ComfyUI` install. Big downloads resume where they stopped — if your connection drops, just run it again. Add `-Dir D:\ComfyUI` to choose another folder, or `-SkipModel` if you already have a model.
+It reuses an existing `..\ComfyUI` install, otherwise installs into `%LOCALAPPDATA%\ClipForge\ComfyUI` — never inside the project folder. It installs SDXL and the Fast Motion model; add `-Motion wan` or `-Motion both` for the Best one (see below). Big downloads resume where they stopped — if your connection drops, just run it again. Add `-Dir D:\ComfyUI` to choose another folder, or `-SkipModel` if you already have a model.
 
 **That's all.** `npm run dev` now starts ComfyUI for you in the background, and a run with *AI painting* starts it too if it was stopped. Check everything with `npm run setup`.
 
@@ -47,7 +47,7 @@ Check each model's licence before client work.
 
 ## 3. Start ComfyUI
 
-You don't need to. ClipForge finds ComfyUI in `SD_COMFY_DIR`, `tools/ComfyUI` or `..\ComfyUI` and starts it:
+You don't need to. ClipForge finds ComfyUI in `SD_COMFY_DIR`, `..\ComfyUI` or `%LOCALAPPDATA%\ClipForge\ComfyUI` (`~/ClipForge/ComfyUI` on macOS/Linux) and starts it:
 
 - when `npm run dev` starts (turn this off with `SD_AUTOSTART=false`)
 - when you create a video with *AI painting* and it isn't running
@@ -69,6 +69,19 @@ curl -X POST http://localhost:3000/api/sd/test -H "Content-Type: application/jso
 
 The test returns a URL such as `/media/generated/<hash>.png`.
 
+## Motion (image-to-video)
+
+Moving scenes use one of two models in the same ComfyUI. The setup wizard asks which; you can add the other later.
+
+| | **Fast** — LTX-Video 2B distilled | **Best** — Wan 2.2 TI2V 5B |
+|---|---|---|
+| Speed on a 12 GB GPU | ~30–60 s per clip | several minutes per clip |
+| Motion | good, can drift on long clips | smoother, holds the painting's style better |
+| Files | `checkpoints/ltxv-2b-0.9.8-distilled.safetensors` (6.3 GB), `text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors` (5.2 GB) | `diffusion_models/wan2.2_ti2v_5B_fp16.safetensors` (10 GB), `text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors` (6.7 GB), `vae/wan2.2_vae.safetensors` (1.4 GB) |
+| Install | `npm run comfy:setup -- -Motion ltx` | `npm run comfy:setup -- -Motion wan` |
+
+`-Motion both` installs both (29.7 GB); then the Script page shows **Fast** and **Best** under Motion. `SD_VIDEO_ENGINE` sets the default; `SD_VIDEO_STEPS` (8) and `SD_WAN_STEPS` (20) set the sampling steps.
+
 ## Settings
 
 Put these in `.env` (see [Settings](#/docs/settings)):
@@ -81,7 +94,7 @@ Put these in `.env` (see [Settings](#/docs/settings)):
 | `SD_CFG` | `6` | 1.5–2 for Lightning/Turbo |
 | `SD_SAMPLER` | `dpmpp_2m` | Any ComfyUI KSampler name |
 | `SD_SCHEDULER` | `karras` | Any ComfyUI scheduler name |
-| `SD_COMFY_DIR` | auto | Folder of your ComfyUI install, if it isn't in `tools/ComfyUI` or `..\ComfyUI` |
+| `SD_COMFY_DIR` | auto | Folder of your ComfyUI install, if it isn't in `..\ComfyUI` or `%LOCALAPPDATA%\ClipForge\ComfyUI` |
 | `SD_AUTOSTART` | `true` | `false` = start ComfyUI only when a painting is needed |
 | `SD_COMFY_ARGS` | — | Extra ComfyUI arguments, e.g. `--lowvram` |
 | `SD_PREVIEW` | `taesd` | Live preview while painting: `taesd`, `latent2rgb`, `auto` or `none` |

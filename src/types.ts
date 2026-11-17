@@ -38,6 +38,10 @@ export interface EngineStatus {
   sdUrl?: string;
   /** ComfyUI found on disk (ClipForge starts it automatically) */
   sdInstalled?: boolean;
+  /** LTX-Video checkpoint for image-to-video (moving scenes), when installed */
+  sdVideo?: string | null;
+  /** installed Motion engines: ltx (fast), wan (best) */
+  sdVideoEngines?: Array<'ltx' | 'wan'>;
 }
 
 export interface JobProgress {

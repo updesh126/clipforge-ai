@@ -4,15 +4,21 @@
 
 | Problem | Fix |
 |---|---|
-| `address already in use :3000` | Another copy is running. Close it, or set `PORT=3001` |
-| "Ollama unavailable, using heuristic" | Start Ollama (`ollama serve`, or the Ollama app) |
-| Captions not burned into a clip | Install the full FFmpeg build (`brew install ffmpeg-full` on macOS) |
-| File picker doesn't appear | It may be behind the browser window — check the taskbar |
-| Voice sounds robotic | That's the system voice — install Kokoro: `pip install kokoro-onnx soundfile` |
-| *Edit with AI* ignores the request | Use a bigger model: `OLLAMA_EDIT_MODEL=qwen2.5:7b`. Quote the exact words spoken |
-| First editor render is slow | Remotion bundles once and fetches headless Chrome; later renders are faster |
-| *AI painting* says Stable Diffusion is not running | Install it with `npm run comfy:setup`, or check `data/comfyui.log` — see [Stable Diffusion setup](#/docs/stable-diffusion) |
-| Tool installed but setup still shows ✘ | Open a new terminal so PATH is refreshed |
+| `address already in use :3000` | Another copy is running. Close it, or set `PORT=3001` in `.env` |
+| Tool installed but setup still says ✘ | Open a new terminal (Windows PATH refresh) and run `npm run setup` again |
+| "Ollama unavailable, using heuristic" | Start Ollama (the Ollama app, `ollama serve`, or `brew services start ollama`) |
+| Captions not burned into the video | Install the full FFmpeg: `brew install ffmpeg-full` (macOS) |
+| File picker doesn't appear | It may be behind the browser window. Check the taskbar or Dock |
+| Voice sounds robotic | That's the system voice. Install Kokoro: `pip install kokoro-onnx soundfile` |
+| *Edit with AI* ignores what I asked | Use a bigger model (`OLLAMA_EDIT_MODEL=qwen2.5:7b`) and name the exact words spoken |
+| First editor render is slow | Remotion bundles the graphics and fetches headless Chrome once; later renders are faster |
+| *AI painting* says Stable Diffusion is not running | `npm run comfy`, then read `data/comfyui.log`. A `c10.dll` error needs the [VC++ redistributable](https://aka.ms/vc14/vc_redist.x64.exe); otherwise update the NVIDIA driver |
+| ComfyUI runs out of GPU memory | Close other GPU apps, or set `SD_COMFY_ARGS=--lowvram` |
+| Model download stopped part-way | Run the same command again (`npm run comfy:setup`, or double-click `setup.cmd`). It resumes |
+| Motion switch says the model is missing | `npm run comfy:setup -- -Motion ltx` (or `wan`), then reload the Script page |
+| A `ComfyUI_windows_portable` folder appeared inside the project | It's ignored by git, but ComfyUI belongs outside. Move it to `..\ComfyUI` (or delete it if you already have one there) |
+| A scene came out wrong (extra person, wrong time of day) | Name the character and the time in that scene's sentence, or repaint it. See [the script guide](#/docs/script-guide) |
+| HyperFrames render failed, used FFmpeg instead | The clip still exported. `npx hyperframes doctor` shows what's missing (usually Chrome) |
 
 ## FAQ
 
