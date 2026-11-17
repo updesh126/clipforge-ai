@@ -1,0 +1,44 @@
+{
+  "spec": {
+    "id": "asha",
+    "name": "Asha",
+    "description": "8-year-old village girl",
+    "seed": 766576442,
+    "age": "child",
+    "gender": "female",
+    "build": "slim",
+    "height": 1.0547385276667773,
+    "skin": "#F5D0C9",
+    "face": {
+      "shape": "round",
+      "eyes": "almond",
+      "eyeColor": "#4E3524",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "braid",
+      "color": "#3E2723"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "dress",
+      "topColor": "#FFEB3B",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#FFEB3B",
+      "shoes": "barefoot",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [],
+    "accessoryColor": "#F3CA40",
+    "holding": "lantern"
+  },
+  "aliases": [
+    "asha",
+    "the girl"
+  ],
+  "createdAt": "2026-11-17T12:14:39.693Z",
+  "updatedAt": "2026-11-17T12:22:20.057Z"
+}

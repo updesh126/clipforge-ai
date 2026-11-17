@@ -214,16 +214,31 @@ const skinName = (hex: string) => {
   return l > 200 ? 'fair' : l > 170 ? 'light brown' : l > 135 ? 'warm brown' : l > 100 ? 'brown' : 'deep brown';
 };
 
-/** One fixed sentence per character, repeated in every scene prompt so the model keeps them the same. */
-export function describeCharacter(c: CharacterSpec): string {
-  const who = c.age === 'child' ? (c.gender === 'female' ? 'young girl' : c.gender === 'male' ? 'young boy' : 'child') : c.age === 'teen' ? `teenage ${c.gender === 'female' ? 'girl' : c.gender === 'male' ? 'boy' : 'kid'}` : c.age === 'elder' ? `elderly ${c.gender === 'female' ? 'woman' : c.gender === 'male' ? 'man' : 'person'}` : c.gender === 'female' ? 'woman' : c.gender === 'male' ? 'man' : 'person';
+/** One fixed description per character, repeated in every scene prompt so the model keeps them the same.
+ *  `named: false` leaves the name out — Stable Diffusion doesn't know names, and "Asha: a girl…" reads as two people. */
+export function describeCharacter(c: CharacterSpec, opts: { named?: boolean } = {}): string {
+  const who = shortWho(c);
   const hair = c.hair.style === 'bald' ? 'bald' : `${hexName(c.hair.color)} ${String(c.hair.style).replace(/([A-Z])/g, ' $1').toLowerCase()} hair`;
   const beard = c.beard !== 'none' ? `, ${c.beard === 'moustache' ? 'a moustache' : `${c.beard} beard`}` : '';
   const top = `${hexName(c.outfit.topColor)} ${String(c.outfit.top).replace(/([A-Z])/g, ' $1').toLowerCase()}${c.outfit.pattern !== 'none' ? ` with ${c.outfit.pattern}` : ''}`;
-  const bottom = `${hexName(c.outfit.bottomColor)} ${String(c.outfit.bottom).replace(/([A-Z])/g, ' $1').toLowerCase()}`;
+  const dressed = /dress|saree|robe/.test(String(c.outfit.top)) ? `wearing a ${top}` : `wearing a ${top} and ${hexName(c.outfit.bottomColor)} ${String(c.outfit.bottom).replace(/([A-Z])/g, ' $1').toLowerCase()}`;
   const extras = c.accessories.length ? `, ${c.accessories.join(' and ')}` : '';
-  return `${c.name}: a ${c.build} ${who} with ${skinName(c.skin)} skin, ${hair}${beard}, wearing a ${top} and ${bottom}${extras}`;
+  const held = c.holding && c.holding !== 'none' ? `, holding a ${c.holding}` : '';
+  return `${opts.named === false ? '' : `${c.name}: `}a ${c.build} ${who} with ${skinName(c.skin)} skin, ${hair}${beard}, ${dressed}${extras}${held}`;
 }
+
+const shortWho = (c: CharacterSpec) =>
+  c.age === 'child' ? (c.gender === 'female' ? 'young girl' : c.gender === 'male' ? 'young boy' : 'child') : c.age === 'teen' ? `teenage ${c.gender === 'female' ? 'girl' : c.gender === 'male' ? 'boy' : 'kid'}` : c.age === 'elder' ? `elderly ${c.gender === 'female' ? 'woman' : c.gender === 'male' ? 'man' : 'person'}` : c.gender === 'female' ? 'woman' : c.gender === 'male' ? 'man' : 'person';
+
+/** Whole-word, case-insensitive match for a name (regex characters in it are escaped). */
+const wordRe = (word: string) => new RegExp(String.raw`\b` + word.replace(/[.*+?^$()|[\]{}\\]/g, (ch) => '\\' + ch) + String.raw`\b`, 'gi');
+
+/** Strong time-of-day lighting — replaces the style's default (often daylight) lighting words. */
+const TIME_LIGHT: Record<string, string> = {
+  dawn: 'at dawn, soft pink and pale gold early-morning light, low sun',
+  sunset: 'at dusk, glowing orange sunset sky, warm low light, long shadows',
+  night: 'at night, dark blue night sky, moonlight and stars, warm glow from lamps, deep shadows',
+};
 
 export interface SceneBrief {
   place: string;
@@ -233,20 +248,34 @@ export interface SceneBrief {
   mood?: string;
 }
 
-/** What to draw, in short phrases (the style is added by buildSdPrompt). */
+/** What to draw, in short phrases (the style is added by buildSdPrompt). People are described, not named. */
 export function scenePrompt(s: SceneBrief, cast: CharacterSpec[]): string {
-  const people = s.actors.map((a) => cast.find((c) => c.name.toLowerCase() === a.toLowerCase())?.name ?? a);
-  const time = s.time && s.time !== 'day' ? `at ${s.time}` : 'in daylight';
-  const subject = people.length ? `${people.join(' and ')} in ${s.place} ${time}` : `${s.place} ${time}`;
-  const moment = s.narration.replace(/\s+/g, ' ').trim().slice(0, 180);
-  return [subject, moment, s.mood && s.mood !== 'neutral' ? `${s.mood} mood` : ''].filter(Boolean).join(', ');
+  const castOf = (a: string) => cast.find((c) => c.name.toLowerCase() === a.toLowerCase());
+  const people = s.actors.map((a) => {
+    const c = castOf(a);
+    return c ? `a ${shortWho(c)}` : a;
+  });
+  const humans = s.actors.filter((a) => castOf(a)).length;
+  const subject = people.length ? `${people.join(' and ')} in ${s.place}` : s.place;
+  // names → "the girl" etc., so the narration's objects and actions still guide the picture
+  let moment = s.narration.replace(/\s+/g, ' ').trim();
+  for (const c of cast) moment = moment.replace(wordRe(c.name), `the ${shortWho(c).replace(/^(young|elderly|teenage) /, '')}`);
+  return [subject, TIME_LIGHT[s.time ?? ''] ?? 'in daylight', humans === 1 ? 'only one person in the scene' : '', moment.slice(0, 200), s.mood && s.mood !== 'neutral' ? `${s.mood} mood` : ''].filter(Boolean).join(', ');
 }
 
 /** Positive + negative prompts for one scene in an art style. */
 export function stylisedScene(s: SceneBrief, style: string, cast: CharacterSpec[]): { prompt: string; negative: string } {
   const inScene = cast.filter((c) => s.actors.some((a) => a.toLowerCase() === c.name.toLowerCase()));
+  const timed = Boolean(TIME_LIGHT[s.time ?? '']);
   return {
-    prompt: buildSdPrompt(scenePrompt(s, cast), style, inScene.map(describeCharacter)),
-    negative: `${buildNegativePrompt(style)}, text, letters, watermark, signature, logo, extra limbs, deformed hands, duplicate characters, blurry`,
+    prompt: buildSdPrompt(scenePrompt(s, cast), style, inScene.map((c) => describeCharacter(c, { named: false })), { lighting: timed ? '' : undefined }),
+    negative: [
+      buildNegativePrompt(style),
+      'text, letters, watermark, signature, logo, extra limbs, deformed hands, duplicate characters, blurry',
+      inScene.length === 1 ? 'two people, extra person, second child, crowd, twins' : '',
+      timed ? 'bright midday sun, flat daylight' : '',
+    ]
+      .filter(Boolean)
+      .join(', '),
   };
 }

@@ -85,6 +85,19 @@ Then run `npm run dev` and open http://localhost:3000. The sections below explai
 
 ---
 
+## Using ClipForge with Claude Code
+
+The repo ships two Claude Code skills in `.claude/skills/`. Open Claude Code in this folder and just ask:
+
+| Skill | Ask for example | What it does |
+|---|---|---|
+| `clipforge-director` | "Make a 1-minute Warli story video about a farmer and the first monsoon rain" | One round of questions → story treatment → script written for ClipForge → test painting → generates the video → checks a still of every scene and repaints weak ones → renders the MP4 |
+| `clipforge-art-style` | "Madhubani paintings look too grey" · "add a Pattachitra style" | Tunes a style's painting prompts with a paint-test loop, or adds a new style everywhere it must be registered |
+
+The director skill drives the running app through `node .claude/skills/clipforge-director/scripts/cf.mjs` (health, styles, paint, make, scenes, stills, repaint, ai, render).
+
+---
+
 ## 1. Install the tools (one time)
 
 ### macOS

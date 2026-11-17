@@ -30,7 +30,7 @@ const ch = H * SCALE;
 for (const cat of CATEGORIES) {
   if (wanted.length && !wanted.includes(cat.id)) continue;
   const ids = cat.id === 'sequences' ? Object.keys(SEQUENCES) : Object.values(EFFECTS_LIB).filter((e) => e.category === cat.id).map((e) => e.id);
-  const tiles: sharp.OverlayOptions[] = [];
+  const tiles: NonNullable<Parameters<ReturnType<typeof sharp>['composite']>[0]> = []; // sharp's overlay type (works with sharp 0.34 and 0.35)
   const cols = 8;
   for (const [i, fx] of ids.entries()) {
     const duration = SEQUENCES[fx]?.duration ?? EFFECTS_LIB[fx].duration;

@@ -297,7 +297,7 @@ function sameScript(title: string | undefined, text: string): string {
   return deva(title) === deva(text) ? title : '';
 }
 
-function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, style: string, index: number): EditItem[] {
+function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, style: string, index: number, videoTitle = ''): EditItem[] {
   const accent = STYLE_ACCENT[style] ?? '#B5E2DD';
   const start = round(from + 0.5);
   const len = round(Math.max(1.2, Math.min(dur - 0.6, 4.5)));
@@ -318,18 +318,24 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
     return [{ id: newId('mg'), kind: 'text', name: seq.label, track: 5, from: round(from + 0.3), duration: mlen, template: 'motion', props: { ...seq.params, ...plan.motion.params, fx: plan.motion.id } }];
   }
   switch (plan.graphic) {
-    case 'title':
-      return [item('artBanner', { style, text: sameScript(plan.title, text) || shortTitle(text, 6), position: 'top', size: 1 }, 'Title')];
+    case 'title': {
+      // a real title, never a cut-off fragment of the narration ("In a quiet hill village at")
+      const t = sameScript(plan.title, text) || (index === 0 ? sameScript(videoTitle.replace(/\s*\([^)]*\)\s*$/, ''), text) : '');
+      return t && t.split(/\s+/).length <= 8 ? [item('artBanner', { style, text: t, position: 'top', size: 1 }, 'Title')] : [];
+    }
     case 'stat':
       return plan.value === undefined ? [] : [item('stat', { value: plan.value, suffix: normSuffix(plan.suffix), prefix: '', label: plan.label ?? '', accent }, 'Stat')];
     case 'chart':
       return [item('barChart', { title: plan.title ?? '', data: plan.data ?? '', unit: '', accent }, 'Chart')];
-    case 'quote':
-      return [item('artBanner', { style, text: sameScript(plan.title, text) || shortTitle(text, 10), position: 'top', size: 0.85 }, 'Quote')];
+    case 'quote': {
+      const q = sameScript(plan.title, text);
+      return q && q.split(/\s+/).length <= 12 ? [item('artBanner', { style, text: q, position: 'top', size: 0.85 }, 'Quote')] : [];
+    }
     case 'highlight': {
       let hl = plan.highlight ?? plan.title ?? '';
       if (text.toLowerCase().indexOf(hl.toLowerCase()) < 0) hl = closestSentence(text, hl);
-      return [item('artBanner', { style, text: hl, position: 'top', size: 0.85 }, 'Highlight')];
+      // the captions already show the whole sentence — only a short key phrase earns a banner
+      return hl && hl.split(/\s+/).length <= 8 ? [item('artBanner', { style, text: hl, position: 'top', size: 0.85 }, 'Highlight')] : [];
     }
     default:
       return index === 0 ? [] : [];
@@ -496,7 +502,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
         );
       }
       else items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));
-      items.push(...storyGraphic(story[i], plan.text, sceneStart, sceneDur, style, i));
+      items.push(...storyGraphic(story[i], plan.text, sceneStart, sceneDur, style, i, opts.title ?? ''));
       if (i > 0) items.push(styleTransition(style, sceneStart, i));
       if (aiCast) items.push(...sceneAtmosphere(story[i], plan.text, style, sceneStart, sceneDur, i));
     } else {

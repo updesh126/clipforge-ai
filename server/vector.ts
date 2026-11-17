@@ -176,7 +176,7 @@ export async function referenceSheet(id: string, theme: ThemeId = 'storybook'): 
   const entry = getCast(id);
   if (!entry) return null;
   const cell = 320;
-  const tiles: sharp.OverlayOptions[] = [];
+  const tiles: NonNullable<Parameters<ReturnType<typeof sharp>['composite']>[0]> = []; // sharp's overlay type (works with sharp 0.34 and 0.35)
   const poses: Pose[] = ['stand', 'walk', 'run', 'sit', 'jump', 'wave'];
   // sequential on purpose: predictable memory, and each step reuses the identical spec
   for (const [i, e] of EXPRESSIONS.entries()) {

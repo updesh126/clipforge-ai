@@ -78,13 +78,13 @@ export function buildImagePrompt(scenePrompt: string, styleId: string, opts: Pro
  * "<Style> illustration of <subject>" first (keeps the subject from being swallowed by pattern-heavy styles
  * such as Madhubani or stained glass), then the characters, then the style details, lighting and texture.
  */
-export function buildSdPrompt(scene: string, styleId: string, characters: string[] = []): string {
+export function buildSdPrompt(scene: string, styleId: string, characters: string[] = [], opts: { lighting?: string } = {}): string {
   const g = styleGeneration(styleId);
   if (!g) return [scene, ...characters].join(', ');
   const spec = ART_STYLE_SPECS[styleId as StyleSpecId];
   const name = spec ? String(spec.label) : styleId;
   const modifier = g.promptModifier.replace(/^Render (as|in|using) /i, '').replace(/\.$/, '');
-  return [`${name} illustration of ${scene}`, ...(g.sdHint ? [g.sdHint] : []), ...characters, modifier, g.lighting.replace(/\.$/, ''), g.textures.replace(/\.$/, ''), 'clear focal subject, masterpiece, highly detailed, no text'].join(', ');
+  return [`${name} illustration of ${scene}`, ...(g.sdHint ? [g.sdHint] : []), ...characters, modifier, (opts.lighting ?? g.lighting).replace(/\.$/, ''), g.textures.replace(/\.$/, ''), 'clear focal subject, masterpiece, highly detailed, no text'].filter(Boolean).join(', ');
 }
 
 /** Negative prompt for a style (both the long and short avoid lists, de-duplicated). */
