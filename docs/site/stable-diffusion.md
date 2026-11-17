@@ -84,6 +84,7 @@ Put these in `.env` (see [Settings](#/docs/settings)):
 | `SD_COMFY_DIR` | auto | Folder of your ComfyUI install, if it isn't in `tools/ComfyUI` or `..\ComfyUI` |
 | `SD_AUTOSTART` | `true` | `false` = start ComfyUI only when a painting is needed |
 | `SD_COMFY_ARGS` | — | Extra ComfyUI arguments, e.g. `--lowvram` |
+| `SD_PREVIEW` | `taesd` | Live preview while painting: `taesd`, `latent2rgb`, `auto` or `none` |
 
 ## How prompts are built
 

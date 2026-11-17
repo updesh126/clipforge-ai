@@ -38,6 +38,7 @@ Copy `.env.example` to `.env` and change what you need. Restart `npm run dev` af
 | `SD_COMFY_DIR` | auto | ComfyUI folder (default: `tools/ComfyUI`, then `..\ComfyUI`) |
 | `SD_AUTOSTART` | `true` | Start ComfyUI with `npm run dev` |
 | `SD_COMFY_ARGS` | — | Extra ComfyUI arguments, e.g. `--lowvram` |
+| `SD_PREVIEW` | `taesd` | Live preview while painting (`none` to turn off) |
 
 ## Export (Clip workspace)
 

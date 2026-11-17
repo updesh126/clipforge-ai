@@ -242,6 +242,7 @@ export function ScriptView({ engines, onCreated }: Props) {
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-900">
                 <div className="h-full bg-brand-gradient animate-shimmer transition-[width] duration-700" style={{ width: `${Math.max(3, progress?.pct ?? 3)}%` }} />
               </div>
+              {progress?.media?.sceneTotal ? <PaintProgress media={progress.media} stage={progress.stage} aspect={progress.media.aspect ?? aspect} painting={progress.media.scenes !== undefined || (mode === 'story' && illustration === 'ai')} /> : null}
               <ol className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {steps.map(([k, label, tool], i) => (
                   <li key={k} className={`rounded-lg border px-3 py-2 ${i === stageIdx ? 'border-accent/50 bg-accent/5' : 'border-zinc-900'}`}>
@@ -386,6 +387,66 @@ export function ScriptView({ engines, onCreated }: Props) {
           </p>
         </aside>
       </div>
+    </div>
+  );
+}
+
+/** Visual progress while a video is made: counters, the painting as it sharpens, and a filmstrip of scenes. */
+function PaintProgress({ media, stage, aspect, painting }: { media: NonNullable<JobProgress['media']>; stage: string; aspect: string; painting: boolean }) {
+  const total = media.sceneTotal ?? 0;
+  const done = media.scenes ?? [];
+  const current = media.sceneIndex ?? 0;
+  const [w, h] = aspect.split(':').map(Number);
+  const ratio = `${w || 9} / ${h || 16}`;
+  const portrait = (h || 16) > (w || 9);
+  const paintingNow = painting && stage === 'assets';
+  const stat = (label: string, value: string) => (
+    <div className="rounded-lg border border-zinc-900 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-zinc-500">{label}</p>
+      <p className="font-mono text-sm text-white">{value}</p>
+    </div>
+  );
+  return (
+    <div className="mt-4 space-y-3">
+      <div className={`grid gap-2 ${painting ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {stat('Scene', `${current} of ${total}`)}
+        {painting ? stat('Painted', `${done.length} of ${total}`) : stat('Scenes left', String(Math.max(0, total - current)))}
+        {painting && stat('Brush steps', paintingNow && media.steps ? `${media.step ?? 0} / ${media.steps}` : '—')}
+      </div>
+
+      {painting && (
+        <div className={`relative mx-auto overflow-hidden rounded-lg border border-zinc-800 bg-black ${portrait ? 'w-1/2 sm:w-2/5' : 'w-full'}`} style={{ aspectRatio: ratio }}>
+          {media.preview ? (
+            <img src={media.preview} alt={`Scene ${current} being painted`} className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-zinc-950 text-xs text-zinc-500 animate-pulse">{stage === 'assets' ? 'Preparing the canvas…' : 'Waiting for the first scene…'}</div>
+          )}
+          <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-0.5 text-[11px] text-white">
+            {paintingNow ? `Painting scene ${current}` : media.preview ? `Scene ${Math.max(1, done.length)}` : 'Stable Diffusion'}
+          </span>
+          {paintingNow && media.steps ? (
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
+              <div className="h-full bg-accent transition-[width] duration-300" style={{ width: `${Math.round(((media.step ?? 0) / media.steps) * 100)}%` }} />
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {painting && total > 0 && (
+        <ol className="flex gap-1.5 overflow-x-auto pb-1" aria-label="Scenes">
+          {Array.from({ length: total }, (_, i) => {
+            const src = done[i];
+            const active = !src && i + 1 === current;
+            return (
+              <li key={i} className={`relative shrink-0 overflow-hidden rounded-md border ${src ? 'border-zinc-700' : active ? 'border-accent' : 'border-dashed border-zinc-800'} ${portrait ? 'w-12' : 'w-20'}`} style={{ aspectRatio: ratio }} title={`Scene ${i + 1}${src ? ' · done' : active ? ' · painting' : ' · waiting'}`}>
+                {src ? <img src={src} alt={`Scene ${i + 1}`} className="h-full w-full object-cover" /> : active && media.preview ? <img src={media.preview} alt="" className="h-full w-full object-cover opacity-70" /> : null}
+                <span className={`absolute bottom-0.5 left-1 font-mono text-[10px] ${src || active ? 'text-white drop-shadow' : 'text-zinc-600'}`}>{i + 1}</span>
+                {src && <Check className="absolute right-0.5 top-0.5 h-3 w-3 text-accent drop-shadow" />}
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </div>
   );
 }

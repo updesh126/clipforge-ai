@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "grandfather",
+    "name": "Grandfather",
+    "description": "Old man who finds the kite and walks home with Meera",
+    "seed": 2003340939,
+    "age": "elder",
+    "gender": "male",
+    "build": "average",
+    "height": 0.9550919142132626,
+    "skin": "#E6C2B5",
+    "face": {
+      "shape": "round",
+      "eyes": "narrow",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "bald",
+      "color": "#8B4513"
+    },
+    "beard": "stubble",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#DAA520",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#FFFFFF",
+      "shoes": "boots",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [
+      "hat"
+    ],
+    "accessoryColor": "#F2A541",
+    "holding": "none"
+  },
+  "aliases": [
+    "grandfather"
+  ],
+  "createdAt": "2026-11-17T06:40:43.214Z",
+  "updatedAt": "2026-11-17T06:40:47.084Z"
+}

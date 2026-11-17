@@ -156,3 +156,4 @@ assets/library/vector/demo/
 
 # local Stable Diffusion install (npm run comfy:setup)
 tools/ComfyUI/
+tools/whisper/

@@ -1,0 +1,46 @@
+{
+  "spec": {
+    "id": "arjun",
+    "name": "Arjun",
+    "description": "8-year-old village boy",
+    "seed": 64172003,
+    "age": "child",
+    "gender": "male",
+    "build": "slim",
+    "height": 0.9463949983799831,
+    "skin": "#f5d0b5",
+    "face": {
+      "shape": "round",
+      "eyes": "almond",
+      "eyeColor": "#3B2416",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#3e2723"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#4a148c",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#ff6f00",
+      "shoes": "barefoot",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [
+      "bindi"
+    ],
+    "accessoryColor": "#277DA1",
+    "holding": "stick"
+  },
+  "aliases": [
+    "arjun",
+    "little arjun"
+  ],
+  "createdAt": "2026-11-17T06:49:24.384Z",
+  "updatedAt": "2026-11-17T06:55:48.069Z"
+}

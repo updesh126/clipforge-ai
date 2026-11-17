@@ -44,6 +44,16 @@ export interface JobProgress {
   stage: string;
   label: string;
   pct: number;
+  /** visual progress for AI-painted videos (live preview, finished scenes, counts) */
+  media?: {
+    preview?: string;
+    scenes?: string[];
+    sceneIndex?: number;
+    sceneTotal?: number;
+    aspect?: string;
+    step?: number;
+    steps?: number;
+  };
 }
 
 export interface ExportedClipFile {

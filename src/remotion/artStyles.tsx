@@ -1195,13 +1195,17 @@ export function ArtBanner({ props }: { props: P }) {
   const out = useOut();
   const { w, h, f, fps } = ctx;
   const t = spring({ frame: f, fps, config: { damping: 15 } });
-  const fs = w * (h > w ? 0.05 : 0.032) * (Number(props.size) || 1) * (style === 'inkWash' ? 1.2 : 1);
+  // sized from the shorter side so 9:16 and 16:9 titles look the same; long text shrinks to stay on 1–2 lines
+  const text = str(props.text, 'Your caption here');
+  // long text wraps rather than shrinking past readable (at most 2 short lines' worth of shrink)
+  const fit = Math.max(0.8, Math.min(1, 28 / Math.max(1, text.length)));
+  const fs = Math.min(w, h) * 0.042 * (Number(props.size) || 1) * fit * (style === 'inkWash' ? 1.15 : 1);
   const pos = str(props.position, 'bottom');
   return (
-    <AbsoluteFill style={{ justifyContent: pos === 'top' ? 'flex-start' : 'flex-end', alignItems: 'center', padding: `${h * (pos === 'top' ? 0.1 : 0.16)}px ${w * 0.06}px`, opacity: out }}>
+    <AbsoluteFill style={{ justifyContent: pos === 'top' ? 'flex-start' : 'flex-end', alignItems: 'center', padding: `${h * (pos === 'top' ? 0.07 : 0.16)}px ${w * 0.06}px`, opacity: out }}>
       <div
         style={{
-          maxWidth: '88%',
+          maxWidth: '80%',
           background: s.bannerBg,
           color: s.bannerText,
           fontFamily: s.font,
@@ -1218,7 +1222,7 @@ export function ArtBanner({ props }: { props: P }) {
           opacity: t,
         }}
       >
-        {str(props.text, 'Your caption here')}
+        {text}
       </div>
     </AbsoluteFill>
   );

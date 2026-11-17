@@ -44,6 +44,16 @@ The style files are generated. Edit `scripts/data/art-style-presets.json` (image
 npm run artstyles
 ```
 
+## Thumbnails
+
+The style picker cards (`public/styles/<id>.jpg`, 16:9) and hover previews (`<id>-preview.jpg`, 9:16) are painted with Stable Diffusion:
+
+```bash
+npm run thumbs:ai
+```
+
+Repaint only some styles with `npm run thumbs:ai -- warli anime`. The subjects live in `scripts/gen-style-thumbs-ai.ts`. The older procedural (vector) thumbnails can still be made with `npm run thumbs`.
+
 ## Prompts for other image tools
 
 `npm run prompts` writes ready-to-paste prompts for every style and every library asset into `assets/prompts/`. They use the same style data.

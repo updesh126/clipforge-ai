@@ -5,6 +5,7 @@
  *                  ./tools/ComfyUI/ComfyUI_windows_portable, then ../ComfyUI/ComfyUI_windows_portable
  *   SD_AUTOSTART   true (default) = start ComfyUI when ClipForge starts; false = only when a painting is needed
  *   SD_COMFY_ARGS  extra arguments, e.g. "--lowvram"
+ *   SD_PREVIEW     live preview while painting: taesd (default), latent2rgb, auto or none
  *
  * ComfyUI runs detached (it survives `npm run dev` reloads) and logs to data/comfyui.log.
  * A server that is already listening on SD_URL is always reused, never started twice.
@@ -65,7 +66,9 @@ export function ensureComfy(onProgress?: (msg: string) => void, timeoutMs = 4 * 
     const log = fs.openSync(COMFY_LOG, 'a');
     fs.writeSync(log, `\n---- ${new Date().toISOString()} starting ComfyUI from ${install.dir}\n`);
     const extra = (process.env.SD_COMFY_ARGS ?? '').split(/\s+/).filter(Boolean);
-    const args = ['-s', install.main, '--disable-auto-launch', '--listen', host === 'localhost' ? '127.0.0.1' : host, '--port', port, ...(install.python.includes('python_embeded') ? ['--windows-standalone-build'] : []), ...extra];
+    // live previews for the Script page (TAESD = clear previews; ComfyUI falls back to latent2rgb without the model)
+    const previewMethod = process.env.SD_PREVIEW || 'taesd';
+    const args = ['-s', install.main, '--disable-auto-launch', ...(previewMethod === 'none' ? [] : ['--preview-method', previewMethod]), '--listen', host === 'localhost' ? '127.0.0.1' : host, '--port', port, ...(install.python.includes('python_embeded') ? ['--windows-standalone-build'] : []), ...extra];
     console.log(`[clipforge] starting ComfyUI (Stable Diffusion) from ${install.dir} — log: ${COMFY_LOG}`);
     const child = spawn(install.python, args, { cwd: install.dir, detached: true, stdio: ['ignore', log, log], windowsHide: true });
     child.unref();

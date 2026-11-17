@@ -16,7 +16,23 @@ Paste a script and get a finished, editable video. Your exact words are always t
 | **Vector** | ClipForge's procedural engine | Fast, animated characters that walk, wave and change expression |
 | **AI painting** | Local Stable Diffusion (ComfyUI) | Rich, painted scenes that match the art-style samples |
 
-With **AI painting**, every scene becomes one painted frame with a slow Ken Burns drift and the planned camera move. The same character descriptions and the same seed are used in every scene, so people keep their look. Paintings are cached in `data/generated/`, so re-running a script costs nothing.
+With **AI painting**, every scene becomes one painted frame with a slow Ken Burns drift, the planned camera move, and motion graphics matched to the art style:
+
+- **Atmosphere** — a see-through overlay chosen from the narration first (rain, snow, fireflies, lamps → embers, festivals → confetti, mist → fog, magic → sparks, stars, sunrise → light rays), otherwise from the style's own list (for example fog for ink wash, embers for shadow puppet).
+- **Transitions** — each style hands one scene to the next in its own way: paper tear for paper cutout, grid wipe for stained glass, a soft dip for ink wash, iris for storybook.
+- **Titles and quotes** — a style-matched banner, sized from the shorter side of the frame so it stays small in both 9:16 and 16:9; long lines wrap instead of shrinking. The same character descriptions and the same seed are used in every scene, so people keep their look. Paintings are cached in `data/generated/`, so re-running a script costs nothing.
+
+## Watching it being made
+
+While the video is built, the progress card shows:
+
+- **Scene** — which scene is being made, e.g. *2 of 5*
+- **Painted** — how many AI paintings are finished
+- **Brush steps** — the current painting's sampler step, e.g. *17 / 28*
+- **The painting itself**, sharpening live from noise to the final picture
+- **A filmstrip** with one slot per scene: finished paintings, the one in progress, and the ones still to come
+
+Live previews need ComfyUI to be started by ClipForge (it adds `--preview-method taesd`). If you start ComfyUI yourself, add that flag to see the live picture; the counters work either way.
 
 ## What happens when you click Create
 

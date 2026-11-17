@@ -52,7 +52,7 @@ clipforge-ai/
 │   ├── youtube.ts         yt-dlp download
 │   └── types.ts
 ├── src/                   React UI (TopBar, UploadStage, StudioWorkspace, LibraryView, ArchitectureView)
-├── scripts/check-setup.mjs  Dependency doctor
+├── scripts/setup-wizard.mjs Guided setup: checks and installs engines (npm run setup)
 └── data/                  uploads/, exports/, temp/, models/, projects.json (git-ignored)
 ```
 

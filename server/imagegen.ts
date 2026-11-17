@@ -18,6 +18,7 @@ import type { CharacterSpec } from '../src/vector/character.ts';
 
 export const SD_URL = (process.env.SD_URL || 'http://127.0.0.1:8188').replace(/\/+$/, '');
 export const GENERATED_DIR = path.join(DATA_DIR, 'generated');
+const LIVE_DIR = path.join(GENERATED_DIR, 'live'); // in-progress preview frames (deleted when each image is done)
 const STEPS = Number(process.env.SD_STEPS) || 28;
 const CFG = Number(process.env.SD_CFG) || 6;
 const SAMPLER = process.env.SD_SAMPLER || 'dpmpp_2m';
@@ -69,8 +70,8 @@ export interface GenerateOptions {
   seed?: number;
   steps?: number;
   cfg?: number;
-  /** progress while ComfyUI works: a short label and 0..1 for this image */
-  onProgress?: (msg: string, fraction: number) => void;
+  /** progress while ComfyUI works: a short label, 0..1 for this image, the latest preview frame URL and sampler step */
+  onProgress?: (msg: string, fraction: number, live?: { preview?: string; step?: number; steps?: number }) => void;
 }
 
 /** Basic SDXL text-to-image workflow in ComfyUI's API format. */
@@ -105,16 +106,44 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
   // live sampler steps over ComfyUI's WebSocket (the HTTP history only reports when the image is done)
   let phase = 'Waiting for the GPU';
   let fraction = 0;
+  let step = 0;
+  let steps = o.steps;
+  let preview: string | undefined;
+  let lastWrite = 0;
+  const liveFile = path.join(LIVE_DIR, `${clientId}.jpg`);
   let ws: WebSocket | null = null;
   try {
     ws = new WebSocket(`${SD_URL.replace(/^http/, 'ws')}/ws?clientId=${clientId}`);
+    ws.binaryType = 'arraybuffer';
     ws.onmessage = (ev) => {
-      if (typeof ev.data !== 'string') return; // binary = preview frames
+      if (typeof ev.data !== 'string') {
+        // preview frame: [u32 event][u32 image type | u32 metadata length + metadata][image bytes] (needs --preview-method)
+        const buf = Buffer.from(ev.data as ArrayBuffer);
+        if (buf.length < 12) return;
+        const event = buf.readUInt32BE(0);
+        let img: Buffer | null = null;
+        if (event === 1) img = buf.subarray(8);
+        else if (event === 4) img = buf.subarray(8 + buf.readUInt32BE(4));
+        const now = Date.now();
+        if (img && img.length && now - lastWrite > 350) {
+          lastWrite = now;
+          try {
+            fs.mkdirSync(LIVE_DIR, { recursive: true });
+            fs.writeFileSync(liveFile, img);
+            preview = `/media/generated/live/${clientId}.jpg?v=${now}`;
+          } catch {
+            /* a preview is nice to have */
+          }
+        }
+        return;
+      }
       try {
         const m = JSON.parse(ev.data) as { type: string; data?: { value?: number; max?: number; node?: string | null } };
         if (m.type === 'progress' && m.data?.max) {
           fraction = Math.min(0.97, (m.data.value ?? 0) / m.data.max);
-          phase = `step ${m.data.value}/${m.data.max}`;
+          step = m.data.value ?? 0;
+          steps = m.data.max;
+          phase = `step ${step}/${steps}`;
         } else if (m.type === 'executing' && m.data?.node === '1') phase = 'Loading model (first time only)';
         else if (m.type === 'executing' && m.data?.node === '6') {
           phase = 'Finishing';
@@ -143,7 +172,7 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
     const h = hist[queued.prompt_id];
     if (!h) {
       const secs = Math.round((Date.now() - started) / 1000);
-      opts.onProgress?.(ws ? `${phase} · ${secs}s` : `Painting… ${secs}s`, ws ? fraction : Math.min(0.9, secs / 30));
+      opts.onProgress?.(ws ? `${phase} · ${secs}s` : `Painting… ${secs}s`, ws ? fraction : Math.min(0.9, secs / 30), { preview, step, steps });
       continue;
     }
     if (h.status?.status_str === 'error') throw new Error(`ComfyUI failed: ${JSON.stringify(h.status.messages ?? []).slice(0, 400)}`);
@@ -153,11 +182,12 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
     const res = await fetch(`${SD_URL}/view?${q}`, { signal: AbortSignal.timeout(30_000) });
     if (!res.ok) throw new Error(`Could not download the image from ComfyUI (${res.status}).`);
     fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()));
-    opts.onProgress?.('Done', 1);
+    opts.onProgress?.('Done', 1, { preview: url, step: steps, steps });
     return { url, file, cached: false };
   }
   } finally {
     ws?.close();
+    fs.rm(liveFile, { force: true }, () => {}); // the final image replaces the live preview
   }
 }
 

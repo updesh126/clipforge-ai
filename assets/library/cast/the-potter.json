@@ -1,0 +1,44 @@
+{
+  "spec": {
+    "id": "the-potter",
+    "name": "The Potter",
+    "description": "Old village potter",
+    "seed": 3098850930,
+    "age": "elder",
+    "gender": "male",
+    "build": "average",
+    "height": 0.9430912381317467,
+    "skin": "#4a3b2a",
+    "face": {
+      "shape": "oval",
+      "eyes": "narrow",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "bald",
+      "color": "#8b7d6b"
+    },
+    "beard": "full",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#5c4a3c",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#3e2f22",
+      "shoes": "barefoot",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#E07A5F",
+    "holding": "pot"
+  },
+  "aliases": [
+    "the potter",
+    "the old man"
+  ],
+  "createdAt": "2026-11-17T06:34:25.765Z",
+  "updatedAt": "2026-11-17T06:34:25.765Z"
+}

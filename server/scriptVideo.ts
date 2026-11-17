@@ -22,6 +22,9 @@ import { ensureComfy } from './comfy.ts';
 import type { CharacterSpec } from '../src/vector/character.ts';
 import type { EffectId } from '../src/editor/types.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
+import { EFFECTS_LIB } from '../src/motion/catalog.ts';
+import { ART_STYLE_SPECS, type StyleSpecId } from '../src/artstyles/prompt.ts';
+import { EFFECTS } from '../src/editor/catalog.ts';
 import { isTheme } from '../src/vector/theme.ts';
 import { languageOf } from './tts.ts';
 import { buildStoryScene, heuristicStory, llmStory, transitionAt, type StoryPlan } from './storyScenes.ts';
@@ -287,6 +290,13 @@ function sceneItems(plan: ScenePlan, from: number, dur: number, style: string): 
 }
 
 /** Infographic overlay for a story scene (stat, chart, highlight, quote, title) — no backdrop. */
+/** The planner sometimes answers in another script (a Hindi title for an English story) — keep it only if it matches. */
+function sameScript(title: string | undefined, text: string): string {
+  if (!title) return '';
+  const deva = (s: string) => /[ऀ-ॿ]/.test(s); // Devanagari
+  return deva(title) === deva(text) ? title : '';
+}
+
 function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, style: string, index: number): EditItem[] {
   const accent = STYLE_ACCENT[style] ?? '#B5E2DD';
   const start = round(from + 0.5);
@@ -309,27 +319,71 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
   }
   switch (plan.graphic) {
     case 'title':
-      return [item('artBanner', { style, text: plan.title || shortTitle(text, 6), position: 'top', size: 1.6 }, 'Title')];
+      return [item('artBanner', { style, text: sameScript(plan.title, text) || shortTitle(text, 6), position: 'top', size: 1 }, 'Title')];
     case 'stat':
       return plan.value === undefined ? [] : [item('stat', { value: plan.value, suffix: normSuffix(plan.suffix), prefix: '', label: plan.label ?? '', accent }, 'Stat')];
     case 'chart':
       return [item('barChart', { title: plan.title ?? '', data: plan.data ?? '', unit: '', accent }, 'Chart')];
     case 'quote':
-      return [item('artBanner', { style, text: plan.title || shortTitle(text, 10), position: 'top', size: 1.2 }, 'Quote')];
+      return [item('artBanner', { style, text: sameScript(plan.title, text) || shortTitle(text, 10), position: 'top', size: 0.85 }, 'Quote')];
     case 'highlight': {
       let hl = plan.highlight ?? plan.title ?? '';
       if (text.toLowerCase().indexOf(hl.toLowerCase()) < 0) hl = closestSentence(text, hl);
-      return [item('artBanner', { style, text: hl, position: 'top', size: 1.2 }, 'Highlight')];
+      return [item('artBanner', { style, text: hl, position: 'top', size: 0.85 }, 'Highlight')];
     }
     default:
       return index === 0 ? [] : [];
   }
 }
 
+// ---------------------------------------------------------------- motion graphics matched to the art style
+const styleMotion = (style: string) => (ART_STYLE_SPECS[style as StyleSpecId] as { motion?: { atmosphere: string[]; transitions: string[] } } | undefined)?.motion;
+
+/** Overlays that let the painting show through (full-frame backgrounds such as gradientMove would cover it). */
+const SEE_THROUGH = new Set(['dustParticles', 'rainFx', 'snowFx', 'confetti', 'sparks', 'embers', 'bokeh', 'twinklingStars', 'fireflyGlow', 'lightSweep', 'lightRays', 'filmGrain', 'vignette', 'lightLeak', 'fogDrift', 'glowPulse']);
+
+/** What the words call for, before the style's own taste. */
+const ATMOSPHERE_CUES: Array<[RegExp, string]> = [
+  [/\b(rain|raining|storm|monsoon|drizzle|thunder)/i, 'rainFx'],
+  [/\b(snow|snowing|winter|blizzard|frost)/i, 'snowFx'],
+  [/\b(firefl)/i, 'fireflyGlow'],
+  [/\b(fire|flame|lamp|diya|candle|ember|bonfire|torch)/i, 'embers'],
+  [/\b(festival|celebrat|party|wedding|cheer|confetti|diwali|holi)/i, 'confetti'],
+  [/\b(mist|misty|fog|foggy|haze)/i, 'fogDrift'],
+  [/\b(magic|sparkl|wish|glitter|spell)/i, 'sparks'],
+  [/\b(star|stars|starry)/i, 'twinklingStars'],
+  [/\b(sunrise|dawn|sunset|sunbeam|sunlight)/i, 'lightRays'],
+];
+
+/** One see-through atmosphere overlay per painted scene: from the narration if it asks for one, else the style's. */
+function sceneAtmosphere(plan: StoryPlan, text: string, style: string, from: number, dur: number, index: number): EditItem[] {
+  const cue = ATMOSPHERE_CUES.find(([re]) => re.test(text))?.[1] ?? (plan.time === 'night' ? 'twinklingStars' : plan.time === 'dawn' || plan.time === 'sunset' ? 'lightRays' : undefined);
+  const own = (styleMotion(style)?.atmosphere ?? []).filter((id) => SEE_THROUGH.has(id));
+  const fx = cue ?? (own.length ? own[index % own.length] : 'dustParticles');
+  if (!EFFECTS_LIB[fx]) return [];
+  return [{ id: newId('atm'), kind: 'text', name: `Atmosphere · ${EFFECTS_LIB[fx].label}`, track: 4, from: round(from), duration: round(dur), template: 'motion', props: { fx, accent: STYLE_ACCENT[style] ?? '#B5E2DD' } }];
+}
+
+/** Scene-to-scene hand-off in the style's own manner (paper tear for paper cutout, grid wipe for stained glass…). */
+function styleTransition(style: string, cut: number, index: number): EditItem {
+  const list = styleMotion(style)?.transitions ?? [];
+  // fade in / out alone would be a cut to black — use a dip through black instead
+  const pick = (list.length ? list[(index - 1) % list.length] : 'whipPan').replace(/^fade(In|Out)$/, 'dipToColour');
+  if (pick in EFFECTS) {
+    const d = EFFECTS[pick as EffectId].duration;
+    return { id: newId('tr'), kind: 'effect', name: EFFECTS[pick as EffectId].label, track: 1, from: round(Math.max(0, cut - d / 2)), duration: d, effect: pick as EffectId, intensity: 1 };
+  }
+  const def = EFFECTS_LIB[pick];
+  if (!def) return transitionAt(cut, index);
+  const d = def.duration;
+  const accent = pick === 'dipToColour' ? (style === 'inkWash' || style === 'handDrawn' ? '#EFEAE0' : '#000000') : STYLE_ACCENT[style] ?? '#B5E2DD';
+  return { id: newId('tr'), kind: 'text', name: `Transition · ${def.label}`, track: 7, from: round(Math.max(0, cut - d / 2)), duration: d, template: 'motion', props: { fx: pick, accent } };
+}
+
 const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blueprint', 'stainedGlass']);
 
 /** One Stable Diffusion painting for a scene, with a slow Ken Burns drift and the planned camera move. */
-async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string, fraction: number) => void): Promise<EditItem[]> {
+async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string, fraction: number, live?: { preview?: string; step?: number; steps?: number; done?: string }) => void): Promise<EditItem[]> {
   const [width, height] = sdSize(aspect);
   // people named in the narration (or the only character a "she / he" can mean) always appear, and come first
   const actors = plan.actors.map((a) => a.name);
@@ -342,7 +396,8 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
   }
   const { prompt, negative } = stylisedScene({ place: plan.place, time: plan.time, actors, narration: text, mood: plan.mood }, style, cast);
   onProgress(plan.place, 0);
-  const img = await generateImage({ prompt, negative, width, height, seed, onProgress: (m, f) => onProgress(`${plan.place} · ${m}`, f) });
+  const img = await generateImage({ prompt, negative, width, height, seed, onProgress: (m, f, live) => onProgress(`${plan.place} · ${m}`, f, live) });
+  onProgress(`${plan.place} · done`, 1, { preview: img.url, done: img.url });
   const items: EditItem[] = [
     { id: newId('ai'), kind: 'image', name: `Painting · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: img.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 1, motion: 'kenBurns' },
   ];
@@ -393,10 +448,11 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
   let t = 0;
   const look = opts.captions === 'off' ? null : (['karaoke', 'pop', 'bold', 'clean'].includes(String(opts.captions)) ? opts.captions : 'karaoke') as CaptionLook;
 
+  const painted: string[] = []; // finished AI paintings, shown as a filmstrip while the video is made
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
     const style = plan.style ?? baseStyle;
-    progress('voice', `Voicing scene ${i + 1} of ${plans.length}`, 8 + (80 * i) / plans.length);
+    progress('voice', `Voicing scene ${i + 1} of ${plans.length}`, 8 + (80 * i) / plans.length, aiCast ? { sceneIndex: i + 1, sceneTotal: plans.length, aspect, scenes: [...painted] } : { sceneIndex: i + 1, sceneTotal: plans.length, aspect });
     const fileName = `vo_${stamp}_${String(i + 1).padStart(2, '0')}.wav`;
     const wavPath = path.join(UPLOADS_DIR, fileName);
     await speak(plan.text.replace(/'@/g, "'"), wavPath, opts.voice, lang);
@@ -422,10 +478,27 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
 
     if (mode === 'story') {
       progress('assets', `Drawing scene ${i + 1}: ${story[i].place}`, 8 + (80 * (i + 0.7)) / plans.length);
-      if (aiCast) items.push(...(await paintedScene(story[i], plan.text, sceneStart, sceneDur, style, aspect, aiCast, aiSeed, (m, f) => progress('assets', `Painting scene ${i + 1} of ${plans.length}: ${m}`, 8 + (80 * (i + 0.7 + 0.28 * f)) / plans.length))));
+      if (aiCast) {
+        const n = plans.length;
+        items.push(
+          ...(await paintedScene(story[i], plan.text, sceneStart, sceneDur, style, aspect, aiCast, aiSeed, (m, f, live) => {
+            if (live?.done) painted.push(live.done);
+            progress('assets', `Painting scene ${i + 1} of ${n} (${painted.length} done): ${m}`, 8 + (80 * (i + 0.7 + 0.28 * f)) / n, {
+              sceneIndex: i + 1,
+              sceneTotal: n,
+              aspect,
+              scenes: [...painted],
+              // a new scene starts with an empty canvas (not the previous scene's picture)
+              ...(live ? (live.preview ? { preview: live.preview } : {}) : { preview: undefined, step: 0 }),
+              ...(live?.steps ? { step: live.step, steps: live.steps } : {}),
+            });
+          })),
+        );
+      }
       else items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));
       items.push(...storyGraphic(story[i], plan.text, sceneStart, sceneDur, style, i));
-      if (i > 0) items.push(transitionAt(sceneStart, i));
+      if (i > 0) items.push(styleTransition(style, sceneStart, i));
+      if (aiCast) items.push(...sceneAtmosphere(story[i], plan.text, style, sceneStart, sceneDur, i));
     } else {
       items.push(...sceneItems(plan, sceneStart, sceneDur, style));
     }

@@ -62,6 +62,29 @@ Steps:
 
 ---
 
+## Quick start (new computer)
+
+You only need **Node.js 22+** and **git**. Everything else is installed for you by the setup wizard.
+
+```bash
+git clone <this repo> clipforge-ai
+cd clipforge-ai
+npm install
+npm run setup
+```
+
+`npm run setup` goes through every engine in turn: FFmpeg, Whisper, Ollama (and its model), Kokoro voices, HyperFrames and Stable Diffusion. For each one it says what it's for, checks whether it's there and **asks before installing** it with the right tool for your system (winget on Windows, Homebrew on macOS, apt on Linux). It creates your `.env`, downloads models, and offers to start the app when everything is ready.
+
+| Command | What it does |
+|---|---|
+| `npm run setup` | Guided setup — asks before each install |
+| `npm run setup -- --yes` | Install everything that's missing with the recommended answers |
+| `npm run check` | Just report what's installed (changes nothing) |
+
+Then run `npm run dev` and open http://localhost:3000. The sections below explain the same steps by hand, if you prefer.
+
+---
+
 ## 1. Install the tools (one time)
 
 ### macOS
@@ -115,7 +138,7 @@ npm install
 ```bash
 npm run setup
 ```
-`npm run setup` checks every tool and prints the exact install command for anything missing.
+`npm run setup` checks every tool and offers to install anything missing (see *Quick start* above). `npm run check` only reports.
 
 `npm install` also installs **HyperFrames** (motion captions, hook titles, intro cards). It renders with your installed Chrome, or downloads a headless Chrome the first time. Needs Node.js 22 or newer.
 

@@ -1,5 +1,42 @@
 # Installation
 
+## The quick way: setup wizard
+
+On a new computer you only need **Node.js 22+** and **git**:
+
+```bash
+git clone <this repo> clipforge-ai
+```
+
+```bash
+cd clipforge-ai
+```
+
+```bash
+npm install
+```
+
+```bash
+npm run setup
+```
+
+The wizard checks each engine, explains what it's for, and **asks before installing** it:
+
+| Step | Required? | How it installs |
+|---|---|---|
+| Node.js 22+ | yes | Checked only — install from nodejs.org |
+| `.env` settings | — | Created from `.env.example` |
+| FFmpeg | yes | winget `Gyan.FFmpeg` · brew `ffmpeg-full` · apt `ffmpeg` |
+| Whisper (whisper.cpp) | yes | Windows: downloads `whisper-bin-x64.zip` into `tools/whisper` and sets `WHISPER_BIN` · macOS: brew · Linux: build guide |
+| Ollama + model | recommended | winget / brew / install script, starts it, then `ollama pull` (~2 GB) |
+| Kokoro voices | optional | Installs Python 3.12 if needed, then `pip install kokoro-onnx soundfile` |
+| HyperFrames | yes | Comes with `npm install` |
+| Stable Diffusion | optional | Only offered with an NVIDIA GPU of 8 GB+. Installs 7-Zip if needed, then ComfyUI + SDXL (~9 GB) |
+
+Options: `npm run setup -- --yes` installs everything missing with the recommended answers; `npm run check` only reports. If a tool was just installed but isn't found, open a **new terminal** and run setup again (Windows PATH refresh).
+
+## By hand
+
 You need **Node.js 22+**, **FFmpeg**, **whisper.cpp** and **Ollama**. Kokoro voices and Stable Diffusion are optional.
 
 ## Windows
@@ -50,7 +87,7 @@ npm install
 npm run setup
 ```
 
-`npm run setup` checks every tool and prints the exact install command for anything missing. The Whisper speech model (about 140 MB) downloads by itself the first time you process a video.
+`npm run setup` checks every tool and offers to install anything that's missing. `npm run check` only reports. The Whisper speech model (about 140 MB) downloads by itself the first time you process a video.
 
 ## Optional extras
 
