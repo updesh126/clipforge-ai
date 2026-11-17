@@ -1,0 +1,217 @@
+{
+  "id": "handDrawn",
+  "label": "Hand-drawn",
+  "family": "vector",
+  "engine": "vector-theme",
+  "summary": "Wobbly ink lines with a pencil pass over light watercolour",
+  "origin": "ClipForge procedural vector engine",
+  "history": "Sketchbook and journal illustration: ink pen over loose watercolour.",
+  "look": "Wobbly ink lines with a second, looser pencil pass over light watercolour fills on off-white paper.",
+  "mood": [
+    "personal",
+    "thoughtful",
+    "honest",
+    "quiet"
+  ],
+  "bestFor": [
+    "Personal stories",
+    "Journals and travel diaries",
+    "Gentle documentaries",
+    "Reflective essays"
+  ],
+  "avoidFor": [
+    "High-energy hype content",
+    "Hard data presentations"
+  ],
+  "palette": [
+    {
+      "hex": "#2A2622",
+      "name": "Ink",
+      "role": "outlines, title text"
+    },
+    {
+      "hex": "#FBF7EF",
+      "name": "Sketchbook paper",
+      "role": "background"
+    },
+    {
+      "hex": "#A3C4BC",
+      "name": "Wash green",
+      "role": "foliage, calm areas"
+    },
+    {
+      "hex": "#E8B4A0",
+      "name": "Wash pink",
+      "role": "skin, warm accents"
+    },
+    {
+      "hex": "#BFD7EA",
+      "name": "Wash blue",
+      "role": "sky, water"
+    }
+  ],
+  "line": {
+    "weight": "Medium (0.7 × unit)",
+    "colour": "#2A2622 ink",
+    "quality": "Strong wobble (0.55) plus a second sketchy pencil line"
+  },
+  "fill": "Light watercolour, desaturated and lifted towards white",
+  "shading": "None — the wash itself is uneven",
+  "texture": "Paper grain",
+  "characters": {
+    "proportions": "Near-natural (≈1.05×)",
+    "faces": "Dot eyes, simple line mouth",
+    "poses": "Everyday: walking, writing, looking, sitting",
+    "costume": "Loosely washed colour, often not filling the lines"
+  },
+  "environment": {
+    "motifs": [
+      "scribbled trees",
+      "notebook doodles",
+      "arrows",
+      "cups of tea",
+      "street corners"
+    ],
+    "settings": [
+      "café",
+      "street",
+      "home",
+      "park",
+      "train"
+    ],
+    "sky": "Bare paper with a faint blue wash",
+    "ground": "A single sketched line"
+  },
+  "border": "Hand-inked rectangle that does not quite close",
+  "composition": {
+    "focalPoint": "One sketched subject with notes around it",
+    "framing": "Vignetted — art fades to paper at the edges",
+    "negativeSpace": "Lots of bare paper",
+    "depth": "Shallow; mostly flat page",
+    "titlePosition": "top"
+  },
+  "typography": {
+    "fontStack": "\"Segoe Print\", \"Ink Free\", \"Bradley Hand\", cursive",
+    "titleColour": "#2A2622",
+    "titleStroke": null,
+    "titleShadow": "0 0 10px #FBF7EF, 0 0 20px #FBF7EF",
+    "uppercase": false,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#FBF7EF",
+    "text": "#2A2622",
+    "border": "#2A2622"
+  },
+  "motion": {
+    "feel": "Drawn-on, unhurried",
+    "pace": "slow",
+    "textReveals": [
+      "handwrittenNote",
+      "typewriter",
+      "textFade"
+    ],
+    "camera": [
+      "slowZoom",
+      "panRight",
+      "pushIn"
+    ],
+    "transitions": [
+      "paperTearTransition",
+      "dipToColour",
+      "fadeIn"
+    ],
+    "atmosphere": [
+      "filmGrain",
+      "dustParticles"
+    ],
+    "spriteMotion": [
+      "breathe",
+      "sway",
+      "walkIn"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(0.75) brightness(1.06) drop-shadow(2px 0 0 #2A2622) drop-shadow(-2px 0 0 #2A2622) drop-shadow(0 2px 0 #2A2622) drop-shadow(0 -2px 0 #2A2622)",
+    "spriteBlend": null,
+    "backgroundFilter": "saturate(0.7) brightness(1.08) sepia(0.1)"
+  },
+  "vectorTheme": {
+    "outline": 0.7,
+    "outlineColour": "#2A2622",
+    "jitter": 0.55,
+    "sketch": true,
+    "tension": 0.48,
+    "shading": "none",
+    "texture": "paper",
+    "eyes": "dot",
+    "headScale": 1.05,
+    "blush": false
+  },
+  "prompt": {
+    "keywords": [
+      "ink and watercolour",
+      "sketchbook",
+      "wobbly lines",
+      "pencil",
+      "loose wash"
+    ],
+    "negative": [
+      "vector",
+      "glossy",
+      "neon",
+      "heavy shading"
+    ]
+  },
+  "dos": [
+    "Let colour spill past the lines",
+    "Use handwriting for notes",
+    "Keep the paper visible"
+  ],
+  "donts": [
+    "Perfect geometric shapes",
+    "Glitch or VHS effects"
+  ],
+  "generation": {
+    "sourceId": "hand_drawn",
+    "category": "traditional_drawing",
+    "description": "Organic illustrations that look manually drawn using pencils, pens and traditional sketching techniques.",
+    "visualIdentity": "Personal, artistic and expressive sketchbook illustration.",
+    "colourPalette": {
+      "approach": "Natural and slightly muted",
+      "saturation": "Low to medium",
+      "contrast": "Medium",
+      "colors": [
+        "Pencil grey",
+        "Warm beige",
+        "Olive green",
+        "Muted blue",
+        "Brown",
+        "Soft yellow"
+      ]
+    },
+    "linework": "Visible pencil strokes, imperfect contours, sketch marks and varied line weights.",
+    "textures": "Paper grain, graphite, colored pencil strokes, cross-hatching and light watercolor.",
+    "characters": "Natural hand-drawn proportions, expressive faces and imperfect organic shapes.",
+    "backgrounds": "Sketchy landscapes, trees, houses, countryside and hand-rendered environmental details.",
+    "lighting": "Natural soft lighting with hand-shaded shadows.",
+    "composition": "Loose organic compositions with visible drawing details and sketchbook aesthetics.",
+    "bestFor": [
+      "Personal stories",
+      "Emotional storytelling",
+      "Adventure books",
+      "Educational illustrations",
+      "Journal-style videos"
+    ],
+    "instructions": "Create an illustration that appears genuinely hand-drawn using pencils and colored pencils. Preserve visible strokes, paper texture and slightly imperfect contours.",
+    "promptModifier": "Render as an authentic hand-drawn illustration with organic pencil strokes, visible sketch lines, imperfect contours, colored pencil shading, subtle graphite marks, natural paper texture and expressive hand-rendered details. Preserve an artistic handmade appearance.",
+    "negativePrompt": "Perfect vector geometry, glossy 3D rendering, photorealism, overly smooth surfaces, plastic textures.",
+    "negativeModifier": "Perfect vector edges, glossy 3D rendering, photorealistic surfaces, overly smooth digital appearance.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/handDrawn.jpg",
+    "preview": "/styles/handDrawn-preview.jpg"
+  }
+}

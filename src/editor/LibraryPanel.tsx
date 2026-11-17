@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plus, FolderOpen, Loader2, Type, Zap, Film, Newspaper, Palette, Shapes, Sparkles } from 'lucide-react';
-import { MotionLibrary } from './MotionLibrary.tsx';
+import { Plus, FolderOpen, Loader2, Type, Zap, Film, Palette, Shapes, Sparkles } from 'lucide-react';
+import { EffectsLibrary, MotionLibrary } from './MotionLibrary.tsx';
 import { AssetsPanel } from './AssetsPanel.tsx';
 import type { AssetEntry } from '../assetkit/types.ts';
 import type { EffectId, TemplateId } from './types.ts';
-import { ART_STYLE_LABELS, ART_STYLE_OPTIONS, EFFECTS, TEMPLATES } from './catalog.ts';
+import { ART_STYLE_LABELS, ART_STYLE_OPTIONS, TEMPLATES } from './catalog.ts';
 
 const ART_SWATCH: Record<string, string[]> = {
   madhubani: ['#C1272D', '#F4B400', '#2E7D32', '#F6E7C1'],
@@ -31,7 +31,7 @@ interface Props {
   onAddAsset: (a: AssetEntry) => void;
 }
 
-type Tab = 'motion' | 'assets' | 'graphics' | 'vox' | 'art' | 'effects' | 'media';
+type Tab = 'motion' | 'assets' | 'graphics' | 'art' | 'effects' | 'media';
 const VOX: TemplateId[] = ['paperTitle', 'markerHighlight', 'stat', 'barChart', 'callout'];
 const ART: TemplateId[] = ['artCard', 'artFrame', 'artBanner'];
 
@@ -40,18 +40,17 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddMotion
   const [busy, setBusy] = useState(false);
   const tabs: Array<{ id: Tab; label: string; icon: typeof Type }> = [
     { id: 'motion', label: 'Motion', icon: Sparkles },
-    { id: 'assets', label: 'Assets', icon: Shapes },
-    { id: 'graphics', label: 'Graphics', icon: Type },
-    { id: 'vox', label: 'Vox', icon: Newspaper },
-    { id: 'art', label: 'Art', icon: Palette },
     { id: 'effects', label: 'Effects', icon: Zap },
+    { id: 'graphics', label: 'Titles', icon: Type },
+    { id: 'art', label: 'Art', icon: Palette },
+    { id: 'assets', label: 'Assets', icon: Shapes },
     { id: 'media', label: 'Media', icon: Film },
   ];
   const card = 'w-full text-left rounded-lg border border-zinc-900 bg-black px-3 py-2 hover:border-zinc-700 cursor-pointer group';
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="grid grid-cols-7 border-b border-zinc-900">
+      <div className="grid grid-cols-6 border-b border-zinc-900">
         {tabs.map((t) => {
           const I = t.icon;
           return (
@@ -59,29 +58,37 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddMotion
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex flex-col items-center gap-0.5 py-2 text-[10.5px] cursor-pointer ${tab === t.id ? 'text-white shadow-[inset_0_-2px_0_var(--color-accent)]' : 'text-zinc-500 hover:text-zinc-300'}`}
+              title={t.label}
+              className={`flex min-w-0 flex-col items-center gap-0.5 px-0.5 py-2 text-[10px] cursor-pointer ${tab === t.id ? 'text-white shadow-[inset_0_-2px_0_var(--color-accent)]' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
-              <I className="h-3.5 w-3.5" />
-              {t.label}
+              <I className="h-3.5 w-3.5 shrink-0" />
+              <span className="w-full truncate text-center">{t.label}</span>
             </button>
           );
         })}
       </div>
       {tab === 'assets' && <AssetsPanel onAdd={onAddAsset} />}
       {tab === 'motion' && <MotionLibrary onAdd={onAddMotion} aspect={aspect ?? { width: 1080, height: 1920 }} />}
-      <div className={`flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 ${tab === 'assets' || tab === 'motion' ? 'hidden' : ''}`}>
-        {(tab === 'graphics' || tab === 'vox') &&
-          (Object.keys(TEMPLATES) as TemplateId[])
-            .filter((id) => (tab === 'vox' ? VOX.includes(id) : !VOX.includes(id) && !ART.includes(id)))
-            .map((id) => (
-              <button key={id} type="button" className={card} onClick={() => onAddTemplate(id)}>
-                <span className="flex items-center justify-between text-xs font-medium text-white">
-                  {TEMPLATES[id].label.replace(' (Vox)', '')}
-                  <Plus className="h-3.5 w-3.5 text-zinc-600 group-hover:text-accent" />
-                </span>
-                <span className="block text-[11px] text-zinc-500">{TEMPLATES[id].description}</span>
-              </button>
-            ))}
+      {tab === 'effects' && <EffectsLibrary onAddEffect={onAddEffect} onAddMotion={onAddMotion} aspect={aspect ?? { width: 1080, height: 1920 }} />}
+      <div className={`flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 ${tab === 'assets' || tab === 'motion' || tab === 'effects' ? 'hidden' : ''}`}>
+        {tab === 'graphics' &&
+          ([
+            ['Titles & overlays', (Object.keys(TEMPLATES) as TemplateId[]).filter((id) => !VOX.includes(id) && !ART.includes(id) && id !== 'motion')],
+            ['Vox-style explainers', VOX],
+          ] as const).map(([heading, ids]) => (
+            <div key={heading} className="space-y-1.5">
+              <p className="px-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wider text-zinc-500">{heading}</p>
+              {ids.map((id) => (
+                <button key={id} type="button" className={card} onClick={() => onAddTemplate(id)}>
+                  <span className="flex items-center justify-between text-xs font-medium text-white">
+                    {TEMPLATES[id].label.replace(' (Vox)', '')}
+                    <Plus className="h-3.5 w-3.5 text-zinc-600 group-hover:text-accent" />
+                  </span>
+                  <span className="block text-[11px] text-zinc-500">{TEMPLATES[id].description}</span>
+                </button>
+              ))}
+            </div>
+          ))}
         {tab === 'art' &&
           ART_STYLE_OPTIONS.map((style) => (
             <div key={style} className="rounded-lg border border-zinc-900 bg-black px-3 py-2">
@@ -111,16 +118,6 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddMotion
                 ))}
               </div>
             </div>
-          ))}
-        {tab === 'effects' &&
-          (Object.keys(EFFECTS) as EffectId[]).map((id) => (
-            <button key={id} type="button" className={card} onClick={() => onAddEffect(id)}>
-              <span className="flex items-center justify-between text-xs font-medium text-white">
-                {EFFECTS[id].label}
-                <Plus className="h-3.5 w-3.5 text-zinc-600 group-hover:text-accent" />
-              </span>
-              <span className="block text-[11px] text-zinc-500">{EFFECTS[id].description}</span>
-            </button>
           ))}
         {tab === 'media' && (
           <>

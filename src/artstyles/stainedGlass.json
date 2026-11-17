@@ -1,0 +1,206 @@
+{
+  "id": "stainedGlass",
+  "label": "Stained glass",
+  "family": "worldHeritage",
+  "engine": "remotion-scene",
+  "summary": "Jewel-tone glass cells in dark leading, glowing with light",
+  "origin": "Gothic cathedral windows (Europe, 12th century onwards)",
+  "history": "Coloured glass held by lead came, telling stories to people in light; also used in Indian Art Deco and Parsi architecture.",
+  "look": "Jewel-tone glass cells in dark leading, glowing as if lit from behind.",
+  "mood": [
+    "grand",
+    "reverent",
+    "luminous",
+    "celebratory"
+  ],
+  "bestFor": [
+    "Heritage and architecture",
+    "Spiritual and celebratory moments",
+    "Grand openings",
+    "Awards"
+  ],
+  "avoidFor": [
+    "Casual comedy",
+    "Data dashboards"
+  ],
+  "palette": [
+    {
+      "hex": "#1E5AA8",
+      "name": "Cobalt glass",
+      "role": "sky, large cells"
+    },
+    {
+      "hex": "#C0392B",
+      "name": "Ruby glass",
+      "role": "accents"
+    },
+    {
+      "hex": "#E0B53A",
+      "name": "Amber glass",
+      "role": "light, banner border"
+    },
+    {
+      "hex": "#2E8B57",
+      "name": "Emerald glass",
+      "role": "foliage"
+    },
+    {
+      "hex": "#6C3483",
+      "name": "Amethyst glass",
+      "role": "secondary"
+    },
+    {
+      "hex": "#111111",
+      "name": "Lead came",
+      "role": "outlines"
+    }
+  ],
+  "line": {
+    "weight": "Thick",
+    "colour": "Dark lead",
+    "quality": "Even width, joins every cell"
+  },
+  "fill": "Saturated jewel tones with inner glow",
+  "shading": "Radial glow inside each cell",
+  "texture": "Slight glass mottling",
+  "characters": {
+    "proportions": "Tall, iconic, frontal",
+    "faces": "Simple features in a single cell",
+    "poses": "Iconic, still, gesturing",
+    "costume": "Robes split into glass panes"
+  },
+  "environment": {
+    "motifs": [
+      "rose window",
+      "arches",
+      "halos",
+      "vines",
+      "stars"
+    ],
+    "settings": [
+      "cathedral",
+      "palace hall",
+      "garden"
+    ],
+    "sky": "Cobalt cells",
+    "ground": "Patterned base panel"
+  },
+  "border": "Leaded arch border with amber trim",
+  "composition": {
+    "focalPoint": "Centre, symmetrical, often under an arch",
+    "framing": "Window-shaped",
+    "negativeSpace": "Filled with glass cells",
+    "depth": "Flat",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "\"Constantia\", \"Palatino Linotype\", Georgia, serif",
+    "titleColour": "#FFF6D6",
+    "titleStroke": "#111",
+    "titleShadow": null,
+    "uppercase": true,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#1C2541",
+    "text": "#FFF6D6",
+    "border": "#E0B53A"
+  },
+  "motion": {
+    "feel": "Light sweeping across, cells lighting up in turn",
+    "pace": "slow",
+    "textReveals": [
+      "trackingExpand",
+      "textFade",
+      "staggeredType"
+    ],
+    "camera": [
+      "slowZoom",
+      "tiltUp"
+    ],
+    "transitions": [
+      "gridWipe",
+      "radialWipe",
+      "dipToColour"
+    ],
+    "atmosphere": [
+      "lightRays",
+      "lightSweep",
+      "glowPulse"
+    ],
+    "spriteMotion": [
+      "breathe",
+      "float"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(1.9) contrast(1.3) drop-shadow(4px 0 0 #111111) drop-shadow(-4px 0 0 #111111) drop-shadow(0 4px 0 #111111) drop-shadow(0 -4px 0 #111111)",
+    "spriteBlend": null,
+    "backgroundFilter": "saturate(1.6) contrast(1.2)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "stained glass window",
+      "lead came",
+      "jewel tones",
+      "backlit",
+      "gothic"
+    ],
+    "negative": [
+      "soft gradients without leading",
+      "photo"
+    ]
+  },
+  "dos": [
+    "Outline sprites in dark lead",
+    "Sweep light across the glass",
+    "Use uppercase serif titles with a dark stroke"
+  ],
+  "donts": [
+    "Pastel colours",
+    "Fast cuts"
+  ],
+  "generation": {
+    "sourceId": "stained_glass",
+    "category": "glass_art",
+    "description": "Illustrations inspired by stained glass windows with vibrant colored glass sections separated by dark leading.",
+    "visualIdentity": "Decorative luminous glass mosaic artwork.",
+    "colourPalette": {
+      "approach": "Rich jewel tones",
+      "saturation": "Very high",
+      "contrast": "Strong",
+      "colors": [
+        "Ruby red",
+        "Sapphire blue",
+        "Emerald green",
+        "Golden yellow",
+        "Purple",
+        "Orange"
+      ]
+    },
+    "linework": "Thick dark lead lines separating individual glass pieces.",
+    "textures": "Translucent colored glass, subtle imperfections, glass grain and luminous surfaces.",
+    "characters": "Stylized figures divided into colorful geometric glass segments.",
+    "backgrounds": "Decorative windows, castles, flowers, landscapes, churches and geometric patterns.",
+    "lighting": "Bright transmitted light, glowing glass and luminous highlights.",
+    "composition": "Panel-based compositions with clearly separated geometric segments and decorative borders.",
+    "bestFor": [
+      "Fantasy",
+      "Fairy tales",
+      "Mythology",
+      "Magical stories",
+      "Decorative visuals"
+    ],
+    "instructions": "Create a stained glass artwork using vibrant translucent glass pieces separated by bold dark leading. Illuminate the composition from behind to reveal rich jewel-tone colors.",
+    "promptModifier": "Render as intricate stained glass artwork with translucent jewel-toned glass pieces, bold dark leading lines, geometric glass segments, luminous transmitted light, subtle glass imperfections and decorative mosaic patterns. Divide the subject into visually coherent glass sections.",
+    "negativePrompt": "Paper texture, pencil sketch, realistic skin, flat vector without glass divisions, blurry boundaries, photographic rendering.",
+    "negativeModifier": "Paper textures, pencil sketches, photorealistic skin, flat unsegmented vector shapes, blurry glass divisions.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/stainedGlass.jpg",
+    "preview": "/styles/stainedGlass-preview.jpg"
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "id": "miniature",
+  "label": "Miniature painting",
+  "family": "indianFolk",
+  "engine": "remotion-scene",
+  "summary": "Mughal / Rajput miniature: gold floral border, arched window, cypress",
+  "origin": "Mughal and Rajput court ateliers (India, 16th–19th century)",
+  "history": "Small, jewel-like paintings for royal albums and manuscripts, made with mineral pigments and real gold, with elaborate floral borders.",
+  "look": "Gold floral border, arched jharokha window, cypress trees, flat jewel colours and fine detail.",
+  "mood": [
+    "regal",
+    "refined",
+    "romantic",
+    "opulent"
+  ],
+  "bestFor": [
+    "History and royalty",
+    "Weddings",
+    "Luxury and heritage brands",
+    "Poetry and romance"
+  ],
+  "avoidFor": [
+    "Casual comedy",
+    "Tech explainers"
+  ],
+  "palette": [
+    {
+      "hex": "#8E1B1B",
+      "name": "Crimson",
+      "role": "robes, accents"
+    },
+    {
+      "hex": "#D4A537",
+      "name": "Gold leaf",
+      "role": "borders, vines, banner border"
+    },
+    {
+      "hex": "#2E6B3A",
+      "name": "Malachite green",
+      "role": "gardens, cypress"
+    },
+    {
+      "hex": "#1B3A6B",
+      "name": "Lapis blue",
+      "role": "sky, water"
+    },
+    {
+      "hex": "#E9A75A",
+      "name": "Saffron",
+      "role": "warm highlights"
+    },
+    {
+      "hex": "#5B1A18",
+      "name": "Deep maroon",
+      "role": "banner, frame"
+    }
+  ],
+  "line": {
+    "weight": "Very fine",
+    "colour": "Dark brown or gold",
+    "quality": "Precise single-hair brush lines"
+  },
+  "fill": "Flat opaque mineral colours",
+  "shading": "Minimal — slight modelling on faces and fabric",
+  "texture": "Burnished paper",
+  "characters": {
+    "proportions": "Elegant, profile faces, slender",
+    "faces": "Profile with fine features, almond eye",
+    "poses": "Seated on a throne, holding a flower, on horseback",
+    "costume": "Jama, turban, jewellery with gold detail"
+  },
+  "environment": {
+    "motifs": [
+      "jharokha arch",
+      "cypress",
+      "flowering plants",
+      "peacock",
+      "fountains",
+      "carpets"
+    ],
+    "settings": [
+      "palace terrace",
+      "Mughal garden (charbagh)",
+      "court",
+      "hunt"
+    ],
+    "sky": "Lapis band with gold-edged clouds",
+    "ground": "Patterned carpet or garden beds"
+  },
+  "border": "Gold floral vine border drawn on, inside a maroon frame",
+  "composition": {
+    "focalPoint": "Royal figure framed in an arch",
+    "framing": "Portrait panel with ornate border",
+    "negativeSpace": "Small — detail everywhere",
+    "depth": "Stacked planes, tilted-up ground",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "Gabriola, \"Palatino Linotype\", Palatino, Georgia, serif",
+    "titleColour": "#F7E3A1",
+    "titleStroke": null,
+    "titleShadow": "0 3px 10px rgba(0,0,0,.5)",
+    "uppercase": false,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#5B1A18",
+    "text": "#F7E3A1",
+    "border": "#D4A537"
+  },
+  "motion": {
+    "feel": "Stately and slow, gold shimmer",
+    "pace": "slow",
+    "textReveals": [
+      "trackingExpand",
+      "textFade",
+      "staggeredType"
+    ],
+    "camera": [
+      "slowZoom",
+      "pushIn",
+      "tiltUp"
+    ],
+    "transitions": [
+      "dipToColour",
+      "irisTransition",
+      "radialWipe"
+    ],
+    "atmosphere": [
+      "lightSweep",
+      "glowPulse",
+      "dustParticles"
+    ],
+    "spriteMotion": [
+      "breathe",
+      "float",
+      "sway"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "sepia(0.25) saturate(1.35) contrast(1.1) drop-shadow(2px 0 0 #C9A227) drop-shadow(-2px 0 0 #C9A227) drop-shadow(0 2px 0 #C9A227) drop-shadow(0 -2px 0 #C9A227)",
+    "spriteBlend": null,
+    "backgroundFilter": "sepia(0.3) saturate(1.3) contrast(1.05)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "Mughal miniature painting",
+      "Rajput miniature",
+      "gold floral border",
+      "jharokha",
+      "cypress",
+      "jewel colours"
+    ],
+    "negative": [
+      "3D",
+      "loose brushwork",
+      "neon"
+    ]
+  },
+  "dos": [
+    "Frame the subject in an arch",
+    "Draw the gold border on first",
+    "Use a light gold sweep for shimmer"
+  ],
+  "donts": [
+    "Fast whip pans",
+    "Pastel or neon colours"
+  ],
+  "generation": {
+    "sourceId": "miniature_painting",
+    "category": "indian_classical_art",
+    "description": "Intricate Indian miniature painting inspired by traditional Mughal, Rajput and Pahari painting traditions.",
+    "visualIdentity": "Highly detailed classical Indian miniature artwork with ornamental compositions.",
+    "colourPalette": {
+      "approach": "Rich traditional pigments",
+      "saturation": "High",
+      "contrast": "Medium to high",
+      "colors": [
+        "Royal red",
+        "Emerald green",
+        "Turquoise",
+        "Gold",
+        "Deep blue",
+        "Warm ivory"
+      ]
+    },
+    "linework": "Extremely fine outlines, precise detailing and delicate ornamental strokes.",
+    "textures": "Hand-painted pigment, fine paper grain, delicate brushwork and gold-inspired decorative detailing.",
+    "characters": "Stylized royal figures, expressive profiles, elaborate garments, jewelry and intricate patterns.",
+    "backgrounds": "Palaces, gardens, courtyards, rivers, royal architecture and decorative landscapes.",
+    "lighting": "Flat traditional painting treatment with controlled tonal details.",
+    "composition": "Dense decorative compositions, intricate borders, balanced figures and detailed architecture.",
+    "bestFor": [
+      "Indian history",
+      "Royal stories",
+      "Historical mythology",
+      "Cultural storytelling",
+      "Folklore"
+    ],
+    "instructions": "Create a detailed traditional Indian miniature painting inspired by Mughal, Rajput or Pahari schools. Use delicate brushwork, ornamental clothing, fine facial details, elaborate architecture and rich natural pigments.",
+    "promptModifier": "Render as traditional Indian miniature painting inspired by Mughal, Rajput and Pahari painting traditions. Use extremely fine brushwork, delicate outlines, intricate ornamental details, elaborate patterns, rich natural pigments, decorative borders and carefully detailed architecture and clothing.",
+    "negativePrompt": "Modern cartoon style, photorealistic 3D, thick comic outlines, minimal vector design, loose abstract brush strokes.",
+    "negativeModifier": "Modern cartoon style, photorealistic 3D, thick comic outlines, minimalist vector graphics, loose abstract brush strokes.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/miniature.jpg",
+    "preview": "/styles/miniature-preview.jpg"
+  }
+}

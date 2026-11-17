@@ -222,6 +222,8 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [aiBusy, setAiBusy] = useState(false);
   const [render, setRender] = useState<{ busy: boolean; progress: JobProgress | null; url?: string; error?: string }>({ busy: false, progress: null });
+  const [exportFormat, setExportFormat] = useState<'mp4' | 'webm' | 'gif' | 'still'>('mp4');
+  const [exportQuality, setExportQuality] = useState<'high' | 'standard' | 'draft'>('high');
   const [licenceWarn, setLicenceWarn] = useState<Array<{ name: string; licence: string; status: string }>>([]);
   const [credits, setCredits] = useState<string[]>([]);
   const playerRef = useRef<PlayerRef | null>(null);
@@ -427,7 +429,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
         (jobId) =>
           postJson<{ export: { url: string; fileName: string }; licenceIssues?: Array<{ name: string; licence: string; status: string }>; credits?: string[] }>(
             `/api/edits/${edit.id}/render`,
-            { jobId }
+            { jobId, format: exportFormat, quality: exportQuality, scale: exportQuality === 'draft' ? 0.5 : 1, stillAt: time }
           ),
         (p) => setRender((r) => ({ ...r, progress: p ?? r.progress }))
       );
@@ -521,8 +523,33 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
           </select>
           {render.url && !render.busy && (
             <a href={`/api/download/${render.url.split('/').pop()}`} className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10">
-              <Check className="h-3.5 w-3.5" /> Download MP4
+              <Check className="h-3.5 w-3.5" /> Download {render.url.split('.').pop()?.toUpperCase()}
             </a>
+          )}
+          <select
+            value={exportFormat}
+            onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)}
+            className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-300 focus:outline-none"
+            title="Export format"
+            aria-label="Export format"
+          >
+            <option value="mp4">MP4 (H.264)</option>
+            <option value="webm">WebM (VP9)</option>
+            <option value="gif">GIF</option>
+            <option value="still">Still (PNG at playhead)</option>
+          </select>
+          {exportFormat !== 'still' && exportFormat !== 'gif' && (
+            <select
+              value={exportQuality}
+              onChange={(e) => setExportQuality(e.target.value as typeof exportQuality)}
+              className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-300 focus:outline-none"
+              title="Quality (Draft renders at half size)"
+              aria-label="Export quality"
+            >
+              <option value="high">High</option>
+              <option value="standard">Standard</option>
+              <option value="draft">Draft (½ size)</option>
+            </select>
           )}
           <button
             type="button"
@@ -531,7 +558,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
             className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-accent-strong disabled:opacity-70 cursor-pointer"
           >
             {render.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            {render.busy ? `${render.progress?.pct ?? 0}%` : 'Render MP4'}
+            {render.busy ? `${render.progress?.pct ?? 0}%` : exportFormat === 'still' ? 'Save still' : `Render ${exportFormat.toUpperCase()}`}
           </button>
         </div>
       </div>

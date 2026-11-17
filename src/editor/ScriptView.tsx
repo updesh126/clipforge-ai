@@ -85,6 +85,7 @@ interface Draft {
   language?: 'en' | 'hi';
   captions: string;
   mode: 'story' | 'graphics';
+  illustration?: 'vector' | 'ai';
 }
 
 export function ScriptView({ engines, onCreated }: Props) {
@@ -105,6 +106,7 @@ export function ScriptView({ engines, onCreated }: Props) {
   }, [language, engines?.voices.length]);
   const [captions, setCaptions] = useState(draft?.captions ?? 'karaoke');
   const [mode, setMode] = useState<'story' | 'graphics'>(draft?.mode ?? 'story');
+  const [illustration, setIllustration] = useState<'vector' | 'ai'>(draft?.illustration ?? 'vector');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<JobProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,8 +117,8 @@ export function ScriptView({ engines, onCreated }: Props) {
 
   // save the draft as you type
   useEffect(() => {
-    store.set(DRAFT_KEY, { script, title, aspect, style, voice, language, captions, mode });
-  }, [script, title, aspect, style, voice, language, captions, mode]);
+    store.set(DRAFT_KEY, { script, title, aspect, style, voice, language, captions, mode, illustration });
+  }, [script, title, aspect, style, voice, language, captions, mode, illustration]);
 
   /** Follow a job by id until it reports its finished edit (works after a reload too). */
   const follow = async (jobId: string) => {
@@ -169,7 +171,7 @@ export function ScriptView({ engines, onCreated }: Props) {
     const jobId = newJobId();
     store.set(JOB_KEY, { jobId, at: Date.now() });
     // start the job; the result is picked up by polling, so a reload mid-run doesn't lose it
-    postJson('/api/script-video', { script, title, aspect, style, voice, language, captions, mode, jobId }).catch(() => {
+    postJson('/api/script-video', { script, title, aspect, style, voice, language, captions, mode, illustration: mode === 'story' ? illustration : 'vector', jobId }).catch(() => {
       /* errors are reported through the job */
     });
     await follow(jobId);
@@ -179,7 +181,7 @@ export function ScriptView({ engines, onCreated }: Props) {
     ['plan', 'Plan scenes', 'Ollama'],
     ['voice', 'Voice-over', engines?.tts ? 'Kokoro' : 'System voice'],
     ['voice2', 'Word timing', 'Whisper'],
-    ['assets', 'Draw scenes', 'Asset library'],
+    ['assets', mode === 'story' && illustration === 'ai' ? 'Paint scenes' : 'Draw scenes', mode === 'story' && illustration === 'ai' ? 'Stable Diffusion' : 'Asset library'],
     ['save', 'Build edit', 'Remotion'],
   ];
   const stageIdx = !progress ? -1 : progress.stage === 'plan' ? 0 : progress.stage === 'voice' ? (progress.label.startsWith('Timing') ? 2 : 1) : progress.stage === 'assets' ? 3 : 4;
@@ -270,6 +272,32 @@ export function ScriptView({ engines, onCreated }: Props) {
               ))}
             </div>
           </section>
+          {mode === 'story' && (
+            <section>
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Illustration</h2>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ['vector', 'Vector', 'Drawn by ClipForge — fast, animated characters'],
+                  ['ai', 'AI painting', 'Painted by local Stable Diffusion — richer art'],
+                ] as const).map(([id, label, hint]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setIllustration(id)}
+                    className={`rounded-lg border p-2.5 text-left cursor-pointer ${illustration === id ? 'border-accent bg-accent/5' : 'border-zinc-800 hover:border-zinc-600'}`}
+                  >
+                    <span className="block text-xs font-semibold text-white">{label}</span>
+                    <span className="mt-0.5 block text-[10.5px] leading-snug text-zinc-500">{hint}</span>
+                  </button>
+                ))}
+              </div>
+              {illustration === 'ai' && (
+                <p className={`mt-1.5 text-[10.5px] ${engines?.sd ? 'text-accent' : 'text-amber-400'}`}>
+                  {engines?.sd ? `Stable Diffusion ready · ${engines.sdModel}` : engines?.sdRunning ? 'ComfyUI is running but has no model — see Docs → Stable Diffusion.' : 'Stable Diffusion is not running — see Docs → Stable Diffusion setup.'}
+                </p>
+              )}
+            </section>
+          )}
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Art style</h2>
             <StylePicker value={style} onChange={setStyle} />

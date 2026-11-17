@@ -1,0 +1,211 @@
+{
+  "id": "paperCutout",
+  "label": "Paper cutout",
+  "family": "graphic",
+  "engine": "remotion-scene",
+  "summary": "Layered paper hills, sun and clouds with soft drop shadows",
+  "origin": "Paper craft and diorama illustration",
+  "history": "Layered cut paper, from Victorian dioramas to modern stop-motion and papercraft explainers.",
+  "look": "Layered pastel paper hills, sun and clouds with soft drop shadows between layers and white cut edges.",
+  "mood": [
+    "friendly",
+    "crafty",
+    "light",
+    "tactile"
+  ],
+  "bestFor": [
+    "Kids and education",
+    "Friendly explainers",
+    "Product stories",
+    "Seasonal greetings"
+  ],
+  "avoidFor": [
+    "Gritty documentaries",
+    "Investigations"
+  ],
+  "palette": [
+    {
+      "hex": "#FFADAD",
+      "name": "Blush paper",
+      "role": "hills, accents"
+    },
+    {
+      "hex": "#FFD6A5",
+      "name": "Peach paper",
+      "role": "sun, warm layers"
+    },
+    {
+      "hex": "#CAFFBF",
+      "name": "Mint paper",
+      "role": "grass"
+    },
+    {
+      "hex": "#A0C4FF",
+      "name": "Sky paper",
+      "role": "sky"
+    },
+    {
+      "hex": "#6D597A",
+      "name": "Plum card",
+      "role": "deep layers, text"
+    },
+    {
+      "hex": "#FF6B6B",
+      "name": "Coral",
+      "role": "banner border"
+    }
+  ],
+  "line": {
+    "weight": "None, or a white cut edge",
+    "colour": "White",
+    "quality": "Cut-scissor edges"
+  },
+  "fill": "Flat pastel card",
+  "shading": "Drop shadows between stacked layers",
+  "texture": "Light card fibre",
+  "characters": {
+    "proportions": "Chunky, simple cut shapes",
+    "faces": "Dot eyes, simple smile",
+    "poses": "Pivot at paper joints",
+    "costume": "Separate paper pieces"
+  },
+  "environment": {
+    "motifs": [
+      "layered hills",
+      "paper sun",
+      "clouds on strings",
+      "trees",
+      "houses"
+    ],
+    "settings": [
+      "countryside",
+      "town",
+      "under the sea",
+      "space"
+    ],
+    "sky": "Flat pastel card",
+    "ground": "Stacked rolling hills"
+  },
+  "border": "Torn paper edge in coral",
+  "composition": {
+    "focalPoint": "Centre stage like a diorama",
+    "framing": "Front-on, theatre-box",
+    "negativeSpace": "Sky area for the title",
+    "depth": "Many stacked layers — strong parallax",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "\"Bahnschrift SemiBold\", \"Avenir Next\", \"Segoe UI\", Arial, sans-serif",
+    "titleColour": "#FFFFFF",
+    "titleStroke": null,
+    "titleShadow": "0 6px 0 rgba(0,0,0,.18)",
+    "uppercase": false,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#FFF7EC",
+    "text": "#2D3047",
+    "border": "#FF6B6B"
+  },
+  "motion": {
+    "feel": "Pop-up and slide, like a pop-up book",
+    "pace": "medium",
+    "textReveals": [
+      "textPop",
+      "paperTitle",
+      "textOnPaper"
+    ],
+    "camera": [
+      "pushIn",
+      "panRight",
+      "tiltUp"
+    ],
+    "transitions": [
+      "paperTearTransition",
+      "wipeTransition",
+      "blindsTransition"
+    ],
+    "atmosphere": [
+      "confetti",
+      "snowFx",
+      "lightSweep"
+    ],
+    "spriteMotion": [
+      "pop",
+      "slideUp",
+      "bob",
+      "float"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(1.15) drop-shadow(5px 0 0 #FFFFFF) drop-shadow(-5px 0 0 #FFFFFF) drop-shadow(0 5px 0 #FFFFFF) drop-shadow(0 -5px 0 #FFFFFF) drop-shadow(6px 10px 6px rgba(0,0,0,.35))",
+    "spriteBlend": null,
+    "backgroundFilter": "saturate(1.1) contrast(0.95)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "paper cutout",
+      "layered paper",
+      "diorama",
+      "pastel card",
+      "drop shadows"
+    ],
+    "negative": [
+      "outlines",
+      "photorealistic",
+      "dark"
+    ]
+  },
+  "dos": [
+    "Use depth so camera moves create parallax",
+    "Give sprites a white cut edge",
+    "Keep shadows soft and short"
+  ],
+  "donts": [
+    "Black outlines",
+    "Dark, gritty colour"
+  ],
+  "generation": {
+    "sourceId": "paper_cutout",
+    "category": "paper_craft",
+    "description": "Layered illustrations that look like colorful pieces of paper cut, arranged and glued together.",
+    "visualIdentity": "Handcrafted layered paper collage with tactile dimensional shapes.",
+    "colourPalette": {
+      "approach": "Bright natural colors",
+      "saturation": "Medium to high",
+      "contrast": "Clear separation between layers",
+      "colors": [
+        "Sky blue",
+        "Grass green",
+        "Yellow",
+        "Orange",
+        "Coral",
+        "Brown"
+      ]
+    },
+    "linework": "Defined paper-cut edges without conventional drawn outlines.",
+    "textures": "Visible paper fibers, rough cut edges, cardstock grain and layered paper surfaces.",
+    "characters": "Simplified characters built from overlapping geometric paper shapes.",
+    "backgrounds": "Layered hills, trees, clouds, houses, mountains and colorful paper landscapes.",
+    "lighting": "Soft directional light creating subtle shadows between paper layers.",
+    "composition": "Distinct depth planes with foreground, middle ground and background paper layers.",
+    "bestFor": [
+      "Children's stories",
+      "Craft storytelling",
+      "Educational animations",
+      "Nature stories",
+      "Fairy tales"
+    ],
+    "instructions": "Create a handcrafted paper cutout illustration. Every object should look constructed from separate colored paper pieces with visible edges, overlapping layers and soft cast shadows.",
+    "promptModifier": "Render as handcrafted layered paper-cut illustration with overlapping colored paper shapes, visible cut edges, tactile cardstock textures, subtle paper fibers and soft cast shadows. Create distinct foreground, middle-ground and background layers with a charming handmade collage aesthetic.",
+    "negativePrompt": "Photorealism, smooth 3D plastic, digital vector gradients, painted brush strokes, metallic materials.",
+    "negativeModifier": "Photorealism, glossy plastic surfaces, metallic materials, smooth 3D modeling, realistic skin textures.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/paperCutout.jpg",
+    "preview": "/styles/paperCutout-preview.jpg"
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "id": "ukiyoe",
+  "label": "Ukiyo-e",
+  "family": "worldHeritage",
+  "engine": "remotion-scene",
+  "summary": "Woodblock print: rolling Prussian-blue waves, red sun, cartouche",
+  "origin": "Edo-period Japan (17th–19th century woodblock prints)",
+  "history": "Mass-produced woodblock prints of landscapes, kabuki and daily life; Prussian blue arrived in the 1820s and defined the great wave prints.",
+  "look": "Rolling Prussian-blue waves with claw-like foam, a red sun, flat colour areas, bold key lines and visible paper grain, with a cartouche for the title.",
+  "mood": [
+    "bold",
+    "poetic",
+    "seasonal",
+    "classic"
+  ],
+  "bestFor": [
+    "Travel",
+    "Oceans and seasons",
+    "Japanese themes",
+    "Calm but bold storytelling"
+  ],
+  "avoidFor": [
+    "Indian folk tales",
+    "Tech explainers"
+  ],
+  "palette": [
+    {
+      "hex": "#1F2A44",
+      "name": "Prussian blue",
+      "role": "deep water, title"
+    },
+    {
+      "hex": "#5C7FA6",
+      "name": "Wave blue",
+      "role": "mid water"
+    },
+    {
+      "hex": "#C8452F",
+      "name": "Vermilion sun",
+      "role": "sun, seal"
+    },
+    {
+      "hex": "#E0B07A",
+      "name": "Ochre sky",
+      "role": "sky band"
+    },
+    {
+      "hex": "#F3E6CC",
+      "name": "Washi paper",
+      "role": "background, banner"
+    },
+    {
+      "hex": "#B23A2B",
+      "name": "Cartouche red",
+      "role": "banner border"
+    }
+  ],
+  "line": {
+    "weight": "Medium key line",
+    "colour": "Dark grey-blue",
+    "quality": "Carved — even with sharp ends"
+  },
+  "fill": "Flat colour blocks with bokashi (graded) bands",
+  "shading": "Bokashi gradient in sky and water only",
+  "texture": "Washi paper and woodgrain",
+  "characters": {
+    "proportions": "Elongated, small heads",
+    "faces": "Fine lines, narrow eyes",
+    "poses": "Travelling, rowing, under umbrellas",
+    "costume": "Patterned kimono"
+  },
+  "environment": {
+    "motifs": [
+      "great wave",
+      "Mount Fuji",
+      "red sun",
+      "pine",
+      "boats",
+      "cherry blossom"
+    ],
+    "settings": [
+      "sea",
+      "mountain road",
+      "bridge",
+      "village"
+    ],
+    "sky": "Ochre-to-cream bokashi band",
+    "ground": "Sea or road"
+  },
+  "border": "Thin frame with a red title cartouche",
+  "composition": {
+    "focalPoint": "A dramatic diagonal (wave or slope) with a small subject",
+    "framing": "Landscape, high horizon",
+    "negativeSpace": "Sky band",
+    "depth": "Layered flat planes",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "\"Yu Mincho\", \"Hiragino Mincho ProN\", \"Palatino Linotype\", Georgia, serif",
+    "titleColour": "#1F2A44",
+    "titleStroke": null,
+    "titleShadow": null,
+    "uppercase": false,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#F3E6CC",
+    "text": "#1F2A44",
+    "border": "#B23A2B"
+  },
+  "motion": {
+    "feel": "Rolling waves, slow parallax",
+    "pace": "slow",
+    "textReveals": [
+      "textFade",
+      "lineReveal",
+      "wordReveal"
+    ],
+    "camera": [
+      "panLeft",
+      "slowZoom",
+      "pushIn"
+    ],
+    "transitions": [
+      "wipeTransition",
+      "dipToColour",
+      "blindsTransition"
+    ],
+    "atmosphere": [
+      "snowFx",
+      "rainFx",
+      "filmGrain"
+    ],
+    "spriteMotion": [
+      "bob",
+      "sway",
+      "float"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "sepia(0.35) saturate(0.85) contrast(1.1) drop-shadow(2px 0 0 #2B2B2B) drop-shadow(-2px 0 0 #2B2B2B) drop-shadow(0 2px 0 #2B2B2B) drop-shadow(0 -2px 0 #2B2B2B)",
+    "spriteBlend": null,
+    "backgroundFilter": "sepia(0.45) saturate(0.8) contrast(1.05)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "ukiyo-e",
+      "Japanese woodblock print",
+      "Prussian blue waves",
+      "red sun",
+      "washi paper",
+      "bokashi"
+    ],
+    "negative": [
+      "3D",
+      "neon",
+      "photorealistic"
+    ]
+  },
+  "dos": [
+    "Use strong diagonals",
+    "Keep colour flat with graded skies",
+    "Put the title in a cartouche"
+  ],
+  "donts": [
+    "Soft airbrushed shading",
+    "Modern neon accents"
+  ],
+  "generation": {
+    "sourceId": "ukiyo_e",
+    "category": "japanese_woodblock",
+    "description": "Traditional Japanese woodblock-print-inspired artwork featuring bold outlines, stylized landscapes and decorative flat colors.",
+    "visualIdentity": "Classical Japanese ukiyo-e printmaking aesthetic.",
+    "colourPalette": {
+      "approach": "Traditional woodblock colors",
+      "saturation": "Medium",
+      "contrast": "Strong",
+      "colors": [
+        "Indigo",
+        "Prussian blue",
+        "Muted red",
+        "Cream",
+        "Ochre",
+        "Charcoal"
+      ]
+    },
+    "linework": "Strong flowing contours, controlled outlines and decorative patterned details.",
+    "textures": "Woodblock print grain, handmade paper fibers and subtle ink imperfections.",
+    "characters": "Stylized traditional Japanese figures, expressive poses and simplified facial details.",
+    "backgrounds": "Mount Fuji, ocean waves, Japanese villages, bridges, cherry blossoms and mountain landscapes.",
+    "lighting": "Flat graphic lighting with atmospheric natural elements.",
+    "composition": "Layered landscape compositions, strong silhouettes, decorative framing and asymmetrical balance.",
+    "bestFor": [
+      "Historical Japanese stories",
+      "Nature",
+      "Folklore",
+      "Adventure",
+      "Cultural storytelling"
+    ],
+    "instructions": "Create a traditional Japanese ukiyo-e woodblock-print-inspired illustration using bold flowing outlines, flat natural pigments, stylized waves and mountains, and visible handmade print textures.",
+    "promptModifier": "Render as traditional Japanese Ukiyo-e woodblock print artwork with bold flowing outlines, flat natural pigments, stylized organic shapes, decorative patterns, textured handmade paper, controlled color blocking and classical Japanese printmaking aesthetics.",
+    "negativePrompt": "Photorealism, 3D rendering, modern anime appearance, glossy gradients, western comic style, excessive soft shadows.",
+    "negativeModifier": "Photorealism, glossy 3D rendering, modern anime appearance, smooth digital gradients, western comic style.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/ukiyoe.jpg",
+    "preview": "/styles/ukiyoe-preview.jpg"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "auto",
+  "label": "AI Picks",
+  "family": "meta",
+  "engine": "picker",
+  "generation": {
+    "sourceId": "ai_picks",
+    "category": "automatic",
+    "description": "Automatically selects the most suitable visual art style based on the story, characters, environment, mood and target audience.",
+    "visualIdentity": "Adaptive artistic direction with professional composition and visually appealing storytelling.",
+    "colourPalette": {
+      "approach": "Dynamic",
+      "saturation": "Context dependent",
+      "contrast": "Optimized for readability",
+      "colors": [
+        "Adaptive",
+        "Harmonious",
+        "Story driven"
+      ]
+    },
+    "linework": "Automatically selects suitable outlines, edges and detailing.",
+    "textures": "Automatically selects painting, illustration or digital rendering textures.",
+    "characters": "Characters must maintain consistent facial features, clothing, proportions and appearance throughout the story.",
+    "backgrounds": "Selects environments that complement the story and character design.",
+    "lighting": "Automatically adapts to the scene mood and environment.",
+    "composition": "Cinematic storytelling composition with clear subject hierarchy.",
+    "bestFor": [
+      "General storytelling",
+      "Mixed genres",
+      "Educational videos",
+      "Fantasy stories"
+    ],
+    "instructions": "Analyze the complete scene description and select an appropriate visual art direction. Maintain visual consistency across all scenes.",
+    "promptModifier": "Choose the most visually appropriate professional illustration style for the subject and context. Create a cohesive, polished image with balanced colors, strong composition, clear visual hierarchy and suitable artistic rendering. Preserve the original subject and scene.",
+    "negativePrompt": "Inconsistent characters, conflicting art styles, poor composition, random colors, distorted anatomy.",
+    "negativeModifier": "Inconsistent visual style, poor composition, distorted subjects, visual clutter.",
+    "sdHint": null,
+    "sdNegative": null
+  }
+}

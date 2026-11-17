@@ -67,3 +67,32 @@
   background-image: linear-gradient(90deg, #B5E2DD, #D8CCE8, #F4C7D6, #FBDFCB, #B5E2DD);
   background-size: 200% 100%;
 }
+
+/* ---------------------------------------------------------------- docs pages (src/docs/DocsView.tsx) */
+.doc-prose { color: #d4d4d8; font-size: 15px; line-height: 1.7; }
+.doc-prose > * + * { margin-top: 1rem; }
+.doc-prose h2 { margin-top: 2.5rem; font-size: 1.45rem; font-weight: 600; color: #fff; letter-spacing: -0.01em; scroll-margin-top: 1.5rem; }
+.doc-prose h3 { margin-top: 1.75rem; font-size: 1.1rem; font-weight: 600; color: #fff; scroll-margin-top: 1.5rem; }
+.doc-prose h2, .doc-prose h3 { position: relative; }
+.doc-prose .doc-anchor { position: absolute; left: -1.1em; opacity: 0; color: var(--color-accent); text-decoration: none; }
+.doc-prose h2:hover .doc-anchor, .doc-prose h3:hover .doc-anchor { opacity: 1; }
+.doc-prose a { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgb(181 226 221 / 0.35); }
+.doc-prose a:hover { text-decoration-color: var(--color-accent); }
+.doc-prose strong { color: #fff; font-weight: 600; }
+.doc-prose ul, .doc-prose ol { padding-left: 1.4rem; }
+.doc-prose ul { list-style: disc; }
+.doc-prose ol { list-style: decimal; }
+.doc-prose li + li { margin-top: 0.35rem; }
+.doc-prose li::marker { color: #71717a; }
+.doc-prose code { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 0.86em; background: #18181b; border: 1px solid #27272a; border-radius: 5px; padding: 0.1em 0.35em; color: #e4e4e7; }
+.doc-prose pre { position: relative; background: #0c0c0e; border: 1px solid #27272a; border-radius: 10px; padding: 0.9rem 1rem; overflow-x: auto; }
+.doc-prose pre code { background: none; border: 0; padding: 0; font-size: 13px; line-height: 1.6; }
+.doc-prose .doc-copy { position: absolute; top: 0.5rem; right: 0.5rem; font-size: 11px; padding: 0.15rem 0.5rem; border-radius: 5px; border: 1px solid #3f3f46; background: #18181b; color: #a1a1aa; cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.doc-prose pre:hover .doc-copy, .doc-prose .doc-copy:focus { opacity: 1; }
+.doc-prose table { width: 100%; border-collapse: collapse; font-size: 13.5px; display: block; overflow-x: auto; }
+.doc-prose th { text-align: left; color: #fff; font-weight: 600; background: #0c0c0e; }
+.doc-prose th, .doc-prose td { border: 1px solid #27272a; padding: 0.45rem 0.7rem; vertical-align: top; }
+.doc-prose blockquote { border-left: 3px solid #3f3f46; background: #0c0c0e; border-radius: 0 8px 8px 0; padding: 0.7rem 1rem; color: #d4d4d8; }
+.doc-prose blockquote.doc-tip, .doc-prose blockquote.doc-note { border-left-color: var(--color-accent); }
+.doc-prose blockquote.doc-licence, .doc-prose blockquote.doc-warning { border-left-color: #F4C7D6; }
+.doc-prose hr { border-color: #27272a; margin: 2rem 0; }

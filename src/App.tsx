@@ -9,17 +9,18 @@ import { HomeView } from './components/HomeView.tsx';
 // The Remotion editor is loaded only when opened, keeping Home and Clip light
 const ScriptView = lazy(() => import('./editor/ScriptView.tsx').then((m) => ({ default: m.ScriptView })));
 const EditorView = lazy(() => import('./editor/EditorView.tsx').then((m) => ({ default: m.EditorView })));
+const DocsView = lazy(() => import('./docs/DocsView.tsx').then((m) => ({ default: m.DocsView })));
 import { createEdit, listEdits, type EditSummary } from './editor/api.ts';
 import type { AppTab, ClipLengthPreset, ClipProject, EngineStatus, JobProgress } from './types.ts';
 import { postJson, withProgress } from './utils/api.ts';
 
 /** URL hash ↔ screen, so a reload (or server restart) returns to the same place: #/script, #/edit/<id>, … */
-const TAB_HASH: Record<AppTab, string> = { home: 'home', studio: 'clip', script: 'script', editor: 'edit', library: 'library', architecture: 'how' };
+const TAB_HASH: Record<AppTab, string> = { home: 'home', studio: 'clip', script: 'script', editor: 'edit', library: 'library', architecture: 'how', docs: 'docs' };
 
-function readHash(): { tab: AppTab; editId: string | null } {
+function readHash(): { tab: AppTab; editId: string | null; docSlug: string | null } {
   const [, seg, id] = window.location.hash.replace(/^#/, '').split('/');
   const tab = (Object.keys(TAB_HASH) as AppTab[]).find((t) => TAB_HASH[t] === seg) ?? 'home';
-  return { tab, editId: tab === 'editor' && id ? decodeURIComponent(id) : null };
+  return { tab, editId: tab === 'editor' && id ? decodeURIComponent(id) : null, docSlug: tab === 'docs' && id ? decodeURIComponent(id) : null };
 }
 
 export default function App() {
@@ -37,12 +38,14 @@ export default function App() {
   const [engines, setEngines] = useState<EngineStatus | null>(null);
   const [edits, setEdits] = useState<EditSummary[]>([]);
   const [activeEditId, setActiveEditId] = useState<string | null>(initial.editId);
+  const [docSlug, setDocSlug] = useState<string | null>(initial.docSlug);
 
   // keep the URL in sync with the screen …
   useEffect(() => {
-    const want = `#/${TAB_HASH[activeTab]}${activeTab === 'editor' && activeEditId ? `/${encodeURIComponent(activeEditId)}` : ''}`;
+    const sub = activeTab === 'editor' && activeEditId ? activeEditId : activeTab === 'docs' && docSlug ? docSlug : null;
+    const want = `#/${TAB_HASH[activeTab]}${sub ? `/${encodeURIComponent(sub)}` : ''}`;
     if (window.location.hash !== want) window.history.replaceState(null, '', want);
-  }, [activeTab, activeEditId]);
+  }, [activeTab, activeEditId, docSlug]);
 
   // … and follow manual URL changes
   useEffect(() => {
@@ -50,6 +53,7 @@ export default function App() {
       const h = readHash();
       setActiveTab(h.tab);
       if (h.tab === 'editor') setActiveEditId(h.editId);
+      if (h.tab === 'docs') setDocSlug(h.docSlug);
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -303,6 +307,11 @@ export default function App() {
       )}
 
       {activeTab === 'architecture' && <ArchitectureView />}
+      {activeTab === 'docs' && (
+        <Suspense fallback={<div className="flex-1 bg-black" />}>
+          <DocsView slug={docSlug} onNavigate={setDocSlug} />
+        </Suspense>
+      )}
       </motion.div>
       </AnimatePresence>
     </div>

@@ -2,7 +2,7 @@ export type AspectRatio = '9:16' | '1:1' | '16:9';
 export type Framing = 'fill' | 'fit';
 export type CaptionStyle = 'off' | 'clean' | 'highlight' | 'karaoke' | 'pop';
 export type ClipLengthPreset = 'auto' | 'short' | 'medium' | 'long';
-export type AppTab = 'home' | 'studio' | 'script' | 'editor' | 'library' | 'architecture';
+export type AppTab = 'home' | 'studio' | 'script' | 'editor' | 'library' | 'architecture' | 'docs';
 
 export interface WordTiming {
   text: string;
@@ -31,6 +31,11 @@ export interface EngineStatus {
   hyperframes: boolean;
   tts: boolean;
   voices: Array<{ id: string; label: string; language: string; gender: string }>;
+  /** local Stable Diffusion (ComfyUI) running with a checkpoint */
+  sd?: boolean;
+  sdRunning?: boolean;
+  sdModel?: string | null;
+  sdUrl?: string;
 }
 
 export interface JobProgress {

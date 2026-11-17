@@ -117,11 +117,18 @@ const clamp = (n: unknown, lo: number, hi: number, d: number) => {
 /** Only allow media URLs we serve ourselves (no remote fetches during render). */
 function safeSrc(src: unknown): string | null {
   const s = String(src ?? '');
-  if (/^\/media\/(uploads|exports)\/[^/\\]+$/.test(s)) return s;
+  if (/^\/media\/(uploads|exports|generated)\/[^/\\]+$/.test(s)) return s; // generated = Stable Diffusion paintings
   // asset library PNG / SVG / Lottie JSON (sub-folders allowed, no traversal)
   if (/^\/media\/assets\/[A-Za-z0-9%._\-/]+\.(png|svg|json)$/i.test(s) && !s.includes('..')) return s;
   return null;
 }
+
+/** Optional media playback fields: speed (0.25–4×) and audio fades in seconds. */
+const mediaExtras = (raw: Record<string, unknown>) => ({
+  ...(raw.speed !== undefined && Number(raw.speed) !== 1 ? { speed: clamp(raw.speed, 0.25, 4, 1) } : {}),
+  ...(Number(raw.fadeIn) > 0 ? { fadeIn: round(clamp(raw.fadeIn, 0, 60, 0)) } : {}),
+  ...(Number(raw.fadeOut) > 0 ? { fadeOut: round(clamp(raw.fadeOut, 0, 60, 0)) } : {}),
+});
 
 const MOTIONS = ['none', 'pop', 'walkIn', 'walkOut', 'walkAcross', 'bob', 'sway', 'float', 'fly', 'breathe', 'slideUp', 'kenBurns'];
 
@@ -160,12 +167,13 @@ export function sanitiseItem(raw: Record<string, unknown>): EditItem | null {
         zoom: clamp(raw.zoom, 1, 3, 1),
         panX: clamp(raw.panX, 0, 100, 50),
         panY: clamp(raw.panY, 0, 100, 50),
+        ...mediaExtras(raw),
       };
     }
     case 'audio': {
       const src = safeSrc(raw.src);
       if (!src) return null;
-      return { ...base, kind: 'audio', src, sourceStart: round(clamp(raw.sourceStart, 0, 360000, 0)), volume: clamp(raw.volume, 0, 2, 1) };
+      return { ...base, kind: 'audio', src, sourceStart: round(clamp(raw.sourceStart, 0, 360000, 0)), volume: clamp(raw.volume, 0, 2, 1), ...mediaExtras(raw) };
     }
     case 'image': {
       const src = safeSrc(raw.src);

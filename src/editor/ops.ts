@@ -50,7 +50,7 @@ export function splitItem(item: EditItem, t: number): [EditItem, EditItem] | nul
   if (local <= 0.05 || local >= item.duration - 0.05) return null;
   const a = { ...item, duration: r2(local) } as EditItem;
   const b = { ...item, id: uid('s'), from: r2(t), duration: r2(item.duration - local) } as EditItem;
-  if (b.kind === 'video' || b.kind === 'audio') b.sourceStart = r2(b.sourceStart + local);
+  if (b.kind === 'video' || b.kind === 'audio') b.sourceStart = r2(b.sourceStart + local * (b.speed || 1));
   if (a.kind === 'captions' && b.kind === 'captions') {
     a.words = a.words.filter((w) => w.start < local);
     b.words = item.kind === 'captions' ? item.words.filter((w) => w.start >= local).map((w) => ({ ...w, start: r2(w.start - local), end: r2(w.end - local) })) : [];

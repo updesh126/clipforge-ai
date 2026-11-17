@@ -1,0 +1,43 @@
+{
+  "id": "mix",
+  "label": "Mix All",
+  "family": "meta",
+  "engine": "picker",
+  "generation": {
+    "sourceId": "mix_all",
+    "category": "mixed_media",
+    "description": "Combines multiple compatible artistic techniques into one creative visual composition.",
+    "visualIdentity": "A controlled combination of illustration, painting, textures, graphic design and mixed media.",
+    "colourPalette": {
+      "approach": "Expressive and varied",
+      "saturation": "Medium to high",
+      "contrast": "Dynamic",
+      "colors": [
+        "Warm orange",
+        "Deep blue",
+        "Golden yellow",
+        "Vibrant pink",
+        "Natural green"
+      ]
+    },
+    "linework": "Combination of clean digital outlines, hand-drawn marks and painterly edges.",
+    "textures": "Layered paper, watercolor, digital paint, grain, brush strokes and collage textures.",
+    "characters": "Characters use one consistent primary design language while allowing mixed-media surface treatments.",
+    "backgrounds": "Can combine painted landscapes, geometric elements, photographic-inspired textures and illustrated environments.",
+    "lighting": "Expressive lighting with layered highlights and shadows.",
+    "composition": "Collage-inspired compositions with multiple visual layers and balanced focal points.",
+    "bestFor": [
+      "Experimental storytelling",
+      "Music videos",
+      "Creative shorts",
+      "Fantasy",
+      "Promotional visuals"
+    ],
+    "instructions": "Blend two or more compatible artistic techniques while preserving a coherent visual identity. Avoid making characters look disconnected from their environment.",
+    "promptModifier": "Render using a sophisticated mixed-media art aesthetic combining compatible illustration techniques, painterly textures, layered materials, graphic elements and artistic surface details. Blend techniques harmoniously while maintaining visual coherence and preserving the original subject.",
+    "negativePrompt": "Unintentional style clashes, messy collage, excessive textures, inconsistent character rendering, visual clutter.",
+    "negativeModifier": "Chaotic collage, conflicting artistic styles, random textures, excessive visual noise.",
+    "sdHint": null,
+    "sdNegative": null
+  }
+}

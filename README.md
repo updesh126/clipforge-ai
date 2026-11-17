@@ -3,9 +3,15 @@
 Free, open-source, local-first AI video clipper **and timeline editor** — an offline alternative to Vizard, Wayin and Opus Clip.
 Pick a long video, get ranked vertical clips with captions. Everything runs on your own computer: no cloud, no API keys, no watermark, no file size limit.
 
+> 📖 **Full documentation is built in:** run the app and open **Docs** in the top bar (`http://localhost:3000/#/docs`).
+> Pages live in [`docs/site/`](docs/site/) — getting started, script → video, art styles, Stable Diffusion setup, editor, shortcuts, export, settings, API reference and FAQ.
+
 ---
 
 ## Features
+
+- **AI painting (optional)** — paint every story scene with local **Stable Diffusion** (SDXL via ComfyUI) in any of the 14 art styles, with the same characters and seed in every scene. One-script setup: `scripts/setup-comfyui.ps1`. See [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md)
+- **Art-style specs** — one detailed JSON per style in [`src/artstyles/`](src/artstyles/) (palette, line, texture, characters, composition, motion, prompt modifiers and negative prompts), rebuilt with `npm run artstyles`
 
 - **Motion graphics library** — 200 explainer effects and 30 sequences (typography, charts, maps, annotations, layouts, timelines, diagrams, transitions…), all editable in the Inspector and pickable by the local AI. See [docs/MOTION_LIBRARY.md](docs/MOTION_LIBRARY.md)
 - **Procedural vector engine** — story characters and places are drawn at runtime as SVG, with no stock images and no GPU. The same characters appear in every scene with real poses and expressions, in four themes (storybook, cartoon, flat vector, hand-drawn). See [docs/VECTOR_ENGINE.md](docs/VECTOR_ENGINE.md)
@@ -45,7 +51,9 @@ Steps:
 - **Edit with AI** — tell your local Ollama model what to change ("add a stat when they say 85 percent"); it reads the transcript and edits the timeline. Every AI change can be undone
 - **Auto-edit a clip** — "Open in editor" on any AI clip builds the edit for you: footage, karaoke captions, hook banner, zoom punches, progress bar and end card
 - **Your own media** — add videos, music and images from disk (used in place)
-- **Local render** — Remotion renders a 1080p H.264 MP4 with your audio into `data/exports/`
+- **Motion & Effects library** — click a card to preview it, press **+** (or double-click) to add it at the playhead. Effects are grouped into Camera, Transitions, Particles and Light & film
+- **Speed and audio fades** — play video or audio at 0.25×–4× and fade the sound in and out (Inspector)
+- **Local render** — Remotion renders into `data/exports/`: **MP4** (H.264), **WebM** (VP9), **GIF**, or a **PNG still** of the playhead frame, at High, Standard or Draft (half-size) quality
 
 > **Licence note:** Remotion is free for individuals, non-profits and for-profit companies with up to 3 people. Larger for-profit teams need a [Remotion company licence](https://www.remotion.dev/docs/license). The clipping side (FFmpeg + HyperFrames) has no such limit.
 - **High quality** — 1080p exports (1080×1920 for 9:16), H.264 CRF 17, 256 kbps audio
@@ -111,6 +119,12 @@ npm run setup
 
 `npm install` also installs **HyperFrames** (motion captions, hook titles, intro cards). It renders with your installed Chrome, or downloads a headless Chrome the first time. Needs Node.js 22 or newer.
 
+**Optional — AI painting (Stable Diffusion).** Needs an NVIDIA GPU with 8 GB+ VRAM (12 GB recommended). On Windows, one script downloads ComfyUI and the SDXL base model (~9 GB) — it needs 7-Zip:
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup-comfyui.ps1
+```
+Then start ComfyUI with `run_nvidia_gpu.bat` and choose **Illustration → AI painting** on the Script page. Full guide: [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md).
+
 **Optional — natural AI voices.** Voice intros use your system voice by default. For Kokoro voices, install Python 3 and run:
 ```bash
 pip install kokoro-onnx soundfile
@@ -167,6 +181,9 @@ Copy `.env.example` to `.env` and change what you need:
 | `CLIPFORGE_DATA_DIR` | `./data` | Keep projects, models and exports on another drive |
 | `OLLAMA_EDIT_MODEL` | `OLLAMA_MODEL` | Model for *Edit with AI*. 4B+ models work much better: `qwen3.5:4b`, `qwen2.5:7b` |
 | `WHISPER_BIN` | `whisper-cli` | Full path to `whisper-cli` if it isn't on PATH |
+| `SD_URL` | `http://127.0.0.1:8188` | ComfyUI address for AI painting |
+| `SD_CHECKPOINT` | first SDXL model | Checkpoint file name as ComfyUI lists it |
+| `SD_STEPS` / `SD_CFG` | `28` / `6` | Use `6` / `2` for Lightning or Turbo models |
 
 **Low-spec PC?** Use `WHISPER_MODEL=tiny` and `OLLAMA_MODEL=qwen2.5:1.5b`.
 **No Ollama?** ClipForge still works — a built-in scorer picks clips automatically.
@@ -187,6 +204,7 @@ Copy `.env.example` to `.env` and change what you need:
 | Voice intro sounds robotic | That's the system voice — install Kokoro: `pip install kokoro-onnx soundfile` |
 | *Edit with AI* ignores what I asked | Small models struggle — set `OLLAMA_EDIT_MODEL=qwen3.5:4b` (or bigger) in `.env`. Name the exact words spoken ("when they say …") |
 | First editor render is slow | Remotion bundles the graphics and fetches headless Chrome once; later renders are faster |
+| *AI painting* says Stable Diffusion is not running | Start ComfyUI (`run_nvidia_gpu.bat`) and keep its window open — see [Stable Diffusion setup](docs/site/stable-diffusion.md) |
 | Tool installed but setup still says ✘ | Fixed automatically on Windows (the latest PATH is read at start). Otherwise open a new terminal |
 
 ---
@@ -206,7 +224,7 @@ your video (used in place)
                                FFmpeg mixes original audio + voice ─▶ 1080p MP4 + SRT
 ```
 
-All data stays in `./data` (uploads, exports, models, `projects.json`). Full design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+All data stays in `./data` (uploads, exports, models, AI paintings in `generated/`, `projects.json`). Full design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Sources & credits
 

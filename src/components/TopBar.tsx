@@ -75,6 +75,7 @@ export function TopBar({ activeTab, engines, onRefreshEngines, onSelectTab, onNe
     { id: 'editor', label: 'Edit' },
     { id: 'library', label: 'Library' },
     { id: 'architecture', label: 'How it works' },
+    { id: 'docs', label: 'Docs' },
   ];
 
   return (

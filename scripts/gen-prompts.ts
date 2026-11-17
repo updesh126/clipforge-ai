@@ -8,9 +8,10 @@ import path from 'node:path';
 import { RECIPES } from '../src/assetkit/catalog.ts';
 import type { AnimalSpec, AssetSpec, BackgroundSpec, BirdSpec, BuildingSpec, FishSpec, ObjectSpec, PersonSpec, TreeSpec } from '../src/assetkit/types.ts';
 import { CATEGORY_OF } from '../src/assetkit/types.ts';
+import { buildNegativePrompt, styleGeneration } from '../src/artstyles/prompt.ts';
 
 // ---------------------------------------------------------------- style prompts
-const STYLES: Array<{ id: string; label: string; prompt: string; palette: string; avoid: string }> = [
+const BASE_STYLES: Array<{ id: string; label: string; prompt: string; palette: string; avoid: string }> = [
   {
     id: 'flat',
     label: 'Flat colour (default)',
@@ -89,6 +90,15 @@ const STYLES: Array<{ id: string; label: string; prompt: string; palette: string
     avoid: 'western perspective, harsh shadows, photorealism',
   },
 ];
+
+/** Enrich each style with the art direction in src/artstyles (prompt modifier + negative list). */
+const STYLES = BASE_STYLES.map((st) => {
+  const specId = st.id === 'flat' ? 'flatVector' : st.id;
+  const g = styleGeneration(specId);
+  if (!g) return st;
+  const modifier = g.promptModifier.replace(/^Render (as|in|using) /i, '').replace(/\.$/, '');
+  return { ...st, prompt: `${st.prompt}, ${modifier}`, avoid: `${st.avoid}, ${buildNegativePrompt(specId)}` };
+});
 
 // ---------------------------------------------------------------- spec → English
 const colour = (hex?: string): string => {

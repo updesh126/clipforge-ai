@@ -1,0 +1,64 @@
+{
+  "styleSystem": {
+    "version": "1.0",
+    "type": "universal_art_style_presets",
+    "purpose": "Apply a selected visual art style to any user prompt without changing its semantic meaning.",
+    "application": {
+      "mode": "style_injection",
+      "preserve_original_prompt": true,
+      "preserve_subject": true,
+      "preserve_actions": true,
+      "preserve_environment": true,
+      "preserve_composition_intent": true,
+      "preserve_character_identity": true,
+      "style_strength": 0.85,
+      "instruction": "Transform only the visual rendering, artistic treatment, materials, textures, colors, lighting and linework according to the selected art style. Do not change the objects, people, characters, actions, locations or meaning described in the original prompt."
+    }
+  },
+  "globalGenerationRules": {
+    "character_consistency": {
+      "enabled": true,
+      "rules": [
+        "Maintain identical facial features across all scenes.",
+        "Maintain consistent hairstyle, clothing and accessories.",
+        "Preserve body proportions and character age.",
+        "Do not randomly change character colors.",
+        "Use the same character reference for every generated scene."
+      ]
+    },
+    "environment_consistency": {
+      "enabled": true,
+      "rules": [
+        "Maintain consistent architecture and landscape design.",
+        "Preserve the time of day unless the story changes it.",
+        "Maintain visual continuity between connected scenes.",
+        "Keep background details consistent when revisiting a location."
+      ]
+    },
+    "composition_rules": [
+      "One clear primary subject per scene.",
+      "Avoid unnecessary visual clutter.",
+      "Use readable foreground, middle ground and background separation.",
+      "Ensure characters are fully visible when required.",
+      "Keep important story actions visually clear."
+    ],
+    "output_quality": {
+      "aspect_ratio": "16:9",
+      "resolution": "1920x1080",
+      "format": "PNG",
+      "quality": "High",
+      "text_in_image": false
+    }
+  },
+  "outputRules": {
+    "preserve_prompt_meaning": true,
+    "preserve_scene_objects": true,
+    "preserve_character_count": true,
+    "preserve_actions": true,
+    "preserve_requested_camera_angle": true,
+    "preserve_requested_aspect_ratio": true,
+    "apply_style_consistently": true,
+    "do_not_add_unrequested_objects": true,
+    "do_not_generate_text_unless_requested": true
+  }
+}

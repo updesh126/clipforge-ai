@@ -22,6 +22,9 @@ export interface VideoItem extends BaseItem {
   previewSrc?: string; // lighter proxy for the in-browser player
   sourceStart: number; // trim: seconds into the source file
   volume: number; // 0-2
+  speed?: number; // playback rate 0.25-4 (1 = normal)
+  fadeIn?: number; // audio fade-in (s)
+  fadeOut?: number; // audio fade-out (s)
   fit: 'cover' | 'contain';
   zoom: number; // 1-3
   panX: number; // 0-100
@@ -33,6 +36,9 @@ export interface AudioItem extends BaseItem {
   src: string;
   sourceStart: number;
   volume: number;
+  speed?: number; // playback rate 0.25-4
+  fadeIn?: number; // s
+  fadeOut?: number; // s
 }
 
 export interface ImageItem extends BaseItem {

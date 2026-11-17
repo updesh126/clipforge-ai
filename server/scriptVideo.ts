@@ -17,6 +17,9 @@ import { UPLOADS_DIR } from './store.ts';
 import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
+import { generateImage, sdSize, sdStatus, stylisedScene } from './imagegen.ts';
+import type { CharacterSpec } from '../src/vector/character.ts';
+import type { EffectId } from '../src/editor/types.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
 import { isTheme } from '../src/vector/theme.ts';
 import { languageOf } from './tts.ts';
@@ -54,6 +57,8 @@ export interface ScriptVideoOptions {
   language?: 'en' | 'hi'; // voice-over language (auto-detected from Devanagari when omitted)
   captions?: CaptionLook | 'off';
   mode?: 'story' | 'graphics'; // story = changing places + animated characters; graphics = art backdrops + infographics
+  /** story mode: 'ai' paints each scene with local Stable Diffusion (ComfyUI); 'vector' draws it procedurally (default) */
+  illustration?: 'vector' | 'ai';
 }
 
 interface ScenePlan {
@@ -322,6 +327,28 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
 
 const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blueprint', 'stainedGlass']);
 
+/** One Stable Diffusion painting for a scene, with a slow Ken Burns drift and the planned camera move. */
+async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string) => void): Promise<EditItem[]> {
+  const [width, height] = sdSize(aspect);
+  // people named in the narration (or the only character a "she / he" can mean) always appear, and come first
+  const actors = plan.actors.map((a) => a.name);
+  const has = (n: string) => actors.some((a) => a.toLowerCase() === n.toLowerCase());
+  for (const c of [...cast].reverse()) {
+    const named = new RegExp(`\\b${c.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text);
+    const pronoun = cast.length === 1 && /\b(she|he|her|his|him)\b/i.test(text);
+    if ((named || pronoun) && !has(c.name)) actors.unshift(c.name);
+    else if (named && has(c.name)) actors.sort((a, b) => Number(b.toLowerCase() === c.name.toLowerCase()) - Number(a.toLowerCase() === c.name.toLowerCase()));
+  }
+  const { prompt, negative } = stylisedScene({ place: plan.place, time: plan.time, actors, narration: text, mood: plan.mood }, style, cast);
+  onProgress(plan.place);
+  const img = await generateImage({ prompt, negative, width, height, seed, onProgress });
+  const items: EditItem[] = [
+    { id: newId('ai'), kind: 'image', name: `Painting · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: img.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 1, motion: 'kenBurns' },
+  ];
+  if (plan.camera !== 'none') items.push({ id: newId('cam'), kind: 'effect', name: `Camera · ${plan.camera}`, track: 1, from: round(from), duration: round(dur), effect: plan.camera as EffectId, intensity: 0.6 });
+  return items;
+}
+
 export async function scriptToVideo(opts: ScriptVideoOptions, progress: ProgressFn): Promise<EditProject> {
   const scenes = splitScenes(opts.script || '');
   if (!scenes.length) throw new Error('The script is empty.');
@@ -339,13 +366,23 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
   if (mode === 'story') {
     progress('plan', 'Storyboarding places, characters and camera moves', 5);
     story = (await llmStory(scenes)) ?? heuristicStory(scenes);
-    // procedural themes: fix every person's identity once (face, hair, clothes) before drawing any scene
-    if (isTheme(opts.style)) {
+    // procedural themes and AI paintings: fix every person's identity once (face, hair, clothes) before drawing any scene
+    if (isTheme(opts.style) || opts.illustration === 'ai') {
       progress('plan', 'Casting characters (same look in every scene)', 7);
       await planStorySpecs(opts.script);
     }
   }
   const frame = { width: FRAME_SIZES[aspect][0], height: FRAME_SIZES[aspect][1] };
+
+  // AI illustration: one painted frame per scene from local Stable Diffusion, same cast + seed for consistency
+  let aiCast: CharacterSpec[] | null = null;
+  const aiSeed = Math.floor(Math.random() * 2 ** 31);
+  if (mode === 'story' && opts.illustration === 'ai') {
+    const st = await sdStatus(true);
+    if (!st.running) throw new Error('AI illustration needs Stable Diffusion: start ComfyUI (see docs → Stable Diffusion setup), or switch Illustration to "Vector".');
+    if (!st.checkpoint) throw new Error('ComfyUI is running but has no checkpoint. Put an SDXL model in ComfyUI/models/checkpoints and restart ComfyUI.');
+    aiCast = (await planStorySpecs(opts.script)).characters.map((c) => c.spec);
+  }
 
   const stamp = Date.now();
   const items: EditItem[] = [];
@@ -383,7 +420,8 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
 
     if (mode === 'story') {
       progress('assets', `Drawing scene ${i + 1}: ${story[i].place}`, 8 + (80 * (i + 0.7)) / plans.length);
-      items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));
+      if (aiCast) items.push(...(await paintedScene(story[i], plan.text, sceneStart, sceneDur, style, aspect, aiCast, aiSeed, (m) => progress('assets', `Painting scene ${i + 1} of ${plans.length}: ${m}`, 8 + (80 * (i + 0.75)) / plans.length))));
+      else items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));
       items.push(...storyGraphic(story[i], plan.text, sceneStart, sceneDur, style, i));
       if (i > 0) items.push(transitionAt(sceneStart, i));
     } else {

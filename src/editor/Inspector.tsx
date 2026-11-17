@@ -184,6 +184,9 @@ export function Inspector({ item, onChange, onDelete, onDuplicate, onSplit }: Pr
           <Row label="Pan ↔"><Slider value={item.panX} min={0} max={100} step={1} onChange={(v) => set({ panX: v }, false)} onCommit={() => set({})} /></Row>
           <Row label="Pan ↕"><Slider value={item.panY} min={0} max={100} step={1} onChange={(v) => set({ panY: v }, false)} onCommit={() => set({})} /></Row>
           <Row label="Volume"><Slider value={item.volume} min={0} max={2} step={0.05} onChange={(v) => set({ volume: v }, false)} onCommit={() => set({})} /></Row>
+          <Row label="Speed"><Slider value={item.speed ?? 1} min={0.25} max={4} step={0.05} onChange={(v) => set({ speed: v }, false)} onCommit={() => set({})} /></Row>
+          <Row label="Fade in (s)"><Num value={item.fadeIn ?? 0} min={0} onChange={(v) => set({ fadeIn: Math.max(0, v) })} /></Row>
+          <Row label="Fade out (s)"><Num value={item.fadeOut ?? 0} min={0} onChange={(v) => set({ fadeOut: Math.max(0, v) })} /></Row>
           <Row label="Source in (s)"><Num value={item.sourceStart} min={0} onChange={(v) => set({ sourceStart: Math.max(0, v) })} /></Row>
         </div>
       )}
@@ -191,6 +194,9 @@ export function Inspector({ item, onChange, onDelete, onDuplicate, onSplit }: Pr
       {item.kind === 'audio' && (
         <div className="space-y-1.5 rounded-lg border border-zinc-900 p-2.5">
           <Row label="Volume"><Slider value={item.volume} min={0} max={2} step={0.05} onChange={(v) => set({ volume: v }, false)} onCommit={() => set({})} /></Row>
+          <Row label="Speed"><Slider value={item.speed ?? 1} min={0.25} max={4} step={0.05} onChange={(v) => set({ speed: v }, false)} onCommit={() => set({})} /></Row>
+          <Row label="Fade in (s)"><Num value={item.fadeIn ?? 0} min={0} onChange={(v) => set({ fadeIn: Math.max(0, v) })} /></Row>
+          <Row label="Fade out (s)"><Num value={item.fadeOut ?? 0} min={0} onChange={(v) => set({ fadeOut: Math.max(0, v) })} /></Row>
           <Row label="Source in (s)"><Num value={item.sourceStart} min={0} onChange={(v) => set({ sourceStart: Math.max(0, v) })} /></Row>
         </div>
       )}

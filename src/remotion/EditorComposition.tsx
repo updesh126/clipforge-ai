@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, cancelRender, continueRender, delayRender, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Lottie, type LottieAnimationData } from '@remotion/lottie';
-import type { CaptionsItem, CompositionProps, EditItem, EffectItem, ImageItem, VideoItem } from '../editor/types.ts';
+import type { AudioItem, CaptionsItem, CompositionProps, EditItem, EffectItem, ImageItem, VideoItem } from '../editor/types.ts';
 import { TEMPLATE_COMPONENTS } from './templates.tsx';
 import { styleLook } from './artStyles.tsx';
 
@@ -83,14 +83,31 @@ function useEffects(effects: EffectItem[]): Camera {
   return { scale, dx, dy, black, white, blur, iris };
 }
 
+/** Volume as a function of the frame: base level with optional linear fade in / fade out (Remotion volume curve). */
+function volumeCurve(base: number, fadeIn: number | undefined, fadeOut: number | undefined, durFrames: number, fps: number) {
+  const v = Math.max(0, Math.min(2, base));
+  const fi = Math.max(0, (fadeIn ?? 0) * fps);
+  const fo = Math.max(0, (fadeOut ?? 0) * fps);
+  if (!fi && !fo) return v;
+  return (f: number) => {
+    let k = 1;
+    if (fi) k = Math.min(k, f / fi);
+    if (fo) k = Math.min(k, (durFrames - f) / fo);
+    return v * Math.max(0, Math.min(1, k));
+  };
+}
+
+const rate = (speed: number | undefined) => Math.max(0.25, Math.min(4, speed || 1));
+
 function VideoLayer({ item, base, preview }: { item: VideoItem; base: string; preview: boolean }) {
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
   const src = url(base, preview && item.previewSrc ? item.previewSrc : item.src);
   const objectPosition = `${item.panX}% ${item.panY}%`;
   const common = {
     src,
     trimBefore: Math.round(item.sourceStart * fps),
-    volume: Math.max(0, Math.min(2, item.volume)),
+    volume: volumeCurve(item.volume, item.fadeIn, item.fadeOut, durationInFrames, fps),
+    playbackRate: rate(item.speed),
   };
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
@@ -331,9 +348,9 @@ function Captions({ item }: { item: CaptionsItem }) {
   );
 }
 
-function AudioLayer({ src, sourceStart, volume }: { src: string; sourceStart: number; volume: number }) {
-  const { fps } = useVideoConfig();
-  return <Audio src={src} trimBefore={Math.round(sourceStart * fps)} volume={Math.max(0, Math.min(2, volume))} />;
+function AudioLayer({ item, src }: { item: AudioItem; src: string }) {
+  const { fps, durationInFrames } = useVideoConfig();
+  return <Audio src={src} trimBefore={Math.round(item.sourceStart * fps)} volume={volumeCurve(item.volume, item.fadeIn, item.fadeOut, durationInFrames, fps)} playbackRate={rate(item.speed)} />;
 }
 
 function ItemLayer({ item, base, preview }: { item: EditItem; base: string; preview: boolean }) {
@@ -343,7 +360,7 @@ function ItemLayer({ item, base, preview }: { item: EditItem; base: string; prev
     case 'image':
       return <ImageLayer item={item} base={base} />;
     case 'audio':
-      return <AudioLayer src={url(base, item.src)} sourceStart={item.sourceStart} volume={item.volume} />;
+      return <AudioLayer item={item} src={url(base, item.src)} />;
     case 'captions':
       return <Captions item={item} />;
     case 'text': {

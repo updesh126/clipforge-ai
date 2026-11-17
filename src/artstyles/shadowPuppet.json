@@ -1,0 +1,201 @@
+{
+  "id": "shadowPuppet",
+  "label": "Shadow puppet",
+  "family": "worldHeritage",
+  "engine": "remotion-scene",
+  "summary": "Backlit screen with perforated leather puppets on sticks",
+  "origin": "Tholu Bommalata (Andhra Pradesh, India) and Wayang kulit (Java, Indonesia)",
+  "history": "Leather puppets perforated with patterns, held on sticks behind a cloth screen lit by an oil lamp, telling the epics through the night.",
+  "look": "Perforated black puppets on sticks against a warm, flickering lamp-lit screen with a glowing orange edge.",
+  "mood": [
+    "dramatic",
+    "mysterious",
+    "ancient",
+    "theatrical"
+  ],
+  "bestFor": [
+    "Myths and legends",
+    "Epics (Ramayana, Mahabharata)",
+    "History",
+    "Dramatic storytelling"
+  ],
+  "avoidFor": [
+    "Bright cheerful kids content",
+    "Product demos"
+  ],
+  "palette": [
+    {
+      "hex": "#1B0E05",
+      "name": "Puppet black",
+      "role": "silhouettes, title"
+    },
+    {
+      "hex": "#5A230A",
+      "name": "Burnt umber",
+      "role": "screen edges, vignette"
+    },
+    {
+      "hex": "#FFB347",
+      "name": "Lamp orange",
+      "role": "screen glow, banner border"
+    },
+    {
+      "hex": "#FFE2A8",
+      "name": "Lamp core",
+      "role": "screen centre"
+    }
+  ],
+  "line": {
+    "weight": "None — silhouettes",
+    "colour": "n/a",
+    "quality": "Crisp edges with lace-like perforations"
+  },
+  "fill": "Solid near-black with punched-out patterns",
+  "shading": "Back-light only: hot centre, dark edges",
+  "texture": "Cloth screen with a lamp flicker",
+  "characters": {
+    "proportions": "Elongated, jointed limbs, profile heads with crowns",
+    "faces": "Profile, perforated eye",
+    "poses": "Theatrical: raised arm, bow, battle stance",
+    "costume": "Ornate crowns and jewellery shown as cut-outs"
+  },
+  "environment": {
+    "motifs": [
+      "palace arches",
+      "trees of life",
+      "chariots",
+      "mountains",
+      "weapons"
+    ],
+    "settings": [
+      "royal court",
+      "forest",
+      "battlefield"
+    ],
+    "sky": "The glowing screen itself",
+    "ground": "Dark lower edge of the screen"
+  },
+  "border": "Dark wooden screen frame, glowing orange inner edge",
+  "composition": {
+    "focalPoint": "Puppets in profile facing each other",
+    "framing": "Stage-like, title at the top",
+    "negativeSpace": "Glowing screen around the silhouettes",
+    "depth": "Flat, except puppets closer to the cloth are sharper",
+    "titlePosition": "top"
+  },
+  "typography": {
+    "fontStack": "\"Palatino Linotype\", Palatino, Georgia, serif",
+    "titleColour": "#1B0E05",
+    "titleStroke": null,
+    "titleShadow": "0 0 30px rgba(255,190,90,.6)",
+    "uppercase": true,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#2A1408",
+    "text": "#FFC46B",
+    "border": "#FF9A3C"
+  },
+  "motion": {
+    "feel": "Jointed, slightly jerky puppetry with lamp flicker",
+    "pace": "medium",
+    "textReveals": [
+      "trackingExpand",
+      "textFade",
+      "chapterCard"
+    ],
+    "camera": [
+      "slowZoom",
+      "shake",
+      "pushIn"
+    ],
+    "transitions": [
+      "dipToColour",
+      "irisTransition",
+      "shutterTransition"
+    ],
+    "atmosphere": [
+      "embers",
+      "glowPulse",
+      "vignette",
+      "lightLeak"
+    ],
+    "spriteMotion": [
+      "sway",
+      "walkAcross",
+      "bob"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "brightness(0.18) sepia(0.7) saturate(2) drop-shadow(0 0 6px rgba(255,150,40,.55))",
+    "spriteBlend": null,
+    "backgroundFilter": "sepia(0.8) saturate(1.6) hue-rotate(-15deg) contrast(1.1) brightness(0.85)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "shadow puppet theatre",
+      "wayang kulit",
+      "Tholu Bommalata",
+      "silhouette",
+      "perforated leather",
+      "oil-lamp glow"
+    ],
+    "negative": [
+      "colourful characters",
+      "faces in detail",
+      "daylight"
+    ]
+  },
+  "dos": [
+    "Keep characters as silhouettes",
+    "Add a subtle lamp flicker",
+    "Place titles at the top"
+  ],
+  "donts": [
+    "Coloured characters",
+    "Cool or blue light",
+    "Bright white backgrounds"
+  ],
+  "generation": {
+    "sourceId": "shadow_puppet",
+    "category": "silhouette_theatre",
+    "description": "Theatrical storytelling using cutout silhouettes, dramatic backlighting and layered shadows.",
+    "visualIdentity": "Traditional shadow theatre with handcrafted puppet silhouettes.",
+    "colourPalette": {
+      "approach": "Dark silhouettes against warm illuminated backgrounds",
+      "saturation": "Low to medium",
+      "contrast": "Very high",
+      "colors": [
+        "Black",
+        "Dark brown",
+        "Amber",
+        "Golden yellow",
+        "Burnt orange"
+      ]
+    },
+    "linework": "Sharp silhouette contours with decorative cutout patterns.",
+    "textures": "Translucent parchment, handmade leather, paper and subtle theatre-screen textures.",
+    "characters": "Black silhouette figures with distinctive profiles, articulated limbs and decorative puppet shapes.",
+    "backgrounds": "Illuminated theatre screens, palace interiors, forests, villages and stylized landscapes.",
+    "lighting": "Strong backlighting with glowing amber and golden illumination.",
+    "composition": "Layered silhouettes with clear separation between foreground, characters and background.",
+    "bestFor": [
+      "Folklore",
+      "Indian mythology",
+      "Historical tales",
+      "Traditional storytelling",
+      "Dramatic scenes"
+    ],
+    "instructions": "Create a shadow puppet theatre scene with handcrafted black character silhouettes, warm amber backlighting, intricate puppet cutouts and layered theatrical scenery.",
+    "promptModifier": "Render as traditional shadow puppet theatre artwork with handcrafted black silhouettes, decorative cutout patterns, articulated puppet-like figures, warm amber backlighting, glowing golden backgrounds and layered theatrical shadows. Keep silhouettes clearly recognizable and visually separated.",
+    "negativePrompt": "Full-color realistic characters, 3D plastic objects, photographic faces, soft character gradients, modern comic rendering.",
+    "negativeModifier": "Photorealistic faces, full-color realistic characters, glossy 3D objects, complex natural skin textures, soft indistinct silhouettes.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/shadowPuppet.jpg",
+    "preview": "/styles/shadowPuppet-preview.jpg"
+  }
+}

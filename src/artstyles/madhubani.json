@@ -1,0 +1,212 @@
+{
+  "id": "madhubani",
+  "label": "Madhubani",
+  "family": "indianFolk",
+  "engine": "remotion-scene",
+  "summary": "Bihar folk art: bold double outlines, hatching, fish and sun motifs",
+  "origin": "Mithila region, Bihar (India) and Nepal",
+  "history": "Painted for centuries by women of Mithila on walls and floors for weddings and festivals; later on paper and cloth. Recognised with a GI tag.",
+  "look": "Bold double outlines, every shape packed with fine hatching, no empty space; fish, sun, peacock and lotus motifs in natural pigment colours.",
+  "mood": [
+    "festive",
+    "rich",
+    "auspicious",
+    "traditional"
+  ],
+  "bestFor": [
+    "Indian culture and festivals",
+    "Folk tales",
+    "Rural life and weddings",
+    "Heritage and craft brands"
+  ],
+  "avoidFor": [
+    "Tech and corporate explainers",
+    "Data-heavy content"
+  ],
+  "palette": [
+    {
+      "hex": "#C1272D",
+      "name": "Sindoor red",
+      "role": "border, accents, main fills"
+    },
+    {
+      "hex": "#F4B400",
+      "name": "Turmeric",
+      "role": "sun, highlights"
+    },
+    {
+      "hex": "#2E7D32",
+      "name": "Leaf green",
+      "role": "foliage, fish"
+    },
+    {
+      "hex": "#1F4E9E",
+      "name": "Indigo",
+      "role": "water, secondary fills"
+    },
+    {
+      "hex": "#F6E7C1",
+      "name": "Handmade paper",
+      "role": "background, banner"
+    },
+    {
+      "hex": "#1A1A1A",
+      "name": "Lamp black",
+      "role": "outlines, hatching, title"
+    }
+  ],
+  "line": {
+    "weight": "Bold double lines",
+    "colour": "Lamp black",
+    "quality": "Steady, deliberate; inner line parallel to the outer"
+  },
+  "fill": "Fine parallel hatching, cross-hatching and dots inside every shape",
+  "shading": "None — pattern replaces shading",
+  "texture": "Handmade paper",
+  "characters": {
+    "proportions": "Stylised, large almond eyes in profile, long noses",
+    "faces": "Profile view with one large fish-shaped eye",
+    "poses": "Formal, frontal or profile; ceremonial gestures",
+    "costume": "Patterned saris and dhotis filled with hatching"
+  },
+  "environment": {
+    "motifs": [
+      "fish pairs",
+      "sun with a face",
+      "peacock",
+      "lotus",
+      "tree of life",
+      "bamboo"
+    ],
+    "settings": [
+      "wedding courtyard",
+      "pond",
+      "village",
+      "temple"
+    ],
+    "sky": "Not drawn — paper filled with motifs",
+    "ground": "Not drawn — figures float in patterned space"
+  },
+  "border": "Double-line border filled with repeating geometric or floral pattern, drawn on progressively",
+  "composition": {
+    "focalPoint": "Central motif or couple, symmetrical",
+    "framing": "Full frame bordered on all four sides",
+    "negativeSpace": "Almost none (horror vacui)",
+    "depth": "Flat — no perspective",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "\"Palatino Linotype\", Palatino, Georgia, serif",
+    "titleColour": "#1A1A1A",
+    "titleStroke": null,
+    "titleShadow": null,
+    "uppercase": true,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#F6E7C1",
+    "text": "#1A1A1A",
+    "border": "#C1272D"
+  },
+  "motion": {
+    "feel": "Lines drawing on, gentle swimming and swaying",
+    "pace": "medium",
+    "textReveals": [
+      "wordReveal",
+      "trackingExpand",
+      "chapterCard"
+    ],
+    "camera": [
+      "slowZoom",
+      "pushIn"
+    ],
+    "transitions": [
+      "wipeTransition",
+      "irisTransition",
+      "radialWipe"
+    ],
+    "atmosphere": [
+      "dustParticles",
+      "glowPulse"
+    ],
+    "spriteMotion": [
+      "sway",
+      "float",
+      "bob"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(1.5) contrast(1.25) drop-shadow(3px 0 0 #1A1A1A) drop-shadow(-3px 0 0 #1A1A1A) drop-shadow(0 3px 0 #1A1A1A) drop-shadow(0 -3px 0 #1A1A1A)",
+    "spriteBlend": null,
+    "backgroundFilter": "sepia(0.35) saturate(1.3) contrast(1.1)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "Madhubani painting",
+      "Mithila art",
+      "double outlines",
+      "fine hatching",
+      "fish motif",
+      "natural pigments"
+    ],
+    "negative": [
+      "3D",
+      "gradients",
+      "photorealistic",
+      "empty background"
+    ]
+  },
+  "dos": [
+    "Fill negative space with motifs",
+    "Draw the border on first",
+    "Use uppercase serif titles"
+  ],
+  "donts": [
+    "Gradients or soft shading",
+    "Perspective or vanishing points",
+    "Neon colours"
+  ],
+  "generation": {
+    "sourceId": "madhubani",
+    "category": "indian_folk_art",
+    "description": "Traditional Mithila folk painting characterized by intricate patterns, decorative borders and symbolic Indian motifs.",
+    "visualIdentity": "Traditional Indian folk painting with dense ornamental detailing and flat decorative compositions.",
+    "colourPalette": {
+      "approach": "Rich traditional colors",
+      "saturation": "High",
+      "contrast": "Strong",
+      "colors": [
+        "Vermilion red",
+        "Turmeric yellow",
+        "Leaf green",
+        "Indigo",
+        "Black",
+        "White"
+      ]
+    },
+    "linework": "Bold black outlines, double-line borders, repetitive patterns and intricate decorative detailing.",
+    "textures": "Hand-painted pigment appearance with patterned fills, dots, fine lines and traditional motifs.",
+    "characters": "Stylized figures with large expressive eyes, decorative clothing, patterned bodies and traditional ornaments.",
+    "backgrounds": "Filled with flowers, leaves, fish, birds, trees, suns, geometric patterns and ornamental borders.",
+    "lighting": "Flat decorative treatment without realistic lighting or dimensional shadows.",
+    "composition": "Dense symmetrical or balanced compositions with little empty space and intricate borders.",
+    "bestFor": [
+      "Indian folklore",
+      "Cultural stories",
+      "Mythology",
+      "Traditional festivals",
+      "Indian heritage"
+    ],
+    "instructions": "Create an authentic Madhubani-inspired Mithila folk painting with intricate hand-drawn black outlines, decorative patterns, symbolic motifs and rich flat colors. Use traditional visual vocabulary and ornamental borders.",
+    "promptModifier": "Render in traditional Madhubani Mithila folk painting style with intricate black outlines, double-line borders, decorative patterns, repetitive motifs, flat vibrant pigments and densely patterned surfaces. Incorporate traditional floral, botanical and geometric ornamentation appropriate to the subject. Use authentic folk-art visual language.",
+    "negativePrompt": "3D realism, photographic lighting, western comic style, glossy gradients, empty minimal backgrounds, modern vector aesthetics.",
+    "negativeModifier": "Photorealism, 3D lighting, glossy gradients, western cartoon aesthetics, minimalist vector styling, modern digital painting.",
+    "sdHint": "vivid vermilion red, turmeric yellow, leaf green and indigo blue colours filling every shape, cream handmade paper",
+    "sdNegative": "monochrome, greyscale, pencil sketch, desaturated"
+  },
+  "previews": {
+    "thumbnail": "/styles/madhubani.jpg",
+    "preview": "/styles/madhubani-preview.jpg"
+  }
+}

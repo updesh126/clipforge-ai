@@ -1,0 +1,219 @@
+{
+  "id": "cartoon",
+  "label": "Cartoon",
+  "family": "vector",
+  "engine": "vector-theme",
+  "summary": "Thick black outlines, saturated colour, cel shading, big expressive eyes",
+  "origin": "ClipForge procedural vector engine",
+  "history": "Modern TV-cartoon look: bold ink outlines, cel shading and exaggerated expressions.",
+  "look": "Thick near-black outlines, saturated colour, two-tone cel shading and big expressive eyes — characters act out each scene.",
+  "mood": [
+    "playful",
+    "loud",
+    "energetic",
+    "funny"
+  ],
+  "bestFor": [
+    "Kids content",
+    "Comedy and sketches",
+    "Energetic explainers",
+    "Social shorts that need punch"
+  ],
+  "avoidFor": [
+    "Sombre or sensitive topics",
+    "Luxury and heritage brands"
+  ],
+  "palette": [
+    {
+      "hex": "#FFE14D",
+      "name": "Sunny yellow",
+      "role": "title fill, banners, highlights"
+    },
+    {
+      "hex": "#FF6B6B",
+      "name": "Coral red",
+      "role": "accents, props, emphasis"
+    },
+    {
+      "hex": "#4ECDC4",
+      "name": "Aqua",
+      "role": "sky, cool fills"
+    },
+    {
+      "hex": "#1D1B1F",
+      "name": "Ink",
+      "role": "outlines, title stroke"
+    },
+    {
+      "hex": "#A06CD5",
+      "name": "Grape",
+      "role": "secondary accent, shadows"
+    }
+  ],
+  "line": {
+    "weight": "Very thick (1.15 × unit)",
+    "colour": "#1D1B1F ink",
+    "quality": "Clean, confident, no wobble"
+  },
+  "fill": "Saturated flat fills, pushed slightly brighter",
+  "shading": "Cel shading — one hard-edged shadow tone",
+  "texture": "None — clean digital",
+  "characters": {
+    "proportions": "Very large heads (≈1.25×), squash-and-stretch bodies",
+    "faces": "Big cartoon eyes with large pupils, open expressive mouths, blush",
+    "poses": "Exaggerated: jump, shock, cheer, point, facepalm",
+    "costume": "Bold single colours with ink outlines"
+  },
+  "environment": {
+    "motifs": [
+      "puffy clouds",
+      "bold sun",
+      "simple houses",
+      "speech bubbles",
+      "impact stars"
+    ],
+    "settings": [
+      "city street",
+      "school",
+      "park",
+      "kitchen",
+      "stage"
+    ],
+    "sky": "Bright aqua with puffy clouds",
+    "ground": "Flat grass or pavement band"
+  },
+  "border": "Thick ink rounded rectangle",
+  "composition": {
+    "focalPoint": "Character face, big and central",
+    "framing": "Close-ups for reactions, wide for action",
+    "negativeSpace": "Top band for an outlined title",
+    "depth": "Two to three layers, strong foreground props",
+    "titlePosition": "top"
+  },
+  "typography": {
+    "fontStack": "\"Arial Black\", \"Segoe UI Black\", Impact, sans-serif",
+    "titleColour": "#FFE14D",
+    "titleStroke": "#1D1B1F",
+    "titleShadow": null,
+    "uppercase": true,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#FFE14D",
+    "text": "#1D1B1F",
+    "border": "#1D1B1F"
+  },
+  "motion": {
+    "feel": "Snappy, springy, overshooting",
+    "pace": "fast",
+    "textReveals": [
+      "textPop",
+      "kineticTypography",
+      "oversizedHeadline"
+    ],
+    "camera": [
+      "zoomPunch",
+      "shake",
+      "whipPan"
+    ],
+    "transitions": [
+      "irisTransition",
+      "wipeTransition",
+      "splitTransition"
+    ],
+    "atmosphere": [
+      "confetti",
+      "sparks",
+      "glowPulse"
+    ],
+    "spriteMotion": [
+      "pop",
+      "bob",
+      "walkAcross",
+      "slideUp"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(1.35) contrast(1.15) drop-shadow(4px 0 0 #1D1B1F) drop-shadow(-4px 0 0 #1D1B1F) drop-shadow(0 4px 0 #1D1B1F) drop-shadow(0 -4px 0 #1D1B1F)",
+    "spriteBlend": null,
+    "backgroundFilter": "saturate(1.3) contrast(1.1)"
+  },
+  "vectorTheme": {
+    "outline": 1.15,
+    "outlineColour": "#1D1B1F",
+    "jitter": 0,
+    "sketch": false,
+    "tension": 0.55,
+    "shading": "cel",
+    "texture": "none",
+    "eyes": "cartoon",
+    "headScale": 1.25,
+    "blush": true
+  },
+  "prompt": {
+    "keywords": [
+      "cartoon",
+      "thick black outlines",
+      "cel shading",
+      "saturated colours",
+      "big expressive eyes"
+    ],
+    "negative": [
+      "photorealistic",
+      "muted palette",
+      "watercolour"
+    ]
+  },
+  "dos": [
+    "Punch in on reactions",
+    "Outline every title in ink",
+    "Use squash-and-stretch entrances"
+  ],
+  "donts": [
+    "Thin or grey outlines",
+    "Slow, solemn pacing",
+    "Soft gradients"
+  ],
+  "generation": {
+    "sourceId": "cartoon",
+    "category": "2d_cartoon",
+    "description": "Bold, playful cartoon illustrations with exaggerated expressions and vibrant colors.",
+    "visualIdentity": "Classic modern 2D animated cartoon aesthetic.",
+    "colourPalette": {
+      "approach": "Bright and vibrant",
+      "saturation": "High",
+      "contrast": "Strong",
+      "colors": [
+        "Bright red",
+        "Royal blue",
+        "Lemon yellow",
+        "Orange",
+        "Green",
+        "Purple"
+      ]
+    },
+    "linework": "Bold, clean, dark outlines with smooth curves.",
+    "textures": "Mostly smooth digital coloring with minimal texture and subtle gradients.",
+    "characters": "Exaggerated facial expressions, large eyes, expressive mouths, simplified anatomy and distinctive silhouettes.",
+    "backgrounds": "Stylized cities, colorful homes, forests, parks and simplified cartoon environments.",
+    "lighting": "Bright and even lighting with simple shadows.",
+    "composition": "Dynamic poses, clear silhouettes, expressive close-ups and readable action.",
+    "bestFor": [
+      "Comedy",
+      "Funny stories",
+      "Adventure",
+      "Kids animation",
+      "Character-driven shorts"
+    ],
+    "instructions": "Generate a high-quality 2D cartoon illustration with bold outlines, vibrant flat colors and exaggerated but consistent character expressions. Use clear silhouettes and playful poses.",
+    "promptModifier": "Render as a high-quality 2D cartoon illustration with bold clean outlines, exaggerated expressive features, simplified anatomy, vibrant saturated colors, smooth digital shading and playful visual shapes. Use strong silhouettes, energetic poses and clear readable forms.",
+    "negativePrompt": "Photorealism, realistic skin pores, complex painterly textures, thin inconsistent outlines, muted colors, anatomical distortion.",
+    "negativeModifier": "Photorealism, realistic skin pores, muddy colors, inconsistent outlines, overly complex textures, 3D plastic appearance.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/cartoon.jpg",
+    "preview": "/styles/cartoon-preview.jpg"
+  }
+}

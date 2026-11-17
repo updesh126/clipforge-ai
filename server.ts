@@ -41,6 +41,8 @@ import { ENV_KINDS, normaliseEnv, type EnvSpec } from './src/vector/environment.
 import { isTheme, THEME_IDS, type ThemeId } from './src/vector/theme.ts';
 import type { EditProject } from './src/editor/types.ts';
 import { refreshWindowsPath } from './scripts/win-path.mjs';
+import { GENERATED_DIR, generateImage, sdSize, sdStatus } from './server/imagegen.ts';
+import { buildNegativePrompt, buildSdPrompt } from './src/artstyles/prompt.ts';
 
 refreshWindowsPath(); // pick up tools installed after this terminal was opened (winget etc.)
 
@@ -87,6 +89,7 @@ async function previewUrlFor(
 // Serve local uploaded videos and watermark-free exported clips with range support (via express.static)
 app.use('/media/uploads', express.static(UPLOADS_DIR));
 app.use('/media/exports', express.static(EXPORTS_DIR));
+app.use('/media/generated', express.static(GENERATED_DIR)); // Stable Diffusion paintings (cache)
 ensureAssetDirs();
 app.use('/media/assets', express.static(ASSETS_DIR));
 
@@ -112,7 +115,25 @@ const upload = multer({
 
 // Local engine health (ffmpeg / whisper.cpp / Ollama)
 app.get('/api/health', async (_req, res) => {
-  res.json(await getEngineStatus());
+  const [engines, sd] = await Promise.all([getEngineStatus(), sdStatus()]);
+  res.json({ ...engines, sd: sd.running && Boolean(sd.checkpoint), sdRunning: sd.running, sdModel: sd.checkpoint, sdUrl: sd.url });
+});
+
+// Stable Diffusion: status, and a one-off test painting in an art style (used by the docs / setup check)
+app.get('/api/sd/status', async (_req, res) => {
+  res.json(await sdStatus(true));
+});
+app.post('/api/sd/test', async (req, res) => {
+  const b = (req.body ?? {}) as Record<string, string>;
+  const style = String(b.style || 'storybook');
+  const scene = String(b.prompt || 'a child and a dog walking along a village path under a big tree').slice(0, 400);
+  try {
+    const [width, height] = sdSize(String(b.aspect || '16:9'));
+    const img = await generateImage({ prompt: buildSdPrompt(scene, style), negative: `${buildNegativePrompt(style)}, text, watermark, blurry`, width, height, seed: Number(b.seed) || 7 });
+    res.json(img);
+  } catch (err) {
+    res.status(503).json({ error: err instanceof Error ? err.message : 'Stable Diffusion failed.' });
+  }
 });
 
 // Live progress for a long-running analyse / export request (the browser polls this)
@@ -858,7 +879,7 @@ app.post('/api/script-video', async (req, res) => {
   }
   try {
     const edit = await scriptToVideo(
-      { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, language: b.language === 'hi' ? 'hi' : b.language === 'en' ? 'en' : undefined, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story' },
+      { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, language: b.language === 'hi' ? 'hi' : b.language === 'en' ? 'en' : undefined, captions: b.captions as never, mode: b.mode === 'graphics' ? 'graphics' : 'story', illustration: b.illustration === 'ai' ? 'ai' : 'vector' },
       progressFor(b.jobId)
     );
     finishJob(b.jobId, { editId: edit.id }); // lets a reloaded page open the result
@@ -896,7 +917,8 @@ app.post('/api/edits/:id/render', async (req, res) => {
     return;
   }
   try {
-    const out = await renderEdit(edit, PORT, progressFor(req.body?.jobId));
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    const out = await renderEdit(edit, PORT, progressFor(b.jobId as string | undefined), { format: b.format as never, quality: b.quality as never, scale: Number(b.scale) || 1, stillAt: Number(b.stillAt) || 0 });
     const record = { ...out, createdAt: new Date().toISOString() };
     const saved = saveEdit({ ...edit, exports: [record, ...(edit.exports ?? [])].slice(0, 10) });
     // the render still happens, but tell the user which of their PNGs aren't cleared for commercial use

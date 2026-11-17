@@ -1,0 +1,212 @@
+{
+  "id": "anime",
+  "label": "Anime",
+  "family": "graphic",
+  "engine": "remotion-scene",
+  "summary": "Speed lines, sparkles, sky gradient and a slam-in title",
+  "origin": "Japanese animation (anime)",
+  "history": "TV and film animation from Japan, with signature speed lines, sky gradients and dramatic title slams.",
+  "look": "Speed lines, sparkles, sky gradients and slam-in titles with heavy outlines.",
+  "mood": [
+    "hype",
+    "dramatic",
+    "youthful",
+    "emotional"
+  ],
+  "bestFor": [
+    "Youth and hype",
+    "Gaming",
+    "Launches and reveals",
+    "Sports highlights"
+  ],
+  "avoidFor": [
+    "Sombre history",
+    "Traditional Indian folk stories"
+  ],
+  "palette": [
+    {
+      "hex": "#3A7BD5",
+      "name": "Sky blue",
+      "role": "sky gradient top"
+    },
+    {
+      "hex": "#B06AB3",
+      "name": "Dusk violet",
+      "role": "sky gradient bottom"
+    },
+    {
+      "hex": "#FF8FAB",
+      "name": "Sakura pink",
+      "role": "sparkles, accents"
+    },
+    {
+      "hex": "#FFD166",
+      "name": "Gold",
+      "role": "highlights"
+    },
+    {
+      "hex": "#FF3D7F",
+      "name": "Hot pink",
+      "role": "banner"
+    },
+    {
+      "hex": "#1B1B3A",
+      "name": "Night navy",
+      "role": "title stroke"
+    }
+  ],
+  "line": {
+    "weight": "Medium, tapered",
+    "colour": "Dark navy",
+    "quality": "Clean and sharp"
+  },
+  "fill": "Cel fills with bright highlights",
+  "shading": "Hard cel shadows plus glow",
+  "texture": "None",
+  "characters": {
+    "proportions": "Slim bodies, large eyes",
+    "faces": "Large glossy eyes, small nose and mouth",
+    "poses": "Dynamic: dash, punch, look over shoulder",
+    "costume": "Uniforms, jackets, flowing hair"
+  },
+  "environment": {
+    "motifs": [
+      "speed lines",
+      "sparkles",
+      "cherry blossom",
+      "clouds",
+      "city skyline"
+    ],
+    "settings": [
+      "rooftop",
+      "school",
+      "city at dusk",
+      "stadium"
+    ],
+    "sky": "Blue-to-violet gradient",
+    "ground": "Often omitted for action frames"
+  },
+  "border": "Diagonal comic-panel frame",
+  "composition": {
+    "focalPoint": "Centre burst of speed lines",
+    "framing": "Tilted, dynamic angles",
+    "negativeSpace": "Sky gradient",
+    "depth": "Strong foreground/background split",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "Impact, \"Arial Black\", \"Helvetica Neue\", sans-serif",
+    "titleColour": "#FFFFFF",
+    "titleStroke": "#1B1B3A",
+    "titleShadow": null,
+    "uppercase": true,
+    "titleScale": 1.4
+  },
+  "banner": {
+    "background": "#FF3D7F",
+    "text": "#FFFFFF",
+    "border": "#1B1B3A"
+  },
+  "motion": {
+    "feel": "Explosive impact frames then holds",
+    "pace": "fast",
+    "textReveals": [
+      "oversizedHeadline",
+      "kineticTypography",
+      "textPop"
+    ],
+    "camera": [
+      "zoomPunch",
+      "shake",
+      "whipPan"
+    ],
+    "transitions": [
+      "lineWipe",
+      "flash",
+      "shutterTransition"
+    ],
+    "atmosphere": [
+      "sparks",
+      "lightRays",
+      "bokeh"
+    ],
+    "spriteMotion": [
+      "pop",
+      "fly",
+      "slideUp"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(1.25) contrast(1.08) brightness(1.04)",
+    "spriteBlend": null,
+    "backgroundFilter": "saturate(1.2) contrast(1.05) brightness(1.04)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "anime",
+      "speed lines",
+      "sparkles",
+      "cel shading",
+      "sky gradient",
+      "dramatic"
+    ],
+    "negative": [
+      "realistic",
+      "muted",
+      "western cartoon"
+    ]
+  },
+  "dos": [
+    "Slam titles in with a punch zoom",
+    "Use speed lines behind subjects",
+    "Flash on impacts"
+  ],
+  "donts": [
+    "Slow fades everywhere",
+    "Paper textures"
+  ],
+  "generation": {
+    "sourceId": "anime",
+    "category": "japanese_animation",
+    "description": "Japanese animation-inspired illustration with expressive characters, cinematic lighting and detailed environments.",
+    "visualIdentity": "Polished 2D Japanese anime aesthetic.",
+    "colourPalette": {
+      "approach": "Cinematic and expressive",
+      "saturation": "Medium to high",
+      "contrast": "Dynamic",
+      "colors": [
+        "Sky blue",
+        "Cherry blossom pink",
+        "Violet",
+        "Warm orange",
+        "Deep navy",
+        "Golden sunlight"
+      ]
+    },
+    "linework": "Clean controlled outlines, delicate facial details and variable line weights.",
+    "textures": "Smooth cel shading, soft painted backgrounds and subtle atmospheric effects.",
+    "characters": "Large expressive eyes, stylized hair, defined facial features and consistent anime proportions.",
+    "backgrounds": "Detailed Japanese streets, schools, countryside, fantasy cities, skies and natural environments.",
+    "lighting": "Cinematic rim lighting, dramatic sunsets, soft bloom and atmospheric illumination.",
+    "composition": "Cinematic framing, expressive close-ups, dynamic perspective and emotional character poses.",
+    "bestFor": [
+      "Adventure",
+      "Emotional stories",
+      "Fantasy",
+      "Romance",
+      "Action",
+      "Coming-of-age stories"
+    ],
+    "instructions": "Create a high-quality 2D anime illustration with expressive character faces, detailed environments, clean linework, controlled cel shading and cinematic lighting. Maintain identical character designs across scenes.",
+    "promptModifier": "Render as high-quality Japanese anime illustration with expressive eyes, stylized character anatomy, clean controlled linework, detailed hair, polished cel shading, atmospheric painted backgrounds, cinematic lighting, vibrant colors and emotional visual storytelling.",
+    "negativePrompt": "Photorealistic human faces, western flat cartoon, low-detail characters, inconsistent hairstyles, distorted eyes, plastic 3D rendering.",
+    "negativeModifier": "Photorealistic human faces, western flat cartoon aesthetics, distorted anatomy, inconsistent character features, plastic 3D rendering.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/anime.jpg",
+    "preview": "/styles/anime-preview.jpg"
+  }
+}

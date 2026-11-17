@@ -1,0 +1,47 @@
+{
+  "spec": {
+    "id": "mimi",
+    "name": "Mimi",
+    "description": "Little brown squirrel",
+    "seed": 1653342265,
+    "age": "child",
+    "gender": "neutral",
+    "build": "slim",
+    "height": 0.991057048542425,
+    "skin": "#8B4513",
+    "face": {
+      "shape": "round",
+      "eyes": "almond",
+      "eyeColor": "#4E3524",
+      "nose": "wide",
+      "freckles": true
+    },
+    "hair": {
+      "style": "bald",
+      "color": "#000000"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#D2691E",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#8B4513",
+      "shoes": "boots",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [
+      "backpack"
+    ],
+    "accessoryColor": "#E07A5F",
+    "holding": "basket"
+  },
+  "aliases": [
+    "mimi",
+    "the squirrel",
+    "the little brown squirrel"
+  ],
+  "createdAt": "2026-11-17T06:22:35.011Z",
+  "updatedAt": "2026-11-17T06:22:37.732Z"
+}

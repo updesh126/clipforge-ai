@@ -1,0 +1,198 @@
+{
+  "id": "blueprint",
+  "label": "Blueprint",
+  "family": "graphic",
+  "engine": "remotion-scene",
+  "summary": "Technical drawing on a blue grid, drawn on line by line",
+  "origin": "Engineering and architectural drawings (cyanotype prints)",
+  "history": "The cyanotype process of the 1840s made white-on-blue copies of technical drawings standard for a century.",
+  "look": "White line art drawn on a blue grid, with dimension lines, callouts and a title block.",
+  "mood": [
+    "technical",
+    "precise",
+    "clever",
+    "analytical"
+  ],
+  "bestFor": [
+    "Tech and engineering",
+    "Product breakdowns",
+    "How-it-works",
+    "Architecture"
+  ],
+  "avoidFor": [
+    "Emotional storytelling",
+    "Folk tales"
+  ],
+  "palette": [
+    {
+      "hex": "#0B3D91",
+      "name": "Blueprint blue",
+      "role": "background, banner"
+    },
+    {
+      "hex": "#5C8DD6",
+      "name": "Grid blue",
+      "role": "minor grid"
+    },
+    {
+      "hex": "#9CC3FF",
+      "name": "Pale blue",
+      "role": "major grid, banner border"
+    },
+    {
+      "hex": "#FFFFFF",
+      "name": "Chalk white",
+      "role": "linework, title"
+    }
+  ],
+  "line": {
+    "weight": "Thin, uniform",
+    "colour": "White",
+    "quality": "Ruler-straight, drawn on stroke by stroke"
+  },
+  "fill": "None — line only",
+  "shading": "None, or hatching for sections",
+  "texture": "Fine grid",
+  "characters": {
+    "proportions": "Mannequin or technical figure",
+    "faces": "None",
+    "poses": "Scale reference, standing",
+    "costume": "n/a"
+  },
+  "environment": {
+    "motifs": [
+      "grid",
+      "dimension lines",
+      "callout circles",
+      "gears",
+      "title block",
+      "compass"
+    ],
+    "settings": [
+      "drawing sheet",
+      "exploded view",
+      "floor plan"
+    ],
+    "sky": "Grid",
+    "ground": "Grid"
+  },
+  "border": "Double rule with corner marks and a title block",
+  "composition": {
+    "focalPoint": "Object centred with callouts around it",
+    "framing": "Drawing sheet with title block bottom-right",
+    "negativeSpace": "Grid around the object",
+    "depth": "Orthographic — no perspective",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "Consolas, \"SF Mono\", Menlo, monospace",
+    "titleColour": "#FFFFFF",
+    "titleStroke": null,
+    "titleShadow": null,
+    "uppercase": true,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#0B3D91",
+    "text": "#FFFFFF",
+    "border": "#9CC3FF"
+  },
+  "motion": {
+    "feel": "Lines drawing on, labels snapping in",
+    "pace": "medium",
+    "textReveals": [
+      "typewriter",
+      "textScramble",
+      "textWipeReveal"
+    ],
+    "camera": [
+      "pushIn",
+      "panLeft",
+      "pullOut"
+    ],
+    "transitions": [
+      "gridWipe",
+      "lineWipe",
+      "pixelDissolve"
+    ],
+    "atmosphere": [
+      "patternBackground",
+      "lightSweep"
+    ],
+    "spriteMotion": [
+      "slideUp",
+      "pop"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "grayscale(1) contrast(1.6) invert(1)",
+    "spriteBlend": "screen",
+    "backgroundFilter": "grayscale(1) invert(1) sepia(1) hue-rotate(180deg) saturate(2.5) brightness(0.7)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "blueprint",
+      "technical drawing",
+      "white line on blue",
+      "grid",
+      "dimension lines",
+      "cyanotype"
+    ],
+    "negative": [
+      "colour fills",
+      "organic textures",
+      "photo"
+    ]
+  },
+  "dos": [
+    "Use mono fonts for labels",
+    "Draw lines on progressively",
+    "Pair with diagrams and callouts"
+  ],
+  "donts": [
+    "Warm colours",
+    "Painterly textures"
+  ],
+  "generation": {
+    "sourceId": "blueprint",
+    "category": "technical_illustration",
+    "description": "Technical schematic artwork using precise white line drawings on deep blue engineering-style backgrounds.",
+    "visualIdentity": "Architectural, mechanical and engineering blueprint aesthetics.",
+    "colourPalette": {
+      "approach": "Monochromatic technical palette",
+      "saturation": "Low",
+      "contrast": "High",
+      "colors": [
+        "Deep blueprint blue",
+        "Navy",
+        "White",
+        "Cyan",
+        "Light blue"
+      ]
+    },
+    "linework": "Precise thin technical outlines, dimension lines, measurement marks and construction geometry.",
+    "textures": "Subtle engineering grid, technical paper grain and schematic markings.",
+    "characters": "Simplified technical silhouettes or wireframe representations when required.",
+    "backgrounds": "Architectural plans, machine diagrams, city layouts, mechanical structures and technical schematics.",
+    "lighting": "Flat technical rendering without realistic lighting.",
+    "composition": "Organized technical layouts with multiple views, labels, grids and annotations.",
+    "bestFor": [
+      "Science education",
+      "Engineering stories",
+      "Technology explainers",
+      "Inventions",
+      "Educational videos"
+    ],
+    "instructions": "Create a clean engineering blueprint illustration with precise white technical linework on a deep blue grid background. Include schematic details and measurement indicators where appropriate.",
+    "promptModifier": "Render as a technical engineering blueprint illustration with precise thin white linework, deep blueprint-blue background, subtle measurement grids, schematic outlines, dimension markings, geometric construction lines and technical drafting details. Preserve the subject's recognizable structure.",
+    "negativePrompt": "Photorealism, colorful cartoon rendering, painterly textures, unnecessary 3D lighting, messy unreadable annotations.",
+    "negativeModifier": "Photorealism, painterly textures, cartoon rendering, unnecessary 3D lighting, colorful gradients, messy technical lines.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/blueprint.jpg",
+    "preview": "/styles/blueprint-preview.jpg"
+  }
+}

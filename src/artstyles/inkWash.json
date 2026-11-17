@@ -1,0 +1,209 @@
+{
+  "id": "inkWash",
+  "label": "Ink wash",
+  "family": "worldHeritage",
+  "engine": "remotion-scene",
+  "summary": "Sumi-e brush ink on rice paper with mist and a red seal",
+  "origin": "China and Japan (shuǐmò / sumi-e)",
+  "history": "Monochrome ink painting developed in Tang-dynasty China and carried to Japan by Zen monks; prizes restraint and the empty space.",
+  "look": "Grey brush ink bleeding into rice paper, layered misty mountains, a few confident strokes and a small red seal.",
+  "mood": [
+    "calm",
+    "contemplative",
+    "misty",
+    "timeless"
+  ],
+  "bestFor": [
+    "Nature and landscapes",
+    "Calm reflection",
+    "Philosophy and poetry",
+    "Meditation and wellness"
+  ],
+  "avoidFor": [
+    "Loud promotions",
+    "Children’s comedy",
+    "Busy data"
+  ],
+  "palette": [
+    {
+      "hex": "#141414",
+      "name": "Sumi black",
+      "role": "strongest strokes, title"
+    },
+    {
+      "hex": "#5E5E5A",
+      "name": "Mid ink",
+      "role": "near mountains"
+    },
+    {
+      "hex": "#9A9A96",
+      "name": "Pale ink",
+      "role": "far mountains, mist"
+    },
+    {
+      "hex": "#EFEAE0",
+      "name": "Rice paper",
+      "role": "background"
+    },
+    {
+      "hex": "#B3261E",
+      "name": "Cinnabar seal",
+      "role": "the single colour accent"
+    }
+  ],
+  "line": {
+    "weight": "Varies with brush pressure",
+    "colour": "Ink black to pale grey",
+    "quality": "Calligraphic, tapered, one stroke each"
+  },
+  "fill": "Diluted ink washes with soft bleeding edges",
+  "shading": "Tonal — lighter as things recede (atmospheric perspective)",
+  "texture": "Rice-paper fibre",
+  "characters": {
+    "proportions": "Tiny figures dwarfed by landscape",
+    "faces": "Barely indicated",
+    "poses": "Fishing, walking, sitting in contemplation",
+    "costume": "Robes in a few strokes"
+  },
+  "environment": {
+    "motifs": [
+      "misty peaks",
+      "pine",
+      "bamboo",
+      "plum blossom",
+      "boat",
+      "crane"
+    ],
+    "settings": [
+      "mountain valley",
+      "river",
+      "bamboo grove",
+      "temple"
+    ],
+    "sky": "Empty paper",
+    "ground": "Implied by mist bands"
+  },
+  "border": "Hairline grey frame, very quiet",
+  "composition": {
+    "focalPoint": "Off-centre, often a small figure or boat",
+    "framing": "Vertical scroll-like, asymmetric",
+    "negativeSpace": "Large, deliberate empty paper (ma)",
+    "depth": "Layered mist planes, far = paler",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "\"Ink Free\", \"Segoe Print\", \"Bradley Hand\", Georgia, serif",
+    "titleColour": "#141414",
+    "titleStroke": null,
+    "titleShadow": "0 0 14px #EFEAE0, 0 0 28px #EFEAE0",
+    "uppercase": false,
+    "titleScale": 1.15
+  },
+  "banner": {
+    "background": "#EFEAE0",
+    "text": "#141414",
+    "border": "#B3261E"
+  },
+  "motion": {
+    "feel": "Breathing, slow drift of mist",
+    "pace": "slow",
+    "textReveals": [
+      "textBlurReveal",
+      "textFade",
+      "lineReveal"
+    ],
+    "camera": [
+      "slowZoom",
+      "tiltUp",
+      "panLeft"
+    ],
+    "transitions": [
+      "dipToColour",
+      "fadeIn",
+      "fadeOut"
+    ],
+    "atmosphere": [
+      "fogDrift",
+      "vignette",
+      "dustParticles"
+    ],
+    "spriteMotion": [
+      "float",
+      "breathe",
+      "sway"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "grayscale(1) contrast(1.4) brightness(1.05)",
+    "spriteBlend": "multiply",
+    "backgroundFilter": "grayscale(1) contrast(0.85) brightness(1.15) sepia(0.15)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "sumi-e",
+      "Chinese ink wash",
+      "misty mountains",
+      "rice paper",
+      "red seal",
+      "minimal"
+    ],
+    "negative": [
+      "colour",
+      "outlines",
+      "busy",
+      "digital gradient"
+    ]
+  },
+  "dos": [
+    "Leave at least a third of the frame empty",
+    "Use one red seal per frame",
+    "Fade far layers to near-paper"
+  ],
+  "donts": [
+    "More than one accent colour",
+    "Hard cuts or glitch effects",
+    "Uppercase titles"
+  ],
+  "generation": {
+    "sourceId": "ink_wash",
+    "category": "traditional_ink_painting",
+    "description": "Expressive traditional ink painting using fluid brush strokes, diluted ink and atmospheric landscapes.",
+    "visualIdentity": "Minimalist East Asian ink wash painting with poetic atmospheric depth.",
+    "colourPalette": {
+      "approach": "Monochromatic with occasional accent colors",
+      "saturation": "Very low",
+      "contrast": "Variable",
+      "colors": [
+        "Black",
+        "Charcoal",
+        "Grey",
+        "Off-white",
+        "Muted brown"
+      ]
+    },
+    "linework": "Fluid brush strokes, spontaneous marks and varying ink density.",
+    "textures": "Rice paper texture, ink bleeding, dry brush effects and watercolor-like gradients.",
+    "characters": "Simplified expressive silhouettes with minimal facial details and natural gestures.",
+    "backgrounds": "Misty mountains, bamboo forests, rivers, temples, clouds and atmospheric scenery.",
+    "lighting": "Soft diffused light with fog and atmospheric depth.",
+    "composition": "Large negative spaces, layered mountains, asymmetrical balance and delicate focal subjects.",
+    "bestFor": [
+      "Nature stories",
+      "Historical storytelling",
+      "Meditative videos",
+      "Poetry",
+      "Traditional Asian themes"
+    ],
+    "instructions": "Create an expressive ink wash painting with fluid brushwork, diluted ink, textured rice paper, atmospheric mountains and subtle tonal transitions. Use negative space intentionally.",
+    "promptModifier": "Render as traditional East Asian ink wash painting using expressive black ink brushwork, diluted grey washes, fluid strokes, soft atmospheric gradients, textured rice paper and elegant negative space. Create depth through varying ink density, mist and delicate brush techniques.",
+    "negativePrompt": "Neon colors, photorealistic textures, hard digital gradients, thick comic outlines, excessive sharp details.",
+    "negativeModifier": "Neon colors, glossy digital rendering, thick comic outlines, photorealism, hard geometric gradients, excessive sharp details.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/inkWash.jpg",
+    "preview": "/styles/inkWash-preview.jpg"
+  }
+}

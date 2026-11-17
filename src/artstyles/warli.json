@@ -1,0 +1,193 @@
+{
+  "id": "warli",
+  "label": "Warli",
+  "family": "indianFolk",
+  "engine": "remotion-scene",
+  "summary": "Maharashtra tribal art: white stick figures dancing on earth red",
+  "origin": "Warli tribe, Palghar and Thane, Maharashtra (India)",
+  "history": "Painted with rice paste on red-ochre mud walls for weddings and harvests; figures built from circles, triangles and lines. GI-tagged.",
+  "look": "White stick figures made of two triangles on earth-red — dancing circles (tarpa dance), sun, moon, village and farming life.",
+  "mood": [
+    "communal",
+    "rhythmic",
+    "earthy",
+    "simple"
+  ],
+  "bestFor": [
+    "Community and togetherness",
+    "Farming and harvest",
+    "Sustainability",
+    "Rural India"
+  ],
+  "avoidFor": [
+    "Tech products",
+    "Luxury"
+  ],
+  "palette": [
+    {
+      "hex": "#7A3B22",
+      "name": "Red ochre",
+      "role": "background, banner"
+    },
+    {
+      "hex": "#A0522D",
+      "name": "Mud brown",
+      "role": "secondary ground"
+    },
+    {
+      "hex": "#FFFFFF",
+      "name": "Rice paste white",
+      "role": "all figures, lines, title"
+    }
+  ],
+  "line": {
+    "weight": "Thin to medium",
+    "colour": "White",
+    "quality": "Simple, slightly irregular brush"
+  },
+  "fill": "Solid white for figures; background left bare",
+  "shading": "None",
+  "texture": "Mud wall",
+  "characters": {
+    "proportions": "Two triangles joined at the tip, circle head, line limbs",
+    "faces": "None — the head is a dot or circle",
+    "poses": "Dancing in a spiral, farming, carrying pots, hunting",
+    "costume": "None"
+  },
+  "environment": {
+    "motifs": [
+      "tarpa dance circle",
+      "sun and moon",
+      "trees",
+      "huts",
+      "animals",
+      "birds"
+    ],
+    "settings": [
+      "village",
+      "fields",
+      "forest"
+    ],
+    "sky": "Bare ochre",
+    "ground": "Bare ochre, sometimes a line"
+  },
+  "border": "White geometric triangles and zig-zags",
+  "composition": {
+    "focalPoint": "A central spiral of dancers or the sun",
+    "framing": "Scattered scenes across the wall",
+    "negativeSpace": "Ochre between groups",
+    "depth": "Flat",
+    "titlePosition": "top"
+  },
+  "typography": {
+    "fontStack": "\"Nirmala UI\", \"Segoe UI\", Arial, sans-serif",
+    "titleColour": "#FFFFFF",
+    "titleStroke": null,
+    "titleShadow": null,
+    "uppercase": true,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#7A3B22",
+    "text": "#FFFFFF",
+    "border": "#FFFFFF"
+  },
+  "motion": {
+    "feel": "Rhythmic loops — dancing circles rotate, figures step",
+    "pace": "medium",
+    "textReveals": [
+      "wordReveal",
+      "trackingExpand",
+      "textFade"
+    ],
+    "camera": [
+      "slowZoom",
+      "panRight"
+    ],
+    "transitions": [
+      "radialWipe",
+      "irisTransition",
+      "wipeTransition"
+    ],
+    "atmosphere": [
+      "dustParticles",
+      "vignette"
+    ],
+    "spriteMotion": [
+      "bob",
+      "walkAcross",
+      "sway"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "brightness(0) invert(1)",
+    "spriteBlend": null,
+    "backgroundFilter": "sepia(1) saturate(1.8) hue-rotate(-20deg) brightness(0.55) contrast(0.9)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "Warli painting",
+      "white stick figures",
+      "red ochre",
+      "tribal art",
+      "tarpa dance"
+    ],
+    "negative": [
+      "colour",
+      "shading",
+      "realistic anatomy"
+    ]
+  },
+  "dos": [
+    "Keep everything white on ochre",
+    "Turn library sprites into white silhouettes",
+    "Use loops for dancing"
+  ],
+  "donts": [
+    "Any third colour",
+    "Facial detail",
+    "Gradients"
+  ],
+  "generation": {
+    "sourceId": "warli",
+    "category": "indian_tribal_art",
+    "description": "Traditional Warli tribal art from Maharashtra using simple geometric human figures and white motifs on earthy backgrounds.",
+    "visualIdentity": "Minimal traditional tribal storytelling through geometric symbols and rhythmic figures.",
+    "colourPalette": {
+      "approach": "Earthy monochromatic",
+      "saturation": "Low",
+      "contrast": "High",
+      "colors": [
+        "Terracotta brown",
+        "Mud brown",
+        "White",
+        "Off-white",
+        "Natural ochre"
+      ]
+    },
+    "linework": "Thin white hand-drawn geometric lines and repetitive patterns.",
+    "textures": "Rough mud-wall texture, handmade pigment and natural surface grain.",
+    "characters": "Human figures constructed from two triangles joined at the apex, circular heads and simple geometric limbs.",
+    "backgrounds": "Trees, village huts, farming, animals, sun, moon and traditional community scenes.",
+    "lighting": "Flat graphic treatment with no realistic shading.",
+    "composition": "Rhythmic storytelling arrangements, circular dances and repeating motifs.",
+    "bestFor": [
+      "Indian folk stories",
+      "Village life",
+      "Cultural education",
+      "Nature",
+      "Community storytelling"
+    ],
+    "instructions": "Create a traditional Warli-inspired tribal artwork using simple white geometric stick figures, circular heads, triangular torsos and earthy mud-wall backgrounds. Use traditional motifs and rhythmic compositions.",
+    "promptModifier": "Render in traditional Warli tribal art style using simple white geometric human figures, circular heads, triangular torsos, thin hand-drawn lines, earthy terracotta backgrounds and traditional motifs. Represent objects and activities through simplified symbolic shapes and rhythmic folk-art compositions.",
+    "negativePrompt": "Photorealism, colorful gradients, 3D characters, realistic anatomy, modern cartoon faces, complex digital textures.",
+    "negativeModifier": "Photorealism, colorful gradients, realistic anatomy, 3D characters, modern cartoon faces, glossy digital textures.",
+    "sdHint": "white rice-paste stick figures on a solid terracotta red-brown mud wall background",
+    "sdNegative": "white background, dark figures on light background, brown figures, colourful"
+  },
+  "previews": {
+    "thumbnail": "/styles/warli.jpg",
+    "preview": "/styles/warli-preview.jpg"
+  }
+}

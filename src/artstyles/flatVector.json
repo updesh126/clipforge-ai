@@ -1,0 +1,216 @@
+{
+  "id": "flatVector",
+  "label": "Flat vector",
+  "family": "vector",
+  "engine": "vector-theme",
+  "summary": "Clean geometric explainer look, no outlines, bold flat colour",
+  "origin": "ClipForge procedural vector engine",
+  "history": "The modern corporate explainer look popularised by product and edtech videos.",
+  "look": "Clean geometric shapes, no outlines, bold flat colour and simple dot eyes — the modern explainer look.",
+  "mood": [
+    "clear",
+    "modern",
+    "confident",
+    "neutral"
+  ],
+  "bestFor": [
+    "Business and startups",
+    "Tech and how-it-works",
+    "Education",
+    "Product onboarding"
+  ],
+  "avoidFor": [
+    "Folk or heritage stories",
+    "Emotional drama"
+  ],
+  "palette": [
+    {
+      "hex": "#264653",
+      "name": "Deep teal",
+      "role": "background, banner"
+    },
+    {
+      "hex": "#2A9D8F",
+      "name": "Teal",
+      "role": "primary fills"
+    },
+    {
+      "hex": "#E9C46A",
+      "name": "Saffron",
+      "role": "accent, banner border"
+    },
+    {
+      "hex": "#F4A261",
+      "name": "Sandy orange",
+      "role": "secondary accent"
+    },
+    {
+      "hex": "#E76F51",
+      "name": "Burnt orange",
+      "role": "call-outs, warnings"
+    }
+  ],
+  "line": {
+    "weight": "None",
+    "colour": "n/a",
+    "quality": "Shapes are defined by colour alone"
+  },
+  "fill": "Flat, slightly boosted saturation",
+  "shading": "None",
+  "texture": "None",
+  "characters": {
+    "proportions": "Natural head size (1.0×), geometric limbs",
+    "faces": "Dot eyes, minimal features",
+    "poses": "Presenting, pointing, typing, walking",
+    "costume": "Solid blocks of colour"
+  },
+  "environment": {
+    "motifs": [
+      "geometric trees",
+      "office desks",
+      "screens",
+      "charts",
+      "icons"
+    ],
+    "settings": [
+      "office",
+      "city skyline",
+      "lab",
+      "classroom"
+    ],
+    "sky": "Solid or two-stop gradient",
+    "ground": "Flat colour band"
+  },
+  "border": "Thin saffron line, sharp corners",
+  "composition": {
+    "focalPoint": "Subject on a rule-of-thirds line with data or icons opposite",
+    "framing": "Wide and tidy, lots of alignment",
+    "negativeSpace": "Large clean areas for text and charts",
+    "depth": "Mostly flat; light parallax only",
+    "titlePosition": "top"
+  },
+  "typography": {
+    "fontStack": "\"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+    "titleColour": "#FFFFFF",
+    "titleStroke": null,
+    "titleShadow": "0 4px 0 rgba(0,0,0,.18)",
+    "uppercase": false,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#264653",
+    "text": "#FFFFFF",
+    "border": "#E9C46A"
+  },
+  "motion": {
+    "feel": "Precise, eased, purposeful",
+    "pace": "medium",
+    "textReveals": [
+      "wordReveal",
+      "textMaskReveal",
+      "trackingExpand"
+    ],
+    "camera": [
+      "pushIn",
+      "panLeft",
+      "panRight"
+    ],
+    "transitions": [
+      "wipeTransition",
+      "gridWipe",
+      "lineWipe"
+    ],
+    "atmosphere": [
+      "gradientMove",
+      "patternBackground"
+    ],
+    "spriteMotion": [
+      "slideUp",
+      "pop",
+      "walkIn"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(1.15) contrast(1.05)",
+    "spriteBlend": null,
+    "backgroundFilter": "saturate(1.1) contrast(1.03)"
+  },
+  "vectorTheme": {
+    "outline": 0,
+    "outlineColour": "auto",
+    "jitter": 0,
+    "sketch": false,
+    "tension": 0.42,
+    "shading": "none",
+    "texture": "none",
+    "eyes": "dot",
+    "headScale": 1,
+    "blush": false
+  },
+  "prompt": {
+    "keywords": [
+      "flat vector illustration",
+      "geometric",
+      "no outlines",
+      "corporate explainer",
+      "clean"
+    ],
+    "negative": [
+      "texture",
+      "outlines",
+      "hand-drawn",
+      "photorealistic"
+    ]
+  },
+  "dos": [
+    "Pair with charts and counters",
+    "Keep alignment strict",
+    "Use the saffron accent for one key thing per scene"
+  ],
+  "donts": [
+    "Paper grain or wobble",
+    "More than two accent colours at once"
+  ],
+  "generation": {
+    "sourceId": "flat_vector",
+    "category": "vector_illustration",
+    "description": "Clean geometric illustrations using simple shapes, solid colors and minimal details.",
+    "visualIdentity": "Modern minimal flat vector graphic design.",
+    "colourPalette": {
+      "approach": "Limited harmonious color palette",
+      "saturation": "Medium to high",
+      "contrast": "High",
+      "colors": [
+        "Blue",
+        "Yellow",
+        "Coral",
+        "Mint",
+        "White",
+        "Dark navy"
+      ]
+    },
+    "linework": "Clean geometric edges with minimal or no outlines.",
+    "textures": "Flat solid fills with very limited gradients and almost no surface texture.",
+    "characters": "Simplified geometric human figures with minimal facial details and recognizable silhouettes.",
+    "backgrounds": "Minimal buildings, geometric trees, hills, roads, clouds and simple landscapes.",
+    "lighting": "Minimal lighting with subtle directional shadows.",
+    "composition": "Balanced geometric layouts, clear spacing and simple visual hierarchy.",
+    "bestFor": [
+      "Explainer videos",
+      "Educational content",
+      "Infographics",
+      "Business storytelling",
+      "Simple animations"
+    ],
+    "instructions": "Create a clean flat vector illustration using geometric shapes, solid fills, minimal details and consistent proportions. Maintain a limited palette across scenes.",
+    "promptModifier": "Render as clean modern flat vector artwork using geometric shapes, simplified silhouettes, solid color fills, minimal details, crisp edges, balanced spacing and a limited harmonious color palette. Use minimal shadows and clean graphic design principles.",
+    "negativePrompt": "Photorealistic rendering, heavy textures, complex gradients, realistic shadows, noisy backgrounds, excessive details.",
+    "negativeModifier": "Photorealism, painterly brush strokes, heavy textures, complex gradients, excessive shadows, noisy details.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/flatVector.jpg",
+    "preview": "/styles/flatVector-preview.jpg"
+  }
+}

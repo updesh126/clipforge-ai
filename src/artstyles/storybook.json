@@ -1,0 +1,223 @@
+{
+  "id": "storybook",
+  "label": "Children's storybook",
+  "family": "vector",
+  "engine": "vector-theme",
+  "summary": "Soft gouache colours, gentle outlines, paper grain — procedurally drawn characters",
+  "origin": "ClipForge procedural vector engine",
+  "history": "Inspired by gouache-painted children's picture books: soft colour, rounded friendly shapes and visible paper.",
+  "look": "Procedurally drawn characters and places with soft gouache colours, gentle brown outlines that follow each fill, round faces with rosy cheeks and a warm paper grain over everything.",
+  "mood": [
+    "warm",
+    "gentle",
+    "cosy",
+    "innocent",
+    "hopeful"
+  ],
+  "bestFor": [
+    "Children's stories",
+    "Fables and moral stories",
+    "Bedtime tales",
+    "Gentle explainers for young viewers"
+  ],
+  "avoidFor": [
+    "Hard news",
+    "Finance and data-heavy pieces",
+    "Horror or very dark themes"
+  ],
+  "palette": [
+    {
+      "hex": "#F3E3C3",
+      "name": "Cream paper",
+      "role": "background / sky base"
+    },
+    {
+      "hex": "#E07A5F",
+      "name": "Terracotta",
+      "role": "accent, banner border, warm props"
+    },
+    {
+      "hex": "#81B29A",
+      "name": "Sage green",
+      "role": "grass, trees, calm fills"
+    },
+    {
+      "hex": "#3D405B",
+      "name": "Slate",
+      "role": "deep shadows, night scenes"
+    },
+    {
+      "hex": "#F2CC8F",
+      "name": "Honey",
+      "role": "sunlight, highlights, faces"
+    }
+  ],
+  "line": {
+    "weight": "Thin (0.55 × unit)",
+    "colour": "Auto — a darker shade of each fill, never pure black",
+    "quality": "Slight hand wobble, smooth rounded curves"
+  },
+  "fill": "Flat gouache fills, slightly desaturated and pulled towards cream",
+  "shading": "Soft gradient shading on the shadow side",
+  "texture": "Paper grain over the whole frame",
+  "characters": {
+    "proportions": "Large heads (≈1.14×), short bodies, rounded limbs",
+    "faces": "Storybook eyes with a highlight, rosy blush, small smile",
+    "poses": "Gentle, readable poses: wave, point, walk, sit, hug",
+    "costume": "Simple clothes with one or two colours, no logos"
+  },
+  "environment": {
+    "motifs": [
+      "rounded trees",
+      "cottages",
+      "winding paths",
+      "clouds",
+      "flowers"
+    ],
+    "settings": [
+      "village",
+      "forest",
+      "garden",
+      "bedroom",
+      "riverside"
+    ],
+    "sky": "Pale cream-blue gradient with soft clouds",
+    "ground": "Rolling sage hills"
+  },
+  "border": "Soft rounded frame in the banner border colour",
+  "composition": {
+    "focalPoint": "Character in the lower-middle third, title at the top",
+    "framing": "Medium-wide shots so faces and setting are both visible",
+    "negativeSpace": "Generous sky space for the title",
+    "depth": "Three parallax layers: sky, hills, foreground props",
+    "titlePosition": "top"
+  },
+  "typography": {
+    "fontStack": "\"Comic Sans MS\", \"Trebuchet MS\", \"Segoe Print\", sans-serif",
+    "titleColour": "#4A2E1F",
+    "titleStroke": null,
+    "titleShadow": "0 0 12px #FFF4DC, 0 0 24px #FFF4DC",
+    "uppercase": false,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#FFF4DC",
+    "text": "#4A2E1F",
+    "border": "#E07A5F"
+  },
+  "motion": {
+    "feel": "Soft and bouncy, nothing sudden",
+    "pace": "slow",
+    "textReveals": [
+      "textFade",
+      "wordReveal",
+      "textOnPaper"
+    ],
+    "camera": [
+      "slowZoom",
+      "pushIn",
+      "panRight"
+    ],
+    "transitions": [
+      "dipToColour",
+      "irisTransition",
+      "fadeIn"
+    ],
+    "atmosphere": [
+      "fireflyGlow",
+      "twinklingStars",
+      "dustParticles"
+    ],
+    "spriteMotion": [
+      "bob",
+      "breathe",
+      "walkIn",
+      "sway"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "saturate(0.9) sepia(0.12) drop-shadow(2px 0 0 #6B4A35) drop-shadow(-2px 0 0 #6B4A35) drop-shadow(0 2px 0 #6B4A35) drop-shadow(0 -2px 0 #6B4A35)",
+    "spriteBlend": null,
+    "backgroundFilter": "saturate(0.9) sepia(0.15) brightness(1.03)"
+  },
+  "vectorTheme": {
+    "outline": 0.55,
+    "outlineColour": "auto",
+    "jitter": 0.12,
+    "sketch": false,
+    "tension": 0.55,
+    "shading": "soft",
+    "texture": "paper",
+    "eyes": "storybook",
+    "headScale": 1.14,
+    "blush": true
+  },
+  "prompt": {
+    "keywords": [
+      "children's picture book",
+      "gouache",
+      "soft outlines",
+      "rosy cheeks",
+      "paper grain",
+      "warm pastel"
+    ],
+    "negative": [
+      "photorealistic",
+      "harsh black outlines",
+      "neon",
+      "gore"
+    ]
+  },
+  "dos": [
+    "Keep the same cast in every scene",
+    "Use warm light and rounded shapes",
+    "Give titles a cream glow so they read over busy art"
+  ],
+  "donts": [
+    "Pure black outlines",
+    "Fast whip pans or glitch effects",
+    "Saturated neon colours"
+  ],
+  "generation": {
+    "sourceId": "childrens_story",
+    "category": "storybook_illustration",
+    "description": "Soft, colorful, friendly storybook illustrations designed for children's storytelling.",
+    "visualIdentity": "Warm, magical, welcoming and imaginative picture-book illustration.",
+    "colourPalette": {
+      "approach": "Soft pastel and cheerful colors",
+      "saturation": "Medium to high",
+      "contrast": "Soft and readable",
+      "colors": [
+        "Sky blue",
+        "Pastel pink",
+        "Mint green",
+        "Sunny yellow",
+        "Peach",
+        "Lavender"
+      ]
+    },
+    "linework": "Soft, rounded and slightly organic outlines.",
+    "textures": "Watercolor washes, subtle paper grain, soft digital brush strokes.",
+    "characters": "Cute expressive characters with rounded faces, large friendly eyes, simplified anatomy and approachable proportions.",
+    "backgrounds": "Colorful villages, forests, gardens, magical castles, cozy houses and imaginative landscapes.",
+    "lighting": "Soft daylight, warm sunlight, gentle ambient lighting and magical glows.",
+    "composition": "Clear foreground characters, readable environments, balanced negative space and simple visual storytelling.",
+    "bestFor": [
+      "Children aged 3-13",
+      "Fairy tales",
+      "Moral stories",
+      "Bedtime stories",
+      "Animal stories"
+    ],
+    "instructions": "Create a charming children's picture-book illustration. Use friendly character expressions, soft rounded shapes, colorful environments and a warm emotional atmosphere. Keep character designs identical across all scenes.",
+    "promptModifier": "Render as a charming children's picture-book illustration with soft rounded shapes, friendly expressive characters, gentle watercolor textures, warm pastel colors, playful details, whimsical environments and soft natural lighting. Use approachable proportions, cheerful expressions and a magical storybook atmosphere.",
+    "negativePrompt": "Horror, frightening expressions, disturbing imagery, aggressive realism, dark disturbing atmosphere, overly complex details, adult themes.",
+    "negativeModifier": "Horror, frightening expressions, disturbing imagery, aggressive realism, adult themes, overly dark atmosphere.",
+    "sdHint": null,
+    "sdNegative": null
+  },
+  "previews": {
+    "thumbnail": "/styles/storybook.jpg",
+    "preview": "/styles/storybook-preview.jpg"
+  }
+}
