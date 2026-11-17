@@ -46,6 +46,18 @@ function engineRows(e: EngineStatus | null): Array<{ name: string; detail: strin
       level: e.ollama && e.ollamaModelInstalled ? 'ok' : 'warn',
       fix: e.ollama ? (e.ollamaModelInstalled ? undefined : `ollama pull ${e.ollamaModel}`) : 'ollama serve',
     },
+    {
+      name: 'ComfyUI',
+      detail: e.sd
+        ? `AI painting · ${String(e.sdModel ?? '').replace(/\.(safetensors|ckpt)$/i, '')}`
+        : e.sdRunning
+          ? 'Running, but no model in models/checkpoints'
+          : e.sdInstalled
+            ? 'Installed — starting (or stopped)'
+            : 'Not installed — optional, for AI painting',
+      level: e.sd ? 'ok' : 'warn',
+      fix: e.sd ? undefined : e.sdRunning ? 'npm run comfy:setup' : e.sdInstalled ? 'npm run comfy · log: data/comfyui.log' : 'npm run comfy:setup',
+    },
   ];
 }
 
