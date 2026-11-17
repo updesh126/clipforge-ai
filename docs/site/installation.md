@@ -31,7 +31,7 @@ The wizard checks each engine, explains what it's for, and **asks before install
 | Ollama + model | recommended | winget / brew / install script, starts it, then `ollama pull` (~2 GB) |
 | Kokoro voices | optional | Installs Python 3.12 if needed, then `pip install kokoro-onnx soundfile` |
 | HyperFrames | yes | Comes with `npm install` |
-| Stable Diffusion | optional | Only offered with an NVIDIA GPU of 8 GB+. Installs 7-Zip if needed, then ComfyUI + SDXL (~9 GB) |
+| Stable Diffusion | optional | Only offered with an NVIDIA GPU of 8 GB+. Installs 7-Zip if needed, then ComfyUI + SDXL (~9 GB), then **starts ComfyUI** in the background |
 
 Options: `npm run setup -- --yes` installs everything missing with the recommended answers; `npm run check` only reports. If a tool was just installed but isn't found, open a **new terminal** and run setup again (Windows PATH refresh).
 

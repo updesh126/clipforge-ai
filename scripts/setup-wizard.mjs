@@ -20,8 +20,9 @@ import { refreshWindowsPath } from './win-path.mjs';
 const ROOT = process.cwd();
 const PLATFORM = process.platform; // win32 | darwin | linux
 const args = new Set(process.argv.slice(2));
-const CHECK_ONLY = args.has('--check') || !process.stdin.isTTY;
 const YES = args.has('--yes') || args.has('-y');
+// no terminal to ask in → report only, unless --yes says to go ahead
+const CHECK_ONLY = args.has('--check') || (!process.stdin.isTTY && !YES);
 const ENV_FILE = path.join(ROOT, '.env');
 const TOOLS = path.join(ROOT, 'tools');
 
@@ -48,9 +49,12 @@ async function ask(question, def = true) {
   return a ? a.startsWith('y') : def;
 }
 
+/** Windows needs a shell to find .cmd shims (npm, npx, winget); pass one quoted command line instead of args + shell. */
+const commandLine = (cmd, cmdArgs) => [cmd, ...cmdArgs].map((a) => (/[\s&|<>^]/.test(a) && !/^".*"$/.test(a) ? `"${a}"` : a)).join(' ');
+
 function run(cmd, cmdArgs, opts = {}) {
   console.log(dim(`  $ ${cmd} ${cmdArgs.join(' ')}`));
-  const r = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: PLATFORM === 'win32', ...opts });
+  const r = PLATFORM === 'win32' ? spawnSync(commandLine(cmd, cmdArgs), { stdio: 'inherit', shell: true, ...opts }) : spawnSync(cmd, cmdArgs, { stdio: 'inherit', ...opts });
   return r.status === 0;
 }
 
@@ -179,7 +183,7 @@ async function downloadWhisperWindows() {
     console.log(red(`  unzip it into ${dir} and run setup again.`));
     return null;
   }
-  if (!run('curl.exe', ['-L', '--fail', '--retry', '3', '-o', `"${zip}"`, url])) return null;
+  if (!run('curl.exe', ['-L', '--fail', '--retry', '3', '-o', zip, url])) return null;
   if (!run('powershell', ['-NoProfile', '-Command', `Expand-Archive -Force -Path '${zip}' -DestinationPath '${dir}'`])) return null;
   fs.rmSync(zip, { force: true });
   const find = (d) => {
@@ -264,7 +268,7 @@ async function stepOllama() {
     console.log(`  ${OPT} Ollama is installed but not running — starting it`);
     if (!CHECK_ONLY) {
       if (PLATFORM === 'darwin' && has('brew', ['--version'])) run('brew', ['services', 'start', 'ollama']);
-      else spawn('ollama', ['serve'], { detached: true, stdio: 'ignore', windowsHide: true, shell: PLATFORM === 'win32' }).unref();
+      else spawn('ollama', ['serve'], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
       for (let i = 0; i < 15 && !tags; i++) {
         await new Promise((r) => setTimeout(r, 1000));
         tags = await fetchJson('http://127.0.0.1:11434/api/tags');
@@ -357,8 +361,9 @@ async function stepStableDiffusion() {
   const ck = dir && [path.join(dir, 'ComfyUI', 'models', 'checkpoints'), path.join(dir, 'models', 'checkpoints')].find((d) => fs.existsSync(d));
   const models = ck ? fs.readdirSync(ck).filter((f) => /\.(safetensors|ckpt)$/i.test(f) && !/\.part$/i.test(f)) : [];
   if (dir && models.length) {
-    console.log(`  ${OK} ComfyUI + ${models[0]} ${dim(`(${dir}) — starts automatically with npm run dev`)}`);
-    return report('Stable Diffusion', 'ok', models[0]);
+    console.log(`  ${OK} ComfyUI + ${models[0]} ${dim(`(${dir})`)}`);
+    const running = startComfy();
+    return report('Stable Diffusion', running ? 'ok' : 'optional', running ? `${models[0]} · running` : `${models[0]} · not started, see data/comfyui.log`);
   }
   const gpu = gpuInfo();
   if (!gpu) {
@@ -382,7 +387,20 @@ async function stepStableDiffusion() {
     if (await ask('Install 7-Zip?')) pkgInstall({ winget: '7zip.7zip' });
   }
   const ok = run('powershell', ['-ExecutionPolicy', 'Bypass', '-File', 'scripts/setup-comfyui.ps1']);
-  report('Stable Diffusion', ok ? 'ok' : 'optional', ok ? 'installed' : 'run npm run comfy:setup again to resume');
+  const running = ok && startComfy();
+  report('Stable Diffusion', ok ? 'ok' : 'optional', ok ? (running ? 'installed · running' : 'installed') : 'run npm run comfy:setup again to resume');
+}
+
+/** Start ComfyUI in the background (same launcher npm run dev uses) and wait until it answers. Skipped in --check. */
+function startComfy() {
+  if (CHECK_ONLY) {
+    console.log(dim('  starts automatically with npm run dev (or: npm run comfy)'));
+    return true;
+  }
+  console.log('  Starting ComfyUI in the background…');
+  const ok = run('npx', ['tsx', 'scripts/start-comfy.ts']);
+  console.log(ok ? `  ${OK} ComfyUI running on ${process.env.SD_URL || 'http://127.0.0.1:8188'} (it also starts by itself with npm run dev)` : `  ${OPT} ComfyUI did not start — see data/comfyui.log`);
+  return ok;
 }
 
 // ---------------------------------------------------------------- main
@@ -409,6 +427,7 @@ if (blocking.length) {
 console.log(`\n${green('Ready.')} Start ClipForge with ${bold('npm run dev')} and open http://localhost:${process.env.PORT || 3000}`);
 if (!CHECK_ONLY && (await ask('Start it now?', false))) {
   rl?.close();
-  spawnSync('npm', ['run', 'dev'], { stdio: 'inherit', shell: PLATFORM === 'win32' });
+  if (PLATFORM === 'win32') spawnSync('npm run dev', { stdio: 'inherit', shell: true });
+  else spawnSync('npm', ['run', 'dev'], { stdio: 'inherit' });
 }
 rl?.close();

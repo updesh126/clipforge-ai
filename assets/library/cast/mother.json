@@ -1,0 +1,44 @@
+{
+  "spec": {
+    "id": "mother",
+    "name": "Mother",
+    "description": "Adult elephant",
+    "seed": 602134298,
+    "age": "adult",
+    "gender": "female",
+    "build": "average",
+    "height": 1.0103105964465067,
+    "skin": "#6E4027",
+    "face": {
+      "shape": "long",
+      "eyes": "almond",
+      "eyeColor": "#1C1C1C",
+      "nose": "wide",
+      "freckles": false
+    },
+    "hair": {
+      "style": "bun",
+      "color": "#B9874E"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "dress",
+      "topColor": "#277DA1",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "skirt",
+      "bottomColor": "#E4572E",
+      "shoes": "boots",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#81B29A",
+    "holding": "none"
+  },
+  "aliases": [
+    "mother",
+    "the mother elephant"
+  ],
+  "createdAt": "2026-11-17T07:21:57.532Z",
+  "updatedAt": "2026-11-17T07:21:57.532Z"
+}

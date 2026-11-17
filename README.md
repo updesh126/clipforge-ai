@@ -73,7 +73,7 @@ npm install
 npm run setup
 ```
 
-`npm run setup` goes through every engine in turn: FFmpeg, Whisper, Ollama (and its model), Kokoro voices, HyperFrames and Stable Diffusion. For each one it says what it's for, checks whether it's there and **asks before installing** it with the right tool for your system (winget on Windows, Homebrew on macOS, apt on Linux). It creates your `.env`, downloads models, and offers to start the app when everything is ready.
+`npm run setup` goes through every engine in turn: FFmpeg, Whisper, Ollama (and its model), Kokoro voices, HyperFrames and Stable Diffusion. For each one it says what it's for, checks whether it's there and **asks before installing** it with the right tool for your system (winget on Windows, Homebrew on macOS, apt on Linux). It creates your `.env`, downloads models, starts ComfyUI (Stable Diffusion) in the background when it's installed, and offers to start the app when everything is ready.
 
 | Command | What it does |
 |---|---|
