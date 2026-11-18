@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "traveller",
+    "name": "Traveller",
+    "description": "traveller",
+    "seed": 2503418180,
+    "age": "adult",
+    "gender": "male",
+    "build": "average",
+    "height": 0.9495868143625558,
+    "skin": "#C98E5F",
+    "face": {
+      "shape": "long",
+      "eyes": "round",
+      "eyeColor": "#1C1C1C",
+      "nose": "wide",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#D9B27A"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#6A4C93",
+      "pattern": "checks",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#81B29A",
+      "shoes": "shoes",
+      "shoeColor": "#33415C"
+    },
+    "accessories": [
+      "backpack"
+    ],
+    "accessoryColor": "#2A9D8F",
+    "holding": "none"
+  },
+  "aliases": [
+    "traveller"
+  ],
+  "createdAt": "2026-11-18T08:07:30.169Z",
+  "updatedAt": "2026-11-18T08:07:30.169Z"
+}

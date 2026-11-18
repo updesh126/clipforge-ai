@@ -2,7 +2,7 @@ export type AspectRatio = '9:16' | '1:1' | '16:9';
 export type Framing = 'fill' | 'fit';
 export type CaptionStyle = 'off' | 'clean' | 'highlight' | 'karaoke' | 'pop';
 export type ClipLengthPreset = 'auto' | 'short' | 'medium' | 'long';
-export type AppTab = 'home' | 'studio' | 'script' | 'editor' | 'library' | 'architecture' | 'docs';
+export type AppTab = 'home' | 'studio' | 'script' | 'writer' | 'editor' | 'library' | 'architecture' | 'docs';
 
 export interface WordTiming {
   text: string;
@@ -57,6 +57,7 @@ export interface JobProgress {
     aspect?: string;
     step?: number;
     steps?: number;
+    motionScenes?: boolean[];
   };
 }
 

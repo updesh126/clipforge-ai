@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "polar-bears",
+    "name": "Polar Bears",
+    "description": "Land mammal comparison",
+    "seed": 376609392,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 1.0343264224054292,
+    "skin": "#f0f0f0",
+    "face": {
+      "shape": "heart",
+      "eyes": "almond",
+      "eyeColor": "#4E3524",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#ffffff"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#f0f0f0",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#f0f0f0",
+      "shoes": "sandals",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#4CB944",
+    "holding": "none"
+  },
+  "aliases": [
+    "polar bears"
+  ],
+  "createdAt": "2026-11-18T09:10:22.229Z",
+  "updatedAt": "2026-11-18T09:10:22.229Z"
+}

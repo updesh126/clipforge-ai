@@ -23,6 +23,7 @@ Ask everything you need **in one message**, with a recommended default for each,
 | Length | 45–75 s (5–8 scenes) |
 | Format | 9:16 for Shorts/Reels, 16:9 for YouTube |
 | Narration language | English (`en`) or Hindi (`hi`) |
+| Video type | `story` · `documentary` · `fun` · `tech` — sets style, captions and which explainer graphics are used |
 | Art style | your recommendation from step 2, with one alternative |
 | Illustration | `ai` (Stable Diffusion paintings) if available, else `vector` |
 | Motion (moving scenes) | on for reels and stories if `cf.mjs health` shows Motion ready (adds ~1 min per scene); off for quick drafts |
@@ -54,6 +55,8 @@ Full rules: `docs/STORY_SCRIPT_GUIDE.md`. The ones that matter most:
 - **Atmosphere words pay off**: rain, snow, fog/mist, fireflies, lamps/fire, festival, stars, sunrise/sunset each add a matching motion overlay.
 - A number ("40%", "3 crore") gives a stat card; a "quote in quotation marks" gives a quote card. Use at most one per video unless it's an explainer.
 - Hook in scene 1 (a surprising image), a turn near the end, a quiet final image (same place, new time of day works well).
+- **Direct key beats with [tags]** (never spoken): `[bigStat]`, `[timelineHistory events="1947|Independence; 1991|Reforms"]`, `[processExplain steps="…"]`, `[rainFx]`, `[pushIn]`, `[transition: irisWipe]`, `[move]` / `[still]`, `[title: …]`. Tag 2–4 key moments, not every scene. All names and settings: `docs/site/script-tags.md`.
+- **Starting from a YouTube video?** Use the Script Writer instead of writing from scratch: `POST /api/writer {url, videoType, minutes, language}` (or the **Writer** page). It keeps every fact, drops the channel's promotion, adds valid [tags] and a title, description and tags, and saves `data/scripts/*.md`. Then read the script, tighten it to the brief and continue from step 5. Check its facts against the *Facts kept* list.
 - Hindi narration: write in Devanagari and set `"language": "hi"` with a Hindi voice.
 
 ## 5. Prove the look — one test painting (AI illustration only)
@@ -69,7 +72,7 @@ Open the PNG (Read tool) and check it against section 7. If the style or subject
 Write `data/director/<slug>/brief.json`:
 
 ```json
-{ "title": "…", "script": "scene 1…\n\nscene 2…", "aspect": "9:16", "style": "storybook", "mode": "story", "illustration": "ai", "animate": true, "language": "en", "voice": "af_heart", "captions": "karaoke" }
+{ "title": "…", "script": "scene 1…\n\nscene 2…", "aspect": "9:16", "style": "storybook", "mode": "story", "illustration": "ai", "videoType": "story", "animate": true, "motionMode": "mix", "language": "en", "voice": "af_heart", "captions": "karaoke" }
 ```
 
 `cf.mjs make data/director/<slug>/brief.json` — prints live progress (scene x of n, painted count) and the edit id at the end. About 25–40 s per scene with AI painting.

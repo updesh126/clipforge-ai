@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "sperm-whales",
+    "name": "Sperm Whales",
+    "description": "Deep sea predator",
+    "seed": 3225878958,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 0.995440576937981,
+    "skin": "#404040",
+    "face": {
+      "shape": "oval",
+      "eyes": "round",
+      "eyeColor": "#3B2416",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#2f4f4f"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#3e3e3e",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#3e3e3e",
+      "shoes": "shoes",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [],
+    "accessoryColor": "#F3CA40",
+    "holding": "none"
+  },
+  "aliases": [
+    "sperm whales"
+  ],
+  "createdAt": "2026-11-18T09:10:22.253Z",
+  "updatedAt": "2026-11-18T09:10:22.253Z"
+}

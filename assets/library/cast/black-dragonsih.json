@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "black-dragonsih",
+    "name": "Black Dragonsih",
+    "description": "Carnivorous deep sea beast",
+    "seed": 938422837,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 1.0608822956262156,
+    "skin": "#000000",
+    "face": {
+      "shape": "square",
+      "eyes": "narrow",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": true
+    },
+    "hair": {
+      "style": "short",
+      "color": "#000000"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#1a1a1a",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#1a1a1a",
+      "shoes": "boots",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [],
+    "accessoryColor": "#3A5BA0",
+    "holding": "none"
+  },
+  "aliases": [
+    "black dragonsih"
+  ],
+  "createdAt": "2026-11-18T09:10:22.255Z",
+  "updatedAt": "2026-11-18T09:10:22.255Z"
+}

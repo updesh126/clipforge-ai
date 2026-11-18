@@ -70,7 +70,7 @@ export async function fetchYoutubeOembed(
   }
 }
 
-async function resolveYtDlpCommand(): Promise<string> {
+export async function resolveYtDlpCommand(): Promise<string> {
   // 1. Prefer system yt-dlp on user's PC if installed
   try {
     await execFileAsync('yt-dlp', ['--version']);

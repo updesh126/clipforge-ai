@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "dsv-alvin",
+    "name": "DSV Alvin",
+    "description": "Research submarine",
+    "seed": 3759089644,
+    "age": "adult",
+    "gender": "male",
+    "build": "slim",
+    "height": 1.048830509115942,
+    "skin": "#1A2530",
+    "face": {
+      "shape": "square",
+      "eyes": "round",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "spiky",
+      "color": "#1A2530"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#2C3E50",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#2C3E50",
+      "shoes": "boots",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#4CB944",
+    "holding": "none"
+  },
+  "aliases": [
+    "dsv alvin"
+  ],
+  "createdAt": "2026-11-18T09:10:57.228Z",
+  "updatedAt": "2026-11-18T09:10:57.228Z"
+}

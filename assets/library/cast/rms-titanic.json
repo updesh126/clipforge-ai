@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "rms-titanic",
+    "name": "RMS Titanic",
+    "description": "Sunken ship wreck",
+    "seed": 858968155,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 1.0594856552919374,
+    "skin": "#757575",
+    "face": {
+      "shape": "heart",
+      "eyes": "almond",
+      "eyeColor": "#2F4F6F",
+      "nose": "pointed",
+      "freckles": false
+    },
+    "hair": {
+      "style": "curly",
+      "color": "#757575"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "tshirt",
+      "topColor": "#424242",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#424242",
+      "shoes": "boots",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [],
+    "accessoryColor": "#4CB944",
+    "holding": "none"
+  },
+  "aliases": [
+    "rms titanic"
+  ],
+  "createdAt": "2026-11-18T09:10:22.255Z",
+  "updatedAt": "2026-11-18T09:10:57.227Z"
+}

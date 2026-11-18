@@ -2,6 +2,30 @@
 
 Paste a script and get a finished, editable video. Your exact words are always the narration.
 
+## Direct scenes with [tags]
+
+Add **[tags]** anywhere in a scene to choose its motion graphic, camera move, transition or atmosphere yourself — they're never spoken or shown in captions:
+
+```text
+The storm hits the village at night. [rainFx] [shake] [transition: paperTearTransition]
+This year the village collected 120 thousand litres of rain water. [bigStat]
+```
+
+Every name, its settings and tips for the best output: [Script tags](#/docs/script-tags).
+
+## Video type
+
+Pick what kind of video you're making first. It sets the art style, captions and Motion for you (change any of them afterwards) and tells the planner which motion graphics fit:
+
+| Type | Style it picks | Captions | Motion graphics it uses |
+|---|---|---|---|
+| **Storytelling** | Children's storybook (also paper cutout, Warli, Madhubani, hand-drawn) | Karaoke | Characters and places; a title banner; a quote card only for a real quotation |
+| **Documentary** | Hand-drawn (also ink wash, miniature, ukiyo-e, stained glass) | Clean | Vox-style paper title; timelines from the years you mention, quote cards, maps, big stats, news headlines |
+| **Fun** | Cartoon (also anime, paper cutout) | Pop | Question reveals, myth vs fact, countdowns; confetti and sparks |
+| **Tech explainer** | Flat vector (also blueprint) | Bold | Paper title; process steps ("first… then… finally"), comparisons ("in 2016… by 2024…"), charts, cause and effect |
+
+The graphics are built only from facts in your narration — every number and year on screen is one you wrote. Write them out plainly: "In 2016 it handled 0.1 million; by 2024 over 13,000 million" becomes a comparison, "First… then… finally…" becomes a process diagram, two or more years become a timeline.
+
 ## Looks
 
 | Look | What you get |
@@ -27,6 +51,7 @@ With **AI painting**, every scene becomes one painted frame with a slow Ken Burn
 With **AI painting** on, tick **Motion — bring paintings to life**. After each scene is painted, LTX-Video (image-to-video, also through ComfyUI) turns the painting into a short clip — people move and breathe, leaves sway, lights flicker, and the camera drifts the way the scene plans. Because the clip starts from ClipForge's own painting, the art style and characters stay the same.
 
 - Each clip is made as long as its scene (up to 8 seconds) at 30 fps and plays at normal speed, so motion is smooth with no repeated frames. The still painting stays underneath, so a longer scene never shows a blank frame.
+- **Which scenes move:** **Mix** (default) animates only the scenes where something actually moves — action (walks, runs, dances, rows, pours…), moving nature (water, rain, fire, wind, birds, fireflies), the opening hook and the ending — about 40% of scenes, never leaving more than two still scenes in a row. Quiet moments (sleeping, thinking, remembering) and scenes covered by a full-screen graphic stay as paintings. It takes about half the time of **All scenes**. The progress card marks moving scenes with ▶.
 - For steady pictures the model keeps a **locked-off camera** (ClipForge adds its own gentle camera move), and every clip gets a deflicker pass with FFmpeg before it's used.
 - Choose **Fast** (LTX-Video, about a minute per scene) or **Best** (Wan 2.2, smoother, several minutes per scene) when both are installed. Install them with `npm run comfy:setup -- -Motion ltx` / `wan` / `both`.
 - If the model isn't installed, or one clip fails, that scene simply stays a still painting.

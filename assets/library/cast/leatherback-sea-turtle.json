@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "leatherback-sea-turtle",
+    "name": "Leatherback Sea Turtle",
+    "description": "Marine reptile",
+    "seed": 155022520,
+    "age": "adult",
+    "gender": "male",
+    "build": "broad",
+    "height": 1.0514551519975066,
+    "skin": "#8B4513",
+    "face": {
+      "shape": "round",
+      "eyes": "almond",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#8B4513"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#654321",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#654321",
+      "shoes": "sandals",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [],
+    "accessoryColor": "#277DA1",
+    "holding": "none"
+  },
+  "aliases": [
+    "leatherback sea turtle"
+  ],
+  "createdAt": "2026-11-18T09:10:57.224Z",
+  "updatedAt": "2026-11-18T09:10:57.224Z"
+}

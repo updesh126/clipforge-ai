@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "emperor-penguins",
+    "name": "Emperor Penguins",
+    "description": "Marine bird dive record holder",
+    "seed": 3680060280,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "slim",
+    "height": 0.9701789140887559,
+    "skin": "#e8e8e8",
+    "face": {
+      "shape": "square",
+      "eyes": "round",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#b0c4de"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "tshirt",
+      "topColor": "#1a237e",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#1a237e",
+      "shoes": "boots",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [],
+    "accessoryColor": "#2A9D8F",
+    "holding": "none"
+  },
+  "aliases": [
+    "emperor penguins"
+  ],
+  "createdAt": "2026-11-18T09:10:22.230Z",
+  "updatedAt": "2026-11-18T09:10:22.230Z"
+}

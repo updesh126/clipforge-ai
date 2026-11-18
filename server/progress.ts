@@ -9,7 +9,7 @@ export interface JobProgress {
   updatedAt: number;
   /** visual progress for painted videos: live preview of the image being painted, finished scenes, counts */
   media?: JobMedia;
-  result?: { editId?: string; error?: string }; // set when the job finishes, so a reloaded page can pick it up
+  result?: { editId?: string; scriptId?: string; error?: string }; // set when the job finishes, so a reloaded page can pick it up
 }
 
 export interface JobMedia {
@@ -20,6 +20,7 @@ export interface JobMedia {
   aspect?: string; // frame shape of the video, e.g. 9:16
   step?: number; // sampler step of the current painting
   steps?: number;
+  motionScenes?: boolean[]; // Motion Mix: which scenes become moving clips
 }
 
 const jobs = new Map<string, JobProgress>();
@@ -58,7 +59,7 @@ export function progressFor(jobId: unknown): ProgressFn {
   };
 }
 
-export function finishJob(jobId: unknown, result: { editId?: string; error?: string }) {
+export function finishJob(jobId: unknown, result: { editId?: string; scriptId?: string; error?: string }) {
   if (typeof jobId !== 'string' || !/^[\w-]{4,64}$/.test(jobId)) return;
   cancelled.delete(jobId);
   jobs.set(jobId, { stage: result.error ? 'error' : 'done', label: result.error ?? 'Done', pct: 100, result, updatedAt: Date.now(), media: jobs.get(jobId)?.media });

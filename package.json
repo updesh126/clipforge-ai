@@ -17,6 +17,7 @@
     "thumbs": "tsx scripts/gen-style-thumbs.ts",
     "thumbs:ai": "tsx scripts/gen-style-thumbs-ai.ts",
     "artstyles": "tsx scripts/gen-art-style-specs.ts",
+    "tags-doc": "tsx scripts/gen-tags-doc.ts",
     "comfy": "tsx scripts/start-comfy.ts",
     "comfy:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-comfyui.ps1",
     "import-images": "tsx scripts/import-images.ts",

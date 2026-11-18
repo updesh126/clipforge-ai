@@ -370,12 +370,16 @@ export function compare(m: Motion): ReactElement {
   const bv = m.num('valueB', 48);
   const max = Math.max(a, bv) || 1;
   const parts = numberParts(m);
+  // show decimals the data actually has (0.1 must not display as 0), unless decimals were set explicitly
+  const frac = (v: number) => (Number.isInteger(v) ? 0 : Math.min(2, String(v).split('.')[1]?.length ?? 0));
+  const explicit = Boolean(m.str('decimals', ''));
+  const fmtFor = (v: number) => ({ ...parts, decimals: explicit ? parts.decimals : Math.max(parts.decimals, frac(v)) });
   const k1 = m.at(0.4, 1.0);
   const k2 = m.at(1.0, 1.0);
   const kd = m.at(2.1, 0.5, 'back');
   const col = (v: number, k: number, label: string, c: string, delay: number) => (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: m.u * 2, ...enter('up', m.at(delay, 0.5), 40) }}>
-      <div style={{ fontFamily: FONTS.impact, fontSize: Math.min(m.u * 11, ((m.w - m.u * 18) / 2) / (formatNumber(v, parts).length * 0.52)), color: c, whiteSpace: 'nowrap' }}>{formatNumber(v * clamp01(k), parts)}</div>
+      <div style={{ fontFamily: FONTS.impact, fontSize: Math.min(m.u * 11, ((m.w - m.u * 18) / 2) / (formatNumber(v, fmtFor(v)).length * 0.52)), color: c, whiteSpace: 'nowrap' }}>{formatNumber(v * clamp01(k), fmtFor(v))}</div>
       <div style={{ width: m.u * 16, height: m.h * 0.28, display: 'flex', alignItems: 'flex-end', background: 'rgba(255,255,255,.08)', borderRadius: m.u }}>
         <div style={{ width: '100%', height: `${(v / max) * 100 * clamp01(k)}%`, background: c, borderRadius: m.u }} />
       </div>
@@ -384,6 +388,9 @@ export function compare(m: Motion): ReactElement {
   );
   const diff = bv - a;
   const pct = a ? Math.round((diff / a) * 100) : 0;
+  // big jumps read better as "130,000×" than as a 7-digit percentage
+  const ratio = a > 0 ? bv / a : 0;
+  const change = Math.abs(pct) >= 1000 && ratio >= 10 ? `${formatNumber(Math.round(ratio), { grouping: 'intl' })}×` : `${Math.abs(pct)}%`;
   return (
     <div style={{ position: 'absolute', inset: 0, ...exitStyle(m) }}>
       <ChartTitle m={m} />
@@ -394,7 +401,7 @@ export function compare(m: Motion): ReactElement {
       {m.bool('showDiff', true) && (
         <div style={{ position: 'absolute', left: 0, right: 0, top: m.h * 0.2, textAlign: 'center' }}>
           <span style={{ display: 'inline-block', background: diff >= 0 ? '#2A9D8F' : '#E63946', color: '#fff', fontFamily: m.font, fontWeight: 900, fontSize: m.u * 4.5, padding: `${m.u}px ${m.u * 3}px`, borderRadius: m.u * 5, transform: `scale(${kd})`, opacity: clamp01(kd) }}>
-            {diff >= 0 ? '▲' : '▼'} {m.str('diffText', `${Math.abs(pct)}%`)}
+            {diff >= 0 ? '▲' : '▼'} {m.str('diffText', change)}
           </span>
         </div>
       )}

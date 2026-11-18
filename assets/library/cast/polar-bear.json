@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "polar-bear",
+    "name": "Polar Bear",
+    "description": "Arctic predator",
+    "seed": 1420378531,
+    "age": "adult",
+    "gender": "female",
+    "build": "broad",
+    "height": 0.9569801548449323,
+    "skin": "#FFFFFF",
+    "face": {
+      "shape": "round",
+      "eyes": "round",
+      "eyeColor": "#4E3524",
+      "nose": "wide",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#FFFFFF"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#FFFFFF",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "skirt",
+      "bottomColor": "#FFFFFF",
+      "shoes": "shoes",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [],
+    "accessoryColor": "#EE6C4D",
+    "holding": "none"
+  },
+  "aliases": [
+    "polar bear"
+  ],
+  "createdAt": "2026-11-18T09:10:57.196Z",
+  "updatedAt": "2026-11-18T09:10:57.196Z"
+}

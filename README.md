@@ -30,6 +30,9 @@ Pick a long video, get ranked vertical clips with captions. Everything runs on y
 ### Editor (Remotion)
 - **Home page** — choose *Clip* (long video → shorts), *Script* (script → narrated video) or *Edit* (full timeline editor); the logo always takes you back home
 
+### Script Writer
+Paste a YouTube link and get a **new, more hooked script** with effect [tags], plus a YouTube title, description and tags. Every fact from the video is kept, the source channel's promotion is left out, and everything is saved as `.md` and `.txt` in `data/scripts/` (with the facts and the original transcript). **Make this video** sends the script to Script → Video. Details: [docs/site/script-writer.md](docs/site/script-writer.md).
+
 ### Script → Video
 Paste a script and get a finished, editable video. Two looks:
 - **Story** (default) — every scene gets its own place (village, Himalaya, river valley, city…) and characters (people, animals, birds, props) that walk in, fly, sway or float, with a 2.5D camera move (push in, pan, pull out) and whip-pan / iris-wipe hand-offs between scenes
@@ -262,7 +265,7 @@ Open **http://localhost:3000**. The top bar shows how many engines are ready; cl
 
 | Folder | What's in it | In git? |
 |---|---|---|
-| `data/` | Projects, edits, uploads, exports, voice-overs, AI paintings and clips (`generated/`), Whisper model, logs | No |
+| `data/` | Projects, edits, written scripts (`scripts/`), uploads, exports, voice-overs, AI paintings and clips (`generated/`), Whisper model, logs | No |
 | `tools/` | whisper.cpp (Windows) | No |
 | `..\ComfyUI\` or `%LOCALAPPDATA%\ClipForge\ComfyUI\` | ComfyUI and its models (`models/checkpoints`, `diffusion_models`, `text_encoders`, `vae`) — always **outside** the project | No |
 | `.env` | Your settings | No |
@@ -287,6 +290,7 @@ The wizard creates `.env` from `.env.example`. Change what you need and restart 
 | **AI models** | | |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama address |
 | `OLLAMA_MODEL` | `qwen2.5:3b` | Lighter: `qwen2.5:1.5b`, `gemma2:2b` · Better: `llama3.1:8b` |
+| `WRITER_MODEL` | `OLLAMA_EDIT_MODEL` | Model for the Script Writer (YouTube link → script) |
 | `OLLAMA_EDIT_MODEL` | `OLLAMA_MODEL` | Model for *Edit with AI* and story planning; 4B+ works much better (`qwen2.5:7b`) |
 | `WHISPER_BIN` | `whisper-cli` | Full path if it isn't on PATH (the wizard sets this on Windows) |
 | `WHISPER_MODEL` | `base` | `tiny` (fastest) · `small` / `medium` (more accurate) |
@@ -367,6 +371,10 @@ The director skill drives the running app through `node .claude/skills/clipforge
    - Choose captions: Off, Clean, Bold, ✨ Karaoke or ✨ Pop — the preview shows the word highlight live.
    - **Motion & voice** (right panel): switch on *Hook title* and/or *Voice intro*, and pick a voice.
 4. **Export MP4** (or **Export all**) → watermark-free MP4 + SRT, saved in `data/exports/`. Motion exports take a little longer because HyperFrames renders each frame.
+
+For script → video, you can direct any scene with **[tags]** such as `[bigStat]`, `[rainFx]`, `[pushIn]` or `[transition: irisWipe]` — they are never spoken. Full list: [docs/site/script-tags.md](docs/site/script-tags.md) (regenerate with `npm run tags-doc`).
+
+To write a script from a YouTube video, open **Writer**, paste the link, pick the video type, length and language, and press **Write script**. Edit the result, then download it or press **Make this video**.
 
 For script → video, open **Script**, paste your story, pick a look, illustration (Vector or AI painting, with optional Motion), art style, format and voice, then **Create video**. Writing tips: [docs/STORY_SCRIPT_GUIDE.md](docs/STORY_SCRIPT_GUIDE.md).
 

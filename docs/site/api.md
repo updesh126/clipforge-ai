@@ -55,6 +55,16 @@ The app talks to a local Express server. You can call the same endpoints from sc
 }
 ```
 
+## Script Writer
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/writer` | `{url, videoType?, minutes?, language?, model?, jobId?}` → new script, title, description and tags from a YouTube link |
+| GET | `/api/writer` | Saved scripts, newest first |
+| PUT | `/api/writer/:id` | Save edits (title, description, tags, script) |
+| GET | `/api/writer/models` | Ollama models (cloud ones marked) |
+| GET | `/api/writer/file/:name` | Download the `.md` / `.txt` |
+
 ## Assets and characters
 
 | Method | Path | Notes |

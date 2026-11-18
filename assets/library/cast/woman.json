@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "woman",
+    "name": "Woman",
+    "description": "woman",
+    "seed": 3915946197,
+    "age": "adult",
+    "gender": "female",
+    "build": "average",
+    "height": 0.9573284433037044,
+    "skin": "#8D5A35",
+    "face": {
+      "shape": "round",
+      "eyes": "narrow",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": true
+    },
+    "hair": {
+      "style": "bob",
+      "color": "#B9874E"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#6A4C93",
+      "pattern": "checks",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#3D405B",
+      "shoes": "shoes",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [
+      "earrings"
+    ],
+    "accessoryColor": "#EE6C4D",
+    "holding": "none"
+  },
+  "aliases": [
+    "woman"
+  ],
+  "createdAt": "2026-11-18T08:05:59.891Z",
+  "updatedAt": "2026-11-18T08:05:59.891Z"
+}

@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "farmer",
+    "name": "Farmer",
+    "description": "farmer",
+    "seed": 2156824146,
+    "age": "adult",
+    "gender": "male",
+    "build": "average",
+    "height": 1.0239429210312665,
+    "skin": "#DDAA82",
+    "face": {
+      "shape": "heart",
+      "eyes": "almond",
+      "eyeColor": "#3E5F3A",
+      "nose": "wide",
+      "freckles": false
+    },
+    "hair": {
+      "style": "curly",
+      "color": "#1E1410"
+    },
+    "beard": "stubble",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#2A9D8F",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#F4EFE6",
+      "shoes": "barefoot",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [
+      "turban"
+    ],
+    "accessoryColor": "#2A9D8F",
+    "holding": "none"
+  },
+  "aliases": [
+    "farmer"
+  ],
+  "createdAt": "2026-11-18T08:24:43.392Z",
+  "updatedAt": "2026-11-18T08:24:43.392Z"
+}

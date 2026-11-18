@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "bismarck",
+    "name": "Bismarck",
+    "description": "WWII Battleship",
+    "seed": 3651266905,
+    "age": "adult",
+    "gender": "male",
+    "build": "broad",
+    "height": 0.9455032518599182,
+    "skin": "#4A5D75",
+    "face": {
+      "shape": "oval",
+      "eyes": "narrow",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#4A5D75"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "tshirt",
+      "topColor": "#3E4F68",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#3E4F68",
+      "shoes": "boots",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#3D405B",
+    "holding": "none"
+  },
+  "aliases": [
+    "bismarck"
+  ],
+  "createdAt": "2026-11-18T09:10:57.227Z",
+  "updatedAt": "2026-11-18T09:10:57.227Z"
+}

@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "penguin",
+    "name": "Penguin",
+    "description": "Marine bird",
+    "seed": 788281471,
+    "age": "adult",
+    "gender": "male",
+    "build": "slim",
+    "height": 1.050042982106097,
+    "skin": "#E0E0E0",
+    "face": {
+      "shape": "long",
+      "eyes": "almond",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#2C3E50"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#FFFFFF",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#000000",
+      "shoes": "shoes",
+      "shoeColor": "#33415C"
+    },
+    "accessories": [],
+    "accessoryColor": "#5E548E",
+    "holding": "none"
+  },
+  "aliases": [
+    "penguin"
+  ],
+  "createdAt": "2026-11-18T09:10:57.223Z",
+  "updatedAt": "2026-11-18T09:10:57.223Z"
+}

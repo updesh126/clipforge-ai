@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "giant-squid",
+    "name": "Giant Squid",
+    "description": "Cephalopod",
+    "seed": 3327693188,
+    "age": "adult",
+    "gender": "male",
+    "build": "slim",
+    "height": 1.0591766254790127,
+    "skin": "#FFFFFF",
+    "face": {
+      "shape": "heart",
+      "eyes": "round",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "long",
+      "color": "#FFFFFF"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#808080",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#808080",
+      "shoes": "sandals",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#F3CA40",
+    "holding": "none"
+  },
+  "aliases": [
+    "giant squid"
+  ],
+  "createdAt": "2026-11-18T09:10:57.224Z",
+  "updatedAt": "2026-11-18T09:10:57.224Z"
+}

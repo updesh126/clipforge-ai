@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "blue-whales",
+    "name": "Blue Whales",
+    "description": "Marine mammal dive record holder",
+    "seed": 61408121,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 0.9531635769829154,
+    "skin": "#8ba6a6",
+    "face": {
+      "shape": "oval",
+      "eyes": "round",
+      "eyeColor": "#3B2416",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "spiky",
+      "color": "#8ba6a6"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "tshirt",
+      "topColor": "#8ba6a6",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#8ba6a6",
+      "shoes": "shoes",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [],
+    "accessoryColor": "#F3CA40",
+    "holding": "none"
+  },
+  "aliases": [
+    "blue whales"
+  ],
+  "createdAt": "2026-11-18T09:10:22.226Z",
+  "updatedAt": "2026-11-18T09:10:22.226Z"
+}

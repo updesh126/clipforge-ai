@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "leatherback-sea-turtles",
+    "name": "Leatherback Sea Turtles",
+    "description": "Deep sea reptile dive record holder",
+    "seed": 1455348625,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 0.9511802934575826,
+    "skin": "#5c4033",
+    "face": {
+      "shape": "square",
+      "eyes": "narrow",
+      "eyeColor": "#3B2416",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#5c4033"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#8d6e63",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#8d6e63",
+      "shoes": "shoes",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [],
+    "accessoryColor": "#F4D35E",
+    "holding": "none"
+  },
+  "aliases": [
+    "leatherback sea turtles"
+  ],
+  "createdAt": "2026-11-18T09:10:22.254Z",
+  "updatedAt": "2026-11-18T09:10:22.254Z"
+}

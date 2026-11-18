@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "dubai-s-burj-khalifa",
+    "name": "Dubai's Burj Khalifa",
+    "description": "Submerged skyscraper comparison",
+    "seed": 2238806325,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 0.9728883059555665,
+    "skin": "#c0c0c0",
+    "face": {
+      "shape": "heart",
+      "eyes": "narrow",
+      "eyeColor": "#2F4F6F",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#c0c0c0"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#e0e0e0",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#e0e0e0",
+      "shoes": "shoes",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [],
+    "accessoryColor": "#E4572E",
+    "holding": "none"
+  },
+  "aliases": [
+    "dubai's burj khalifa"
+  ],
+  "createdAt": "2026-11-18T09:10:22.252Z",
+  "updatedAt": "2026-11-18T09:10:22.252Z"
+}

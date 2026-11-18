@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "herbert-nitsch",
+    "name": "Herbert Nitsch",
+    "description": "Dive record holder",
+    "seed": 2630610026,
+    "age": "adult",
+    "gender": "male",
+    "build": "average",
+    "height": 0.978127600173466,
+    "skin": "#f5d0b9",
+    "face": {
+      "shape": "square",
+      "eyes": "round",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#4a3b2a"
+    },
+    "beard": "stubble",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#1a1a1a",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#2c2c2c",
+      "shoes": "boots",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [
+      "hat"
+    ],
+    "accessoryColor": "#81B29A",
+    "holding": "lantern"
+  },
+  "aliases": [
+    "herbert nitsch"
+  ],
+  "createdAt": "2026-11-18T09:10:22.224Z",
+  "updatedAt": "2026-11-18T09:10:57.194Z"
+}

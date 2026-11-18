@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "sperm-whale",
+    "name": "Sperm Whale",
+    "description": "Marine mammal",
+    "seed": 1400388649,
+    "age": "adult",
+    "gender": "male",
+    "build": "broad",
+    "height": 1.005653740107082,
+    "skin": "#2C3E50",
+    "face": {
+      "shape": "heart",
+      "eyes": "almond",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#2C3E50"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#2C3E50",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#2C3E50",
+      "shoes": "sandals",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [],
+    "accessoryColor": "#2A9D8F",
+    "holding": "none"
+  },
+  "aliases": [
+    "sperm whale"
+  ],
+  "createdAt": "2026-11-18T09:10:57.226Z",
+  "updatedAt": "2026-11-18T09:10:57.226Z"
+}

@@ -83,6 +83,7 @@ export function TopBar({ activeTab, engines, onRefreshEngines, onSelectTab, onNe
   const navItems: Array<{ id: AppTab; label: string }> = [
     { id: 'home', label: 'Home' },
     { id: 'studio', label: 'Clip' },
+    { id: 'writer', label: 'Writer' },
     { id: 'script', label: 'Script' },
     { id: 'editor', label: 'Edit' },
     { id: 'library', label: 'Library' },

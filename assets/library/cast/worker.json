@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "worker",
+    "name": "Worker",
+    "description": "worker",
+    "seed": 2513319767,
+    "age": "adult",
+    "gender": "female",
+    "build": "broad",
+    "height": 0.9843116010166705,
+    "skin": "#B07548",
+    "face": {
+      "shape": "square",
+      "eyes": "almond",
+      "eyeColor": "#1C1C1C",
+      "nose": "pointed",
+      "freckles": false
+    },
+    "hair": {
+      "style": "long",
+      "color": "#4A2C1A"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "dress",
+      "topColor": "#6A4C93",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "skirt",
+      "bottomColor": "#277DA1",
+      "shoes": "boots",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [],
+    "accessoryColor": "#3D405B",
+    "holding": "none"
+  },
+  "aliases": [
+    "worker"
+  ],
+  "createdAt": "2026-11-18T08:06:19.054Z",
+  "updatedAt": "2026-11-18T08:06:19.054Z"
+}

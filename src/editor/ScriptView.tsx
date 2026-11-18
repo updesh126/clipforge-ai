@@ -3,6 +3,7 @@ import { Wand2, Loader2, AlertCircle, Mic, Sparkles, Check, Loader, X } from 'lu
 import type { EngineStatus, JobProgress } from '../types.ts';
 import type { EditProject } from './types.ts';
 import { StylePicker } from './StylePicker.tsx';
+import { VIDEO_TYPES, VIDEO_TYPE_IDS, type VideoType } from '../videotypes.ts';
 import { newJobId, postJson } from '../utils/api.ts';
 
 interface Props {
@@ -88,6 +89,8 @@ interface Draft {
   illustration?: 'vector' | 'ai';
   animate?: boolean;
   motionEngine?: 'ltx' | 'wan';
+  motionMode?: 'mix' | 'all';
+  videoType?: VideoType;
 }
 
 export function ScriptView({ engines, onCreated }: Props) {
@@ -111,6 +114,17 @@ export function ScriptView({ engines, onCreated }: Props) {
   const [illustration, setIllustration] = useState<'vector' | 'ai'>(draft?.illustration ?? 'vector');
   const [animate, setAnimate] = useState<boolean>(draft?.animate ?? false);
   const [motionEngine, setMotionEngine] = useState<'ltx' | 'wan'>(draft?.motionEngine ?? 'ltx');
+  const [motionMode, setMotionMode] = useState<'mix' | 'all'>(draft?.motionMode ?? 'mix');
+  const [videoType, setVideoType] = useState<VideoType | null>(draft?.videoType ?? null);
+  /** picking a type sets its recommended style, captions and look — all still changeable */
+  const pickVideoType = (t: VideoType) => {
+    const d = VIDEO_TYPES[t];
+    setVideoType(t);
+    setStyle(d.styles[0]);
+    setCaptions(d.captions);
+    setMode('story');
+    setMotionMode('mix');
+  };
   const engines2 = engines?.sdVideoEngines ?? [];
   // use what's installed: the chosen engine if present, otherwise the one that is
   const engineToUse: 'ltx' | 'wan' | undefined = engines2.includes(motionEngine) ? motionEngine : engines2[0];
@@ -128,13 +142,17 @@ export function ScriptView({ engines, onCreated }: Props) {
     if (busy) window.setTimeout(() => progressRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
   }, [busy]);
 
-  const words = script.trim() ? script.trim().split(/\s+/).length : 0;
+  // [tags] direct the editor and are never spoken — leave them out of the word count and timing
+  const TAG_RE = /\[[^[\]\n]{1,600}\]/g;
+  const spoken = script.replace(TAG_RE, ' ').trim();
+  const words = spoken ? spoken.split(/\s+/).length : 0;
+  const tagCount = (script.match(TAG_RE) ?? []).length;
   const estSeconds = Math.round(words / 2.5);
 
   // save the draft as you type
   useEffect(() => {
-    store.set(DRAFT_KEY, { script, title, aspect, style, voice, language, captions, mode, illustration, animate, motionEngine });
-  }, [script, title, aspect, style, voice, language, captions, mode, illustration, animate, motionEngine]);
+    store.set(DRAFT_KEY, { script, title, aspect, style, voice, language, captions, mode, illustration, animate, motionEngine, motionMode, videoType: videoType ?? undefined });
+  }, [script, title, aspect, style, voice, language, captions, mode, illustration, animate, motionEngine, motionMode, videoType]);
 
   /** Follow a job by id until it reports its finished edit (works after a reload too). */
   const follow = async (jobId: string) => {
@@ -208,7 +226,7 @@ export function ScriptView({ engines, onCreated }: Props) {
     const jobId = newJobId();
     store.set(JOB_KEY, { jobId, at: Date.now() });
     // start the job; the result is picked up by polling, so a reload mid-run doesn't lose it
-    postJson('/api/script-video', { script, title, aspect, style, voice, language, captions, mode, illustration: mode === 'story' ? illustration : 'vector', animate: mode === 'story' && illustration === 'ai' && animate, motionEngine: engineToUse, jobId }).catch(() => {
+    postJson('/api/script-video', { script, title, aspect, style, voice, language, captions, mode, illustration: mode === 'story' ? illustration : 'vector', animate: mode === 'story' && illustration === 'ai' && animate, motionEngine: engineToUse, motionMode, videoType: videoType ?? undefined, jobId }).catch(() => {
       /* errors are reported through the job */
     });
     await follow(jobId);
@@ -246,8 +264,17 @@ export function ScriptView({ engines, onCreated }: Props) {
             />
             <div className="pointer-events-none absolute bottom-3 right-4 font-mono text-[11px] text-zinc-500">
               {words} words · ~{Math.floor(estSeconds / 60)}:{String(estSeconds % 60).padStart(2, '0')}
+              {tagCount > 0 ? ` · ${tagCount} tag${tagCount > 1 ? 's' : ''}` : ''}
             </div>
           </div>
+          <p className="mt-1.5 text-[11px] text-zinc-500">
+            Direct any scene with <code className="rounded bg-zinc-900 px-1 text-zinc-300">[tags]</code> — e.g.{' '}
+            <code className="rounded bg-zinc-900 px-1 text-zinc-300">[bigStat]</code>{' '}
+            <code className="rounded bg-zinc-900 px-1 text-zinc-300">[rainFx]</code>{' '}
+            <code className="rounded bg-zinc-900 px-1 text-zinc-300">[pushIn]</code>{' '}
+            <code className="rounded bg-zinc-900 px-1 text-zinc-300">[transition: irisWipe]</code>. They are never spoken.{' '}
+            <a href="#/docs/script-tags" className="text-accent hover:underline">All tags</a>
+          </p>
           {!script && (
             <button type="button" onClick={() => setScript(STORY_TEMPLATE)} className="mt-2 mr-4 text-xs text-accent hover:underline cursor-pointer" title="One paragraph per scene: a place + 1-3 things we can see. Full guide: docs/STORY_SCRIPT_GUIDE.md">
               Use the story template
@@ -309,6 +336,28 @@ export function ScriptView({ engines, onCreated }: Props) {
         </div>
 
         <aside className="space-y-5">
+          <section>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Video type</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {VIDEO_TYPE_IDS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => pickVideoType(id)}
+                  className={`rounded-lg border p-2.5 text-left cursor-pointer ${videoType === id ? 'border-accent bg-accent/5' : 'border-zinc-800 hover:border-zinc-600'}`}
+                >
+                  <span className="block text-xs font-semibold text-white">{VIDEO_TYPES[id].label}</span>
+                  <span className="mt-0.5 block text-[10.5px] leading-snug text-zinc-500">{VIDEO_TYPES[id].blurb}</span>
+                </button>
+              ))}
+            </div>
+            {videoType && (
+              <p className="mt-1.5 text-[10.5px] leading-snug text-zinc-500">
+                Set for {VIDEO_TYPES[videoType].label}: <span className="text-zinc-300">{VIDEO_TYPES[videoType].styles[0]}</span> style, {VIDEO_TYPES[videoType].captions} captions
+                {VIDEO_TYPES[videoType].sequences.length > 1 ? ', with explainer graphics where the script has facts' : ''}. Change anything below.
+              </p>
+            )}
+          </section>
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Look</h2>
             <div className="grid grid-cols-2 gap-2">
@@ -374,6 +423,24 @@ export function ScriptView({ engines, onCreated }: Props) {
               {illustration === 'ai' && animate && engines2.length > 0 && (
                 <div className="mt-1.5 grid grid-cols-2 gap-2">
                   {([
+                    ['mix', 'Mix', 'Key scenes move, the rest stay paintings · about half the time'],
+                    ['all', 'All scenes', 'Every scene moves · slowest'],
+                  ] as const).map(([id, label, hint]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setMotionMode(id)}
+                      className={`rounded-lg border p-2 text-left cursor-pointer ${motionMode === id ? 'border-accent bg-accent/5' : 'border-zinc-800 hover:border-zinc-600'}`}
+                    >
+                      <span className="block text-xs font-semibold text-white">{label}</span>
+                      <span className="mt-0.5 block text-[10.5px] leading-snug text-zinc-500">{hint}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {illustration === 'ai' && animate && engines2.length > 0 && (
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  {([
                     ['ltx', 'Fast', 'LTX-Video · ~1 min per scene'],
                     ['wan', 'Best', 'Wan 2.2 · smoother, several min per scene'],
                   ] as const).map(([id, label, hint]) => {
@@ -399,7 +466,10 @@ export function ScriptView({ engines, onCreated }: Props) {
           <section>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Art style</h2>
             <StylePicker value={style} onChange={setStyle} />
-            <p className="mt-1.5 text-[10.5px] text-zinc-600">Hover a style to see a preview and what it suits.</p>
+            <p className="mt-1.5 text-[10.5px] text-zinc-600">
+              Hover a style to see a preview and what it suits.
+              {videoType ? ` Good for ${VIDEO_TYPES[videoType].label}: ${VIDEO_TYPES[videoType].styles.join(', ')}.` : ''}
+            </p>
           </section>
 
           <section className="space-y-2">
@@ -494,9 +564,10 @@ function PaintProgress({ media, stage, aspect, painting }: { media: NonNullable<
   );
   return (
     <div className="mt-4 space-y-3">
-      <div className={`grid gap-2 ${painting ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      <div className={`grid gap-2 ${painting ? (media.motionScenes?.some(Boolean) ? 'grid-cols-4' : 'grid-cols-3') : 'grid-cols-2'}`}>
         {stat('Scene', `${current} of ${total}`)}
         {painting ? stat('Painted', `${done.length} of ${total}`) : stat('Scenes left', String(Math.max(0, total - current)))}
+        {painting && media.motionScenes?.some(Boolean) ? stat('Moving', `${media.motionScenes.filter(Boolean).length} of ${total}`) : null}
         {painting && stat('Brush steps', paintingNow && media.steps ? `${media.step ?? 0} / ${media.steps}` : '—')}
       </div>
 
@@ -528,6 +599,7 @@ function PaintProgress({ media, stage, aspect, painting }: { media: NonNullable<
                 {src ? <img src={src} alt={`Scene ${i + 1}`} className="h-full w-full object-cover" /> : active && media.preview ? <img src={media.preview} alt="" className="h-full w-full object-cover opacity-70" /> : null}
                 <span className={`absolute bottom-0.5 left-1 font-mono text-[10px] ${src || active ? 'text-white drop-shadow' : 'text-zinc-600'}`}>{i + 1}</span>
                 {src && <Check className="absolute right-0.5 top-0.5 h-3 w-3 text-accent drop-shadow" />}
+                {media.motionScenes?.[i] && <span className="absolute left-0.5 top-0.5 rounded bg-black/70 px-1 text-[8px] leading-tight text-accent" title="This scene moves">▶</span>}
               </li>
             );
           })}

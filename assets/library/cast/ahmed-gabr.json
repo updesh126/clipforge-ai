@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "ahmed-gabr",
+    "name": "Ahmed Gabr",
+    "description": "Scuba depth record holder",
+    "seed": 728492378,
+    "age": "adult",
+    "gender": "male",
+    "build": "average",
+    "height": 1.0089418681850657,
+    "skin": "#e8d5b7",
+    "face": {
+      "shape": "heart",
+      "eyes": "round",
+      "eyeColor": "#4E3524",
+      "nose": "button",
+      "freckles": true
+    },
+    "hair": {
+      "style": "short",
+      "color": "#3d2e1a"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#0f4c75",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#0f4c75",
+      "shoes": "boots",
+      "shoeColor": "#33415C"
+    },
+    "accessories": [
+      "backpack"
+    ],
+    "accessoryColor": "#F3CA40",
+    "holding": "none"
+  },
+  "aliases": [
+    "ahmed gabr"
+  ],
+  "createdAt": "2026-11-18T09:10:22.225Z",
+  "updatedAt": "2026-11-18T09:10:57.195Z"
+}

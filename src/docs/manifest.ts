@@ -8,6 +8,8 @@ import firstVideo from '../../docs/site/first-video.md?raw';
 import clipping from '../../docs/site/clipping.md?raw';
 import scriptToVideo from '../../docs/site/script-to-video.md?raw';
 import scriptGuide from '../../docs/STORY_SCRIPT_GUIDE.md?raw';
+import scriptWriter from '../../docs/site/script-writer.md?raw';
+import scriptTags from '../../docs/site/script-tags.md?raw';
 import artStyles from '../../docs/site/art-styles.md?raw';
 import stableDiffusion from '../../docs/site/stable-diffusion.md?raw';
 import editor from '../../docs/site/editor.md?raw';
@@ -47,8 +49,10 @@ export const DOC_GROUPS: DocGroup[] = [
     label: 'Make videos',
     pages: [
       page('clipping', 'Clip long videos', 'docs/site/clipping.md', clipping),
+      page('script-writer', 'Script Writer (from YouTube)', 'docs/site/script-writer.md', scriptWriter),
       page('script-to-video', 'Script → video', 'docs/site/script-to-video.md', scriptToVideo),
       page('script-guide', 'Writing a story script', 'docs/STORY_SCRIPT_GUIDE.md', scriptGuide),
+      page('script-tags', 'Script tags (all effects)', 'docs/site/script-tags.md', scriptTags),
       page('art-styles', 'Art styles', 'docs/site/art-styles.md', artStyles),
       page('stable-diffusion', 'Stable Diffusion setup', 'docs/site/stable-diffusion.md', stableDiffusion),
     ],

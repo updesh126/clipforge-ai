@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "giant-squids",
+    "name": "Giant Squids",
+    "description": "Deep sea predator",
+    "seed": 879609813,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 1.0594953020988034,
+    "skin": "#2f4f4f",
+    "face": {
+      "shape": "oval",
+      "eyes": "narrow",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": true
+    },
+    "hair": {
+      "style": "long",
+      "color": "#000000"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "tshirt",
+      "topColor": "#1a1a1a",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#1a1a1a",
+      "shoes": "boots",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#F2A541",
+    "holding": "none"
+  },
+  "aliases": [
+    "giant squids"
+  ],
+  "createdAt": "2026-11-18T09:10:22.252Z",
+  "updatedAt": "2026-11-18T09:10:22.252Z"
+}

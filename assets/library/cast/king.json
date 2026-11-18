@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "king",
+    "name": "King",
+    "description": "king",
+    "seed": 3658736598,
+    "age": "adult",
+    "gender": "male",
+    "build": "broad",
+    "height": 1.0346992005221547,
+    "skin": "#6E4027",
+    "face": {
+      "shape": "round",
+      "eyes": "almond",
+      "eyeColor": "#3B2416",
+      "nose": "pointed",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#A23B1E"
+    },
+    "beard": "stubble",
+    "outfit": {
+      "top": "robe",
+      "topColor": "#E07A5F",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "skirt",
+      "bottomColor": "#E4572E",
+      "shoes": "boots",
+      "shoeColor": "#33415C"
+    },
+    "accessories": [
+      "crown"
+    ],
+    "accessoryColor": "#C44569",
+    "holding": "none"
+  },
+  "aliases": [
+    "king"
+  ],
+  "createdAt": "2026-11-18T08:06:00.115Z",
+  "updatedAt": "2026-11-18T08:06:00.115Z"
+}

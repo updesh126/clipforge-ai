@@ -8,6 +8,7 @@ import { ArchitectureView } from './components/ArchitectureView.tsx';
 import { HomeView } from './components/HomeView.tsx';
 // The Remotion editor is loaded only when opened, keeping Home and Clip light
 const ScriptView = lazy(() => import('./editor/ScriptView.tsx').then((m) => ({ default: m.ScriptView })));
+const WriterView = lazy(() => import('./editor/WriterView.tsx').then((m) => ({ default: m.WriterView })));
 const EditorView = lazy(() => import('./editor/EditorView.tsx').then((m) => ({ default: m.EditorView })));
 const DocsView = lazy(() => import('./docs/DocsView.tsx').then((m) => ({ default: m.DocsView })));
 import { createEdit, listEdits, type EditSummary } from './editor/api.ts';
@@ -15,7 +16,7 @@ import type { AppTab, ClipLengthPreset, ClipProject, EngineStatus, JobProgress }
 import { postJson, withProgress } from './utils/api.ts';
 
 /** URL hash ↔ screen, so a reload (or server restart) returns to the same place: #/script, #/edit/<id>, … */
-const TAB_HASH: Record<AppTab, string> = { home: 'home', studio: 'clip', script: 'script', editor: 'edit', library: 'library', architecture: 'how', docs: 'docs' };
+const TAB_HASH: Record<AppTab, string> = { home: 'home', studio: 'clip', script: 'script', writer: 'writer', editor: 'edit', library: 'library', architecture: 'how', docs: 'docs' };
 
 function readHash(): { tab: AppTab; editId: string | null; docSlug: string | null } {
   const [, seg, id] = window.location.hash.replace(/^#/, '').split('/');
@@ -245,6 +246,12 @@ export default function App() {
             setActiveTab('editor');
           }}
         />
+      )}
+
+      {activeTab === 'writer' && (
+        <Suspense fallback={<div className="flex-1 grid place-items-center text-xs text-zinc-500">Loading…</div>}>
+          <WriterView onOpenScript={() => setActiveTab('script')} />
+        </Suspense>
       )}
 
       {activeTab === 'script' && (

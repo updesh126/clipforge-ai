@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "blue-whale",
+    "name": "Blue Whale",
+    "description": "Marine mammal",
+    "seed": 1191001648,
+    "age": "adult",
+    "gender": "male",
+    "build": "broad",
+    "height": 1.000535708651878,
+    "skin": "#FFFFFF",
+    "face": {
+      "shape": "long",
+      "eyes": "round",
+      "eyeColor": "#2F4F6F",
+      "nose": "pointed",
+      "freckles": true
+    },
+    "hair": {
+      "style": "short",
+      "color": "#FFFFFF"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#808080",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#808080",
+      "shoes": "boots",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [],
+    "accessoryColor": "#5E548E",
+    "holding": "none"
+  },
+  "aliases": [
+    "blue whale"
+  ],
+  "createdAt": "2026-11-18T09:10:57.195Z",
+  "updatedAt": "2026-11-18T09:10:57.195Z"
+}

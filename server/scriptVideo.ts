@@ -17,12 +17,16 @@ import { UPLOADS_DIR } from './store.ts';
 import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
+import { chooseMotion } from './motionPlan.ts';
+import { autoSequences } from './autoSequences.ts';
+import { PLANNED_CAMERAS, scenesWithDirectives, tokeniseScript, type Directive } from './directives.ts';
+import { VIDEO_TYPES, isVideoType, type VideoType } from '../src/videotypes.ts';
 import { animateImage, describeCharacter, generateImage, sdSize, sdStatus, stylisedScene, videoModel } from './imagegen.ts';
 import { ensureComfy } from './comfy.ts';
 import type { CharacterSpec } from '../src/vector/character.ts';
 import type { EffectId } from '../src/editor/types.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
-import { EFFECTS_LIB } from '../src/motion/catalog.ts';
+import { BASE_FIELDS, EFFECTS_LIB } from '../src/motion/catalog.ts';
 import { ART_STYLE_SPECS, buildNegativePrompt, type StyleSpecId } from '../src/artstyles/prompt.ts';
 import { EFFECTS } from '../src/editor/catalog.ts';
 import { isTheme } from '../src/vector/theme.ts';
@@ -65,6 +69,10 @@ export interface ScriptVideoOptions {
   illustration?: 'vector' | 'ai';
   /** AI illustration only: turn each painting into a moving clip with LTX-Video (image-to-video) */
   animate?: boolean;
+  /** storytelling | documentary | fun | tech — steers the planner's graphics, title card and atmosphere */
+  videoType?: VideoType;
+  /** with animate: 'mix' moves only the scenes that gain most from motion (faster), 'all' moves every scene */
+  motionMode?: 'mix' | 'all';
   /** which image-to-video engine: ltx (fast) or wan (best); default = the installed one */
   motionEngine?: 'ltx' | 'wan';
 }
@@ -83,7 +91,9 @@ interface ScenePlan {
 
 // ---------------------------------------------------------------- 1. split
 export function splitScenes(script: string): string[] {
-  const clean = script.replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim();
+  // a dot between digits (0.1, 7.2%) is not a sentence end: shield it while splitting, restore at the end
+  const DEC = '․';
+  const clean = script.replace(/\r/g, '').replace(/[ \t]+/g, ' ').replace(/(\d)\.(?=\d)/g, `$1${DEC}`).trim();
   const paragraphs = clean.split(/\n\s*\n+/).map((p) => p.replace(/\n/g, ' ').trim()).filter(Boolean);
   const scenes: string[] = [];
   for (const p of paragraphs) {
@@ -99,7 +109,7 @@ export function splitScenes(script: string): string[] {
     }
     if (cur) scenes.push(cur);
   }
-  return scenes.slice(0, 60);
+  return scenes.slice(0, 60).map((s) => s.split(DEC).join('.'));
 }
 
 // ---------------------------------------------------------------- 2. plan
@@ -301,7 +311,7 @@ function sameScript(title: string | undefined, text: string): string {
   return deva(title) === deva(text) ? title : '';
 }
 
-function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, style: string, index: number, videoTitle = ''): EditItem[] {
+function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, style: string, index: number, videoTitle = '', vtype?: VideoType): EditItem[] {
   const accent = STYLE_ACCENT[style] ?? '#B5E2DD';
   const start = round(from + 0.5);
   const len = round(Math.max(1.2, Math.min(dur - 0.6, 4.5)));
@@ -324,8 +334,13 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
   switch (plan.graphic) {
     case 'title': {
       // a real title, never a cut-off fragment of the narration ("In a quiet hill village at")
-      const t = sameScript(plan.title, text) || (index === 0 ? sameScript(videoTitle.replace(/\s*\([^)]*\)\s*$/, ''), text) : '');
-      return t && t.split(/\s+/).length <= 8 ? [item('artBanner', { style, text: t, position: 'top', size: 1 }, 'Title')] : [];
+      // the video's own title wins on the first scene (the planner sometimes returns a fragment of the narration)
+      const own = index === 0 && videoTitle ? sameScript(videoTitle.replace(/\s*\([^)]*\)\s*$/, ''), text) : '';
+      const t = own || sameScript(plan.title, text);
+      if (!t || t.split(/\s+/).length > 8) return [];
+      // documentary / tech open with a Vox-style torn-paper title card; stories with a style-matched banner
+      if (vtype && VIDEO_TYPES[vtype].title === 'paperTitle' && index === 0) return [item('paperTitle', { text: t, kicker: VIDEO_TYPES[vtype].label, accent }, 'Title')];
+      return [item('artBanner', { style, text: t, position: 'top', size: 1 }, 'Title')];
     }
     case 'stat':
       return plan.value === undefined ? [] : [item('stat', { value: plan.value, suffix: normSuffix(plan.suffix), prefix: '', label: plan.label ?? '', accent }, 'Stat')];
@@ -366,9 +381,10 @@ const ATMOSPHERE_CUES: Array<[RegExp, string]> = [
 ];
 
 /** One see-through atmosphere overlay per painted scene: from the narration if it asks for one, else the style's. */
-function sceneAtmosphere(plan: StoryPlan, text: string, style: string, from: number, dur: number, index: number): EditItem[] {
+function sceneAtmosphere(plan: StoryPlan, text: string, style: string, from: number, dur: number, index: number, vtype?: VideoType): EditItem[] {
   const cue = ATMOSPHERE_CUES.find(([re]) => re.test(text))?.[1] ?? (plan.time === 'night' ? 'twinklingStars' : plan.time === 'dawn' || plan.time === 'sunset' ? 'lightRays' : undefined);
-  const own = (styleMotion(style)?.atmosphere ?? []).filter((id) => SEE_THROUGH.has(id));
+  // the video type's mood first (confetti for fun, film grain for documentary…), then the art style's own
+  const own = [...(vtype ? VIDEO_TYPES[vtype].atmosphere : []), ...(styleMotion(style)?.atmosphere ?? [])].filter((id) => SEE_THROUGH.has(id));
   const fx = cue ?? (own.length ? own[index % own.length] : 'dustParticles');
   if (!EFFECTS_LIB[fx]) return [];
   return [{ id: newId('atm'), kind: 'text', name: `Atmosphere · ${EFFECTS_LIB[fx].label}`, track: 4, from: round(from), duration: round(dur), template: 'motion', props: { fx, accent: STYLE_ACCENT[style] ?? '#B5E2DD' } }];
@@ -388,6 +404,90 @@ function styleTransition(style: string, cut: number, index: number): EditItem {
   const d = def.duration;
   const accent = pick === 'dipToColour' ? (style === 'inkWash' || style === 'handDrawn' ? '#EFEAE0' : '#000000') : STYLE_ACCENT[style] ?? '#B5E2DD';
   return { id: newId('tr'), kind: 'text', name: `Transition · ${def.label}`, track: 7, from: round(Math.max(0, cut - d / 2)), duration: d, template: 'motion', props: { fx: pick, accent } };
+}
+
+// ---------------------------------------------------------------- script [tags]
+const firstWords = (t: string, n: number) => t.replace(/["“”]/g, '').split(/\s+/).filter(Boolean).slice(0, n).join(' ').replace(/[,;:.!?…]+$/, '');
+
+/**
+ * A sequence from a [tag]: the writer's settings, completed from the narration where possible
+ * (numbers only ever come from the narration or the tag). Null when a needed number is missing.
+ */
+function sequenceFromDirective(d: Directive, text: string): { id: string; params: Record<string, string | number> } | null {
+  const seq = SEQUENCES[d.id];
+  if (!seq) return null;
+  const need = Object.keys(seq.params).filter((k) => k !== 'bg');
+  const auto = autoSequences([text], [d.id])[0]?.params ?? {};
+  const p: Record<string, string | number> = { ...auto, ...d.params };
+  if (d.id === 'bigStat' && p.value === undefined) {
+    const n = firstNumber(text);
+    if (n) {
+      const at = text.search(/\d/);
+      p.value = n.value;
+      p.suffix ??= n.suffix;
+      p.label ??= firstWords(text.slice(0, at), 5);
+      p.text ??= firstWords(text.slice(at).replace(/^[\d.,]+\s*(%|percent|million|crore|lakh|billion|thousand|k)?\s*/i, ''), 5);
+    }
+  }
+  for (const k of need) {
+    if (p[k] !== undefined && String(p[k]).trim() !== '') continue;
+    if (typeof seq.params[k] === 'number') {
+      console.warn(`[clipforge] [${d.raw}] needs a number for "${k}" — add ${k}=… to the tag`);
+      return null;
+    }
+    // text settings default to the narration
+    p[k] = k === 'highlight' ? firstWords(text.split(/\s+/).slice(-3).join(' '), 3) : k === 'title' || k === 'label' ? firstWords(text, 5) : firstWords(text, 14);
+  }
+  return { id: d.id, params: p };
+}
+
+/** Scene plan fields the writer can set with tags: [title: …], a planned camera move, an explainer sequence. */
+function applyStoryDirectives(s: StoryPlan, d: Directive[], text: string): StoryPlan {
+  let out = s;
+  for (const x of d) {
+    if (x.kind === 'title') out = { ...out, graphic: 'title', title: x.id };
+    else if (x.kind === 'camera' && PLANNED_CAMERAS.includes(x.id)) out = { ...out, camera: x.id as StoryPlan['camera'] };
+    else if (x.kind === 'sequence') {
+      const m = sequenceFromDirective(x, text);
+      if (m) out = { ...out, motion: m };
+    }
+  }
+  return out;
+}
+
+/** A motion-library overlay (graphic or atmosphere) from a tag; text effects default to the scene's words. */
+function directedOverlay(d: Directive, text: string, from: number, dur: number, style: string, track: number, fullScene: boolean): EditItem {
+  const fx = EFFECTS_LIB[d.id];
+  const wantsText = fx && BASE_FIELDS[fx.base]?.some((f) => f.key === 'text');
+  const props: Record<string, string | number> = { fx: d.id, accent: STYLE_ACCENT[style] ?? '#B5E2DD', ...(wantsText && d.params.text === undefined ? { text: firstWords(text, 8) } : {}), ...d.params };
+  const start = fullScene ? from : from + 0.3;
+  const len = fullScene ? dur : Math.max(1.5, Math.min((fx?.duration ?? 3) + 1, dur - 0.3));
+  return { id: newId('tag'), kind: 'text', name: `${fx?.label ?? d.id} (script)`, track, from: round(start), duration: round(len), template: 'motion', props };
+}
+
+/** A transition from a tag, centred on the cut into this scene. */
+function directedTransition(d: Directive, cut: number, style: string): EditItem[] {
+  if (d.id in EFFECTS) {
+    const e = EFFECTS[d.id as EffectId];
+    const from = d.id === 'fadeIn' ? cut : Math.max(0, cut - e.duration / 2);
+    return [{ id: newId('tr'), kind: 'effect', name: `${e.label} (script)`, track: 1, from: round(from), duration: e.duration, effect: d.id as EffectId, intensity: 1 }];
+  }
+  const def = EFFECTS_LIB[d.id];
+  if (!def) return [];
+  return [{ id: newId('tr'), kind: 'text', name: `Transition · ${def.label} (script)`, track: 7, from: round(Math.max(0, cut - def.duration / 2)), duration: def.duration, template: 'motion', props: { fx: d.id, accent: STYLE_ACCENT[style] ?? '#B5E2DD', ...d.params } }];
+}
+
+/** Motion graphics and extra camera effects from tags (sequences and planned cameras go through the scene plan). */
+function directedExtras(d: Directive[], text: string, from: number, dur: number, style: string): EditItem[] {
+  const out: EditItem[] = [];
+  for (const x of d) {
+    if (x.kind === 'graphic') out.push(directedOverlay(x, text, from, dur, style, 5, false));
+    else if (x.kind === 'camera' && !PLANNED_CAMERAS.includes(x.id) && x.id in EFFECTS) {
+      const e = EFFECTS[x.id as EffectId];
+      out.push({ id: newId('cam'), kind: 'effect', name: `${e.label} (script)`, track: 1, from: round(from + 0.3), duration: round(Math.min(e.duration, dur)), effect: x.id as EffectId, intensity: Number(x.params.intensity) || 1 });
+    }
+  }
+  return out;
 }
 
 const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blueprint', 'stainedGlass']);
@@ -452,10 +552,18 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
 }
 
 export async function scriptToVideo(opts: ScriptVideoOptions, progress: ProgressFn): Promise<EditProject> {
-  const scenes = splitScenes(opts.script || '');
+  // [tags] in the script direct each scene (motion graphic, camera, transition, atmosphere…) and are never spoken
+  const { script: tokenised, tags } = tokeniseScript(opts.script || '');
+  const directed = scenesWithDirectives(splitScenes(tokenised), tags);
+  const scenes = directed.map((d) => d.text);
+  const dirs = directed.map((d) => d.directives);
+  const unknownTags = directed.flatMap((d) => d.unknown);
+  if (unknownTags.length) console.warn('[clipforge] script-video: unknown tags ignored:', unknownTags.join(' | '));
   if (!scenes.length) throw new Error('The script is empty.');
   const aspect = FRAME_SIZES[opts.aspect ?? ''] ? (opts.aspect as string) : '9:16';
-  const choice = opts.style === 'auto' || opts.style === 'mix' || ART_STYLE_OPTIONS.includes(String(opts.style)) ? String(opts.style) : 'auto';
+  const vtype = isVideoType(opts.videoType) ? opts.videoType : undefined;
+  let choice = opts.style === 'auto' || opts.style === 'mix' || ART_STYLE_OPTIONS.includes(String(opts.style)) ? String(opts.style) : 'auto';
+  if (choice === 'auto' && vtype) choice = VIDEO_TYPES[vtype].styles[0]; // a video type implies its recommended style
 
   const mode = opts.mode === 'graphics' ? 'graphics' : 'story';
   const lang = languageOf(opts.script, opts.language ?? (opts.voice && /^h[fm]_/.test(opts.voice) ? 'hi' : undefined));
@@ -467,7 +575,25 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
   let story: StoryPlan[] = [];
   if (mode === 'story') {
     progress('plan', 'Storyboarding places, characters and camera moves', 5);
-    story = (await llmStory(scenes)) ?? heuristicStory(scenes);
+    story = (await llmStory(scenes, vtype)) ?? heuristicStory(scenes);
+    // small local models rarely suggest explainer graphics → fill the obvious ones (timeline, quote, process,
+    // comparison…) straight from the narration, limited to what this video type uses
+    if (vtype) {
+      const auto = autoSequences(scenes, VIDEO_TYPES[vtype].sequences);
+      story = story.map((s, i) => (s.motion || !auto[i] ? s : { ...s, motion: auto[i]! }));
+    }
+    // keep explainer graphics as rare as the video type wants them
+    const every = vtype ? VIDEO_TYPES[vtype].sequenceEvery : 3;
+    let last = -99;
+    story = story.map((s, i) => {
+      if (!s.motion) return s;
+      const keep = every === 0 ? s.motion.id === 'quoteStatement' && i - last > 3 : i - last >= every;
+      if (keep) last = i;
+      return keep ? s : { ...s, motion: undefined };
+    });
+    // the writer's [tags] always win over the planner
+    story = story.map((s, i) => applyStoryDirectives(s, dirs[i] ?? [], scenes[i]));
+    if (unknownTags.length) progress('plan', `Ignored unknown tags: ${unknownTags.map((t) => `[${t.slice(0, 30)}]`).join(' ')} — see Docs → Script tags`, 6);
     // procedural themes and AI paintings: fix every person's identity once (face, hair, clothes) before drawing any scene
     if (isTheme(opts.style) || opts.illustration === 'ai') {
       progress('plan', 'Casting characters (same look in every scene)', 7);
@@ -501,6 +627,14 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
   const look = opts.captions === 'off' ? null : (['karaoke', 'pop', 'bold', 'clean'].includes(String(opts.captions)) ? opts.captions : 'karaoke') as CaptionLook;
 
   const painted: string[] = []; // finished AI paintings, shown as a filmstrip while the video is made
+  // which scenes move: all of them, or (Mix) the ones where something actually moves — much faster
+  const moving = animate && mode === 'story' ? chooseMotion(story, plans.map((p) => p.text), opts.motionMode ?? 'all').animate : plans.map(() => false);
+  // [move] / [still] in the script override the Mix choice for that scene
+  if (animate) dirs.forEach((d, i) => {
+    if (d.some((x) => x.kind === 'move')) moving[i] = true;
+    if (d.some((x) => x.kind === 'still')) moving[i] = false;
+  });
+  if (animate) progress('plan', `Motion: ${moving.filter(Boolean).length} of ${plans.length} scenes will move`, 7.5, { motionScenes: moving });
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
     const style = plan.style ?? baseStyle;
@@ -535,7 +669,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
         items.push(
           ...(await paintedScene(story[i], plan.text, sceneStart, sceneDur, style, aspect, aiCast, aiSeed, (m, f, live) => {
             if (live?.done) painted.push(live.done);
-            progress('assets', `${animate ? 'Making' : 'Painting'} scene ${i + 1} of ${n} (${painted.length} done): ${m}`, 8 + (80 * (i + 0.7 + 0.28 * f)) / n, {
+            progress('assets', `${moving[i] ? 'Making moving' : 'Painting'} scene ${i + 1} of ${n} (${painted.length} done): ${m}`, 8 + (80 * (i + 0.7 + 0.28 * f)) / n, {
               sceneIndex: i + 1,
               sceneTotal: n,
               aspect,
@@ -544,15 +678,36 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
               ...(live ? (live.preview ? { preview: live.preview } : {}) : { preview: undefined, step: 0 }),
               ...(live?.steps ? { step: live.step, steps: live.steps } : {}),
             });
-          }, animate, opts.motionEngine)),
+          }, moving[i], opts.motionEngine)),
         );
       }
       else items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));
-      items.push(...storyGraphic(story[i], plan.text, sceneStart, sceneDur, style, i, opts.title ?? ''));
-      if (i > 0) items.push(styleTransition(style, sceneStart, i));
-      if (aiCast) items.push(...sceneAtmosphere(story[i], plan.text, style, sceneStart, sceneDur, i));
+      // a [title: …] tag beats the video's own title
+      const taggedTitle = (dirs[i] ?? []).find((x) => x.kind === 'title')?.id;
+      items.push(...storyGraphic(story[i], plan.text, sceneStart, sceneDur, style, i, taggedTitle ?? opts.title ?? '', vtype));
+      const d = dirs[i] ?? [];
+      // transition into this scene: the script's [transition] or the style's own
+      const tr = d.find((x) => x.kind === 'transition');
+      if (tr) items.push(...directedTransition(tr, sceneStart, style));
+      else if (i > 0) items.push(styleTransition(style, sceneStart, i));
+      // atmosphere: the script's [atmosphere] (any illustration), otherwise automatic for AI paintings
+      const atm = d.find((x) => x.kind === 'atmosphere');
+      if (atm) items.push(directedOverlay(atm, plan.text, sceneStart, sceneDur, style, 4, true));
+      else if (aiCast) items.push(...sceneAtmosphere(story[i], plan.text, style, sceneStart, sceneDur, i, vtype));
+      items.push(...directedExtras(d, plan.text, sceneStart, sceneDur, style));
     } else {
       items.push(...sceneItems(plan, sceneStart, sceneDur, style));
+      const d = dirs[i] ?? [];
+      const tr = d.find((x) => x.kind === 'transition');
+      if (tr) items.push(...directedTransition(tr, sceneStart, style));
+      const atm = d.find((x) => x.kind === 'atmosphere');
+      if (atm) items.push(directedOverlay(atm, plan.text, sceneStart, sceneDur, style, 4, true));
+      // sequences become full overlays in the infographic look
+      for (const s of d.filter((x) => x.kind === 'sequence')) {
+        const m = sequenceFromDirective(s, plan.text);
+        if (m) items.push({ id: newId('mg'), kind: 'text', name: SEQUENCES[m.id].label, track: 5, from: round(sceneStart + 0.3), duration: round(Math.max(2, Math.min(SEQUENCES[m.id].duration, sceneDur - 0.4))), template: 'motion', props: { ...SEQUENCES[m.id].params, ...m.params, fx: m.id } });
+      }
+      items.push(...directedExtras(d, plan.text, sceneStart, sceneDur, style));
     }
     items.push({ id: newId('vo'), kind: 'audio', name: `Voice ${i + 1}`, track: 0, from: round(voStart), duration: round(voDur), src: `/media/uploads/${fileName}`, sourceStart: 0, volume: 1.4 });
     if (look && words.length) {

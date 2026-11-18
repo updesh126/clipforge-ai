@@ -15,6 +15,7 @@ import { POSES, type Pose } from '../src/vector/skeleton.ts';
 import { normaliseEnv } from '../src/vector/environment.ts';
 import { isTheme } from '../src/vector/theme.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
+import { VIDEO_TYPES, type VideoType } from '../src/videotypes.ts';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const PLAN_MODEL = process.env.OLLAMA_EDIT_MODEL || process.env.OLLAMA_MODEL || 'qwen2.5:3b';
@@ -56,12 +57,12 @@ export const STORY_SEQUENCES = ['bigStat', 'chartExplain', 'comparison', 'timeli
  * Keep a planned sequence only if it is real, has every parameter it needs (so no sample text leaks in),
  * and every number in it is actually said in the scene.
  */
-export function cleanMotion(raw: unknown, text: string): StoryPlan['motion'] {
+export function cleanMotion(raw: unknown, text: string, allowed: string[] = STORY_SEQUENCES): StoryPlan['motion'] {
   if (!raw || typeof raw !== 'object') return undefined;
   const r = raw as { id?: unknown; params?: unknown };
   const id = String(r.id ?? '');
   const seq = SEQUENCES[id];
-  if (!seq || !STORY_SEQUENCES.includes(id)) return undefined;
+  if (!seq || !allowed.includes(id)) return undefined;
   const given = (r.params && typeof r.params === 'object' ? r.params : {}) as Record<string, unknown>;
   const params: Record<string, string | number> = {};
   const said = (text.match(/\d[\d,.]*/g) ?? []).map((n) => n.replace(/,/g, ''));
@@ -167,10 +168,15 @@ export function heuristicStory(scenes: string[]): StoryPlan[] {
 }
 
 // ---------------------------------------------------------------- LLM planner
-export async function llmStory(scenes: string[]): Promise<StoryPlan[] | null> {
+export async function llmStory(scenes: string[], videoType?: VideoType): Promise<StoryPlan[] | null> {
+  const vt = videoType ? VIDEO_TYPES[videoType] : null;
+  // which explainer sequences fit this kind of video, and how often
+  const seqs = vt ? vt.sequences : STORY_SEQUENCES;
+  const every = vt ? vt.sequenceEvery : 3;
+  const everyText = every === 0 ? 'only for a direct quotation, otherwise leave it out' : every === 2 ? 'at most every second scene' : 'at most every third scene';
   const catalogued = objectNames();
   const known = [...new Set([...catalogued, ...RECIPES.filter((r) => r.spec.type !== 'background').map((r) => r.name), ...(catalogued.length ? [] : listAssets().filter((a) => a.style === 'any').map((a) => a.name))])];
-  const prompt = `You are a storyboard artist for an illustrated explainer video. Each numbered scene is narrated exactly as written.
+  const prompt = `You are a storyboard artist for an illustrated video. Each numbered scene is narrated exactly as written.${vt ? `\n${vt.plannerHint}` : ''}
 For EVERY scene decide what we SEE (the picture must change with the story):
 - "place": the setting. Prefer one of: ${PLACES.join(', ')}. You may invent a short new one (e.g. "tea garden") if none fits.
 - "time": day | sunset | night | dawn
@@ -180,7 +186,7 @@ For EVERY scene decide what we SEE (the picture must change with the story):
    motion: ${MOTIONS.join(' | ')}   (people/animals arriving → walkIn; birds → fly; trees → sway; objects → float)
    For PEOPLE also add "pose": ${POSES.join(' | ')} and "expression": ${EXPRESSIONS.join(' | ')} matching what they do and feel. Always call the same person by the same name (e.g. "Meera", not "the girl" later).
 - "mood": ${EXPRESSIONS.join(' | ')} — the feeling of the scene
-- "motion" (optional, at most every third scene): an explainer graphic for a beat that is about numbers, a comparison, dates, a process, a quote, a place or a myth. {"id": one of ${STORY_SEQUENCES.join(' | ')}, "params": {…}}. Params per id: ${STORY_SEQUENCES.map((id) => `${id}(${Object.keys(SEQUENCES[id].params).filter((k) => k !== 'bg').join(',')})`).join('; ')}. Use ONLY facts and numbers said in that scene; data is "Label:value, …"; events are "year|event; …". Leave "motion" out when unsure.
+- "motion" (optional, ${everyText}): an explainer graphic for a beat that is about numbers, a comparison, dates, a process, a quote, a place or a myth. {"id": one of ${seqs.join(' | ')}, "params": {…}}. Params per id: ${seqs.map((id) => `${id}(${Object.keys(SEQUENCES[id].params).filter((k) => k !== 'bg').join(',')})`).join('; ')}. Use ONLY facts and numbers said in that scene; data is "Label:value, …"; events are "year|event; …". Leave "motion" out when unsure.
 - "camera": ${CAMERAS.join(' | ')}  (vary it scene to scene)
 - "graphic": ${GRAPHICS.join(' | ')}. title only for scene 0. stat only with a number in the scene → add "value","suffix","label". chart → "data" like "A:10, B:20". highlight → "highlight" (exact words). quote → "title" (short line).
 
@@ -230,7 +236,7 @@ Reply with ONLY JSON: {"scenes":[{"i":0,"place":"...","time":"day","actors":[{"n
       const plan: StoryPlan = {
         place: String(raw.place ?? fb.place).toLowerCase().slice(0, 40) || fb.place,
         mood: EXPRESSIONS.includes(raw.mood as Expression) ? (raw.mood as Expression) : fb.mood,
-        motion: cleanMotion(raw.motion, text),
+        motion: cleanMotion(raw.motion, text, seqs),
         time: ['day', 'sunset', 'night', 'dawn'].includes(String(raw.time)) ? (raw.time as StoryPlan['time']) : undefined,
         actors: actors.length ? actors : fb.actors,
         camera: CAMERAS.includes(raw.camera as Camera) ? (raw.camera as Camera) : fb.camera,

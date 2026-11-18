@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "fing-tooth",
+    "name": "Fing Tooth",
+    "description": "Strange deep sea creature",
+    "seed": 697540629,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "slim",
+    "height": 0.9583093780651689,
+    "skin": "#808080",
+    "face": {
+      "shape": "round",
+      "eyes": "round",
+      "eyeColor": "#3E5F3A",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#808080"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "tshirt",
+      "topColor": "#616161",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#616161",
+      "shoes": "sandals",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [],
+    "accessoryColor": "#C44569",
+    "holding": "none"
+  },
+  "aliases": [
+    "fing tooth"
+  ],
+  "createdAt": "2026-11-18T09:10:22.256Z",
+  "updatedAt": "2026-11-18T09:10:22.256Z"
+}

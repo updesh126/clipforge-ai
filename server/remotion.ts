@@ -23,7 +23,8 @@ function sourceStamp(): number {
       else if (/\.(tsx?|css)$/.test(e.name)) newest = Math.max(newest, fs.statSync(p).mtimeMs);
     }
   };
-  for (const d of ['remotion', 'editor', 'assetkit']) {
+  // everything the composition imports — motion graphics and the vector engine included, or edits to them render stale
+  for (const d of ['remotion', 'editor', 'assetkit', 'motion', 'vector', 'artstyles']) {
     const dir = path.join(process.cwd(), 'src', d);
     if (fs.existsSync(dir)) walk(dir);
   }

@@ -1,0 +1,46 @@
+{
+  "spec": {
+    "id": "ravi",
+    "name": "Ravi",
+    "description": "8-year-old village boy",
+    "seed": 2928155029,
+    "age": "child",
+    "gender": "male",
+    "build": "slim",
+    "height": 0.9595276534231381,
+    "skin": "#f5d0b5",
+    "face": {
+      "shape": "round",
+      "eyes": "almond",
+      "eyeColor": "#4E3524",
+      "nose": "pointed",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#3e2723"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "tshirt",
+      "topColor": "#ffffff",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#4a148c",
+      "shoes": "barefoot",
+      "shoeColor": "#2B2B2B"
+    },
+    "accessories": [
+      "hat"
+    ],
+    "accessoryColor": "#4CB944",
+    "holding": "none"
+  },
+  "aliases": [
+    "ravi",
+    "the boy"
+  ],
+  "createdAt": "2026-11-18T07:53:34.044Z",
+  "updatedAt": "2026-11-18T07:53:36.528Z"
+}
