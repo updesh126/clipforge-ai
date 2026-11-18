@@ -9,6 +9,7 @@
  *   SD_CFG         guidance scale (default 6; use 1.5–2 for Lightning / Turbo)
  *   SD_SAMPLER     KSampler sampler (default dpmpp_2m), SD_SCHEDULER (default karras)
  */
+import { execFile } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -161,6 +162,8 @@ async function runComfy(wf: Record<string, unknown>, out: string, opts: { onProg
       15_000,
     );
     const started = Date.now();
+    let polls = 0;
+    let goneChecks = 0;
     type Hist = Record<string, { status?: { status_str?: string; messages?: unknown[] }; outputs?: Record<string, Record<string, unknown>> }>;
     for (;;) {
       if (Date.now() - started > opts.timeoutMin * 60_000) throw new Error(`ComfyUI took longer than ${opts.timeoutMin} minutes for one ${opts.what}.`);
@@ -168,11 +171,19 @@ async function runComfy(wf: Record<string, unknown>, out: string, opts: { onProg
       const hist = await getJson<Hist>(`${SD_URL}/history/${queued.prompt_id}`, undefined, 10_000).catch(() => ({}) as Hist);
       const h = hist[queued.prompt_id];
       if (!h) {
+        // every few seconds: is the job still queued or running? (it vanishes if cancelled or cleared in ComfyUI)
+        if (++polls % 4 === 0 && !(await stillQueued(queued.prompt_id))) {
+          if (++goneChecks >= 2) throw new Error('The ComfyUI job was cancelled or removed from its queue.');
+        } else if (polls % 4 === 0) goneChecks = 0;
         const secs = Math.round((Date.now() - started) / 1000);
         opts.onProgress?.(ws ? `${phase} · ${secs}s` : `Working… ${secs}s`, ws ? fraction : Math.min(0.9, secs / 60), { preview, step, steps });
         continue;
       }
-      if (h.status?.status_str === 'error') throw new Error(`ComfyUI failed: ${JSON.stringify(h.status.messages ?? []).slice(0, 500)}`);
+      if (h.status?.status_str === 'error') {
+        const detail = JSON.stringify(h.status.messages ?? []);
+        if (/execution_interrupted/.test(detail)) throw new Error('The ComfyUI job was cancelled (interrupted in ComfyUI).');
+        throw new Error(`ComfyUI failed: ${detail.slice(0, 500)}`);
+      }
       // images, gifs and videos all come back as lists of {filename, subfolder, type}
       const file = Object.values(h.outputs ?? {})
         .flatMap((o) => Object.values(o).filter(Array.isArray).flat() as unknown[])
@@ -209,6 +220,24 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
   return { url, file, cached: false };
 }
 
+/** True while ComfyUI still has the job running or waiting in its queue. Unknown (no answer) counts as yes. */
+async function stillQueued(promptId: string): Promise<boolean> {
+  try {
+    const q = await getJson<{ queue_running: unknown[][]; queue_pending: unknown[][] }>(`${SD_URL}/queue`, undefined, 5000);
+    return [...q.queue_running, ...q.queue_pending].some((item) => item[1] === promptId);
+  } catch {
+    return true;
+  }
+}
+
+/** Stop what ComfyUI is doing for ClipForge: interrupt the running job and clear the waiting ones. */
+export async function stopComfy(): Promise<void> {
+  await Promise.allSettled([
+    fetch(`${SD_URL}/interrupt`, { method: 'POST', signal: AbortSignal.timeout(5000) }),
+    fetch(`${SD_URL}/queue`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }), signal: AbortSignal.timeout(5000) }),
+  ]);
+}
+
 // ---------------------------------------------------------------- image → video (Motion)
 
 /**
@@ -219,7 +248,9 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
  *         models/diffusion_models/wan2.2_ti2v_5B_*.safetensors + models/text_encoders/umt5_xxl_*.safetensors + models/vae/wan2.2_vae.safetensors
  * SD_VIDEO_ENGINE (ltx | wan) picks the default when both are installed.
  */
-export const VIDEO_FPS = 24;
+export const VIDEO_FPS = 30; // clips are delivered at the editor's frame rate, so they play 1:1 (no judder)
+const LTX_FPS = 30; // LTX-Video generates at the delivery rate directly
+const WAN_FPS = 24; // Wan 2.2 5B is a 24 fps model → blended up to 30 after generation
 export type VideoEngine = 'ltx' | 'wan';
 const LTX_STEPS = Number(process.env.SD_VIDEO_STEPS) || 8; // distilled model: 8 steps, cfg 1
 const WAN_STEPS = Number(process.env.SD_WAN_STEPS) || 20;
@@ -271,7 +302,9 @@ export interface AnimateOptions {
   prompt: string; // what moves
   negative?: string;
   aspect: string;
-  frames?: number; // ≈ seconds × 24
+  /** clip length in seconds (preferred); frames are worked out for the engine's frame rate */
+  seconds?: number;
+  frames?: number; // raw frame count, if you need exact control
   seed?: number;
   engine?: VideoEngine; // default: the installed one (SD_VIDEO_ENGINE when both are)
   onProgress?: ComfyProgress;
@@ -302,19 +335,23 @@ export async function animateImage(opts: AnimateOptions): Promise<{ url: string;
   const [width, height] = videoSize(opts.aspect, engine);
   // LTX wants 8n+1 frames, Wan 4n+1
   const step = engine === 'ltx' ? 8 : 4;
-  const frames = Math.max(step + 1, Math.round(((opts.frames ?? 97) - 1) / step) * step + 1);
+  const genFps = engine === 'ltx' ? LTX_FPS : WAN_FPS;
+  const wanted = opts.seconds ? Math.round(opts.seconds * genFps) : (opts.frames ?? 97);
+  const frames = Math.max(step + 1, Math.round((wanted - 1) / step) * step + 1);
   const seed = opts.seed ?? 1;
   const steps = engine === 'ltx' ? LTX_STEPS : WAN_STEPS;
   const src = fs.readFileSync(opts.image);
-  const key = crypto.createHash('sha1').update(src).update(JSON.stringify({ p: opts.prompt, n: opts.negative, width, height, frames, seed, steps, engine, m: models[engine] })).digest('hex').slice(0, 20);
+  const key = crypto.createHash('sha1').update(src).update(JSON.stringify({ v: 2, p: opts.prompt, n: opts.negative, width, height, frames, genFps, seed, steps, engine, m: models[engine] })).digest('hex').slice(0, 20);
   fs.mkdirSync(GENERATED_DIR, { recursive: true });
   const file = path.join(GENERATED_DIR, `${key}.webm`);
   const url = `/media/generated/${key}.webm`;
-  const seconds = frames / VIDEO_FPS;
+  const seconds = frames / genFps;
   if (fs.existsSync(file)) return { url, file, cached: true, seconds, engine };
   const input = await uploadImage(opts.image);
-  const negative = opts.negative || 'worst quality, inconsistent motion, blurry, jittery, distorted, morphing faces, extra limbs, text, watermark';
-  const save = (images: [string, number]) => ({ class_type: 'SaveWEBM', inputs: { images, filename_prefix: 'clipforge_video', codec: 'vp9', fps: VIDEO_FPS, crf: 24 } });
+  // shaky camera and flicker are what make clips look unstable — always steer away from them
+  const negative = `${opts.negative || 'worst quality, inconsistent motion, blurry, distorted, morphing faces, extra limbs, text, watermark'}, camera shake, shaky handheld camera, jittery motion, flickering, strobing, warping background`;
+  // saved near-lossless; the deflicker pass below makes the delivery file
+  const save = (images: [string, number]) => ({ class_type: 'SaveWEBM', inputs: { images, filename_prefix: 'clipforge_video', codec: 'vp9', fps: genFps, crf: 12 } });
 
   let wf: Record<string, unknown>;
   let decodeNode: string;
@@ -326,9 +363,9 @@ export async function animateImage(opts: AnimateOptions): Promise<{ url: string;
       '3': { class_type: 'CLIPTextEncode', inputs: { text: opts.prompt, clip: ['2', 0] } },
       '4': { class_type: 'CLIPTextEncode', inputs: { text: negative, clip: ['2', 0] } },
       '5': { class_type: 'LoadImage', inputs: { image: input } },
-      '6': { class_type: 'LTXVPreprocess', inputs: { image: ['5', 0], img_compression: 35 } },
+      '6': { class_type: 'LTXVPreprocess', inputs: { image: ['5', 0], img_compression: 30 } },
       '7': { class_type: 'LTXVImgToVideo', inputs: { positive: ['3', 0], negative: ['4', 0], vae: ['1', 2], image: ['6', 0], width, height, length: frames, batch_size: 1, strength: 1 } },
-      '8': { class_type: 'LTXVConditioning', inputs: { positive: ['7', 0], negative: ['7', 1], frame_rate: VIDEO_FPS } },
+      '8': { class_type: 'LTXVConditioning', inputs: { positive: ['7', 0], negative: ['7', 1], frame_rate: genFps } },
       '9': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler' } },
       '10': { class_type: 'LTXVScheduler', inputs: { steps, max_shift: 2.05, base_shift: 0.95, stretch: true, terminal: 0.1, latent: ['7', 2] } },
       '11': { class_type: 'SamplerCustom', inputs: { model: ['1', 0], add_noise: true, noise_seed: seed, cfg: 1, positive: ['8', 0], negative: ['8', 1], sampler: ['9', 0], sigmas: ['10', 0], latent_image: ['7', 2] } },
@@ -353,9 +390,30 @@ export async function animateImage(opts: AnimateOptions): Promise<{ url: string;
     };
     decodeNode = '10';
   }
-  const done = await runComfy(wf, file, { onProgress: opts.onProgress, steps, loadNode: '1', decodeNode, what: 'video clip', timeoutMin: engine === 'wan' ? 40 : 20 });
+  const raw = `${file}.raw.webm`;
+  const done = await runComfy(wf, raw, { onProgress: opts.onProgress, steps, loadNode: '1', decodeNode, what: 'video clip', timeoutMin: engine === 'wan' ? 40 : 20 });
+  opts.onProgress?.('Smoothing', 0.99, { step: done.steps, steps: done.steps });
+  await stabiliseClip(raw, file, genFps);
+  fs.rm(raw, { force: true }, () => {});
   opts.onProgress?.('Done', 1, { step: done.steps, steps: done.steps });
   return { url, file, cached: false, seconds, engine };
+}
+
+/**
+ * Make a generated clip steady: remove brightness flicker between frames (deflicker), gently denoise in time
+ * (hqdn3d — calms crawling texture without blurring motion), and blend 24 fps up to the editor's 30 fps so
+ * it plays 1:1 with no repeated frames. Falls back to the raw clip if FFmpeg can't do it.
+ */
+async function stabiliseClip(input: string, output: string, fps: number) {
+  const filters = ['deflicker=mode=pm:size=5', 'hqdn3d=0:0:3:3', ...(fps !== VIDEO_FPS ? [`framerate=fps=${VIDEO_FPS}`] : [])].join(',');
+  try {
+    await new Promise<void>((resolve, reject) =>
+      execFile('ffmpeg', ['-v', 'error', '-y', '-i', input, '-vf', filters, '-an', '-c:v', 'libvpx-vp9', '-crf', '20', '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '4', output], { windowsHide: true, timeout: 5 * 60_000 }, (err) => (err ? reject(err) : resolve())),
+    );
+  } catch (err) {
+    console.warn('[clipforge] clip smoothing failed, using the raw clip:', (err as Error).message);
+    fs.copyFileSync(input, output);
+  }
 }
 
 // ---------------------------------------------------------------- story → scene prompts

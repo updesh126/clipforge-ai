@@ -1,0 +1,47 @@
+{
+  "spec": {
+    "id": "boatman",
+    "name": "Boatman",
+    "description": "Old boatman",
+    "seed": 320978229,
+    "age": "elder",
+    "gender": "male",
+    "build": "average",
+    "height": 0.9644592181919143,
+    "skin": "#8B4513",
+    "face": {
+      "shape": "oval",
+      "eyes": "almond",
+      "eyeColor": "#3E5F3A",
+      "nose": "pointed",
+      "freckles": true
+    },
+    "hair": {
+      "style": "bald",
+      "color": "#FFD700"
+    },
+    "beard": "full",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#2F4F4F",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#696969",
+      "shoes": "boots",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [
+      "hat"
+    ],
+    "accessoryColor": "#9C6644",
+    "holding": "lantern"
+  },
+  "aliases": [
+    "boatman",
+    "he",
+    "the old man"
+  ],
+  "createdAt": "2026-11-18T07:26:55.699Z",
+  "updatedAt": "2026-11-18T07:28:52.119Z"
+}

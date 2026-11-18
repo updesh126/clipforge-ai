@@ -73,11 +73,12 @@ function useEffects(effects: EffectItem[]): Camera {
       // smooth 2.5D camera moves (ease in-out over the effect's length)
       const p = local / e.duration;
       const ease = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
-      if (e.effect === 'pushIn') scale *= 1 + 0.16 * k * ease;
-      else if (e.effect === 'pullOut') scale *= 1 + 0.16 * k * (1 - ease);
-      else if (e.effect === 'panLeft') dx -= width * 0.07 * k * (ease - 0.5) * 2;
-      else if (e.effect === 'panRight') dx += width * 0.07 * k * (ease - 0.5) * 2;
-      else if (e.effect === 'tiltUp') dy += height * 0.05 * k * (ease - 0.5) * 2;
+      // gentle amplitudes: big sweeps on a static painting read as wobble, and must stay inside the overscan
+      if (e.effect === 'pushIn') scale *= 1 + 0.1 * k * ease;
+      else if (e.effect === 'pullOut') scale *= 1 + 0.1 * k * (1 - ease);
+      else if (e.effect === 'panLeft') dx -= width * 0.05 * k * (ease - 0.5) * 2;
+      else if (e.effect === 'panRight') dx += width * 0.05 * k * (ease - 0.5) * 2;
+      else if (e.effect === 'tiltUp') dy += height * 0.04 * k * (ease - 0.5) * 2;
     }
   }
   return { scale, dx, dy, black, white, blur, iris };
@@ -182,7 +183,11 @@ function spriteMotion(item: ImageItem, frame: number, fps: number, durFrames: nu
       dy = (1 - enter) * width * 0.6;
       break;
     case 'kenBurns':
-      sx = sy = 1 + 0.08 * (t / Math.max(0.5, dur));
+      // starts at 108% (overscan) so camera pans and tilts never reveal the frame edge; eased, not linear
+      {
+        const p = Math.min(1, t / Math.max(0.5, dur));
+        sx = sy = 1.08 + 0.06 * (p * p * (3 - 2 * p));
+      }
       break;
     case 'none':
       break;

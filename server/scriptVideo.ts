@@ -17,7 +17,7 @@ import { UPLOADS_DIR } from './store.ts';
 import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
-import { animateImage, describeCharacter, generateImage, sdSize, sdStatus, stylisedScene, VIDEO_FPS, videoModel } from './imagegen.ts';
+import { animateImage, describeCharacter, generateImage, sdSize, sdStatus, stylisedScene, videoModel } from './imagegen.ts';
 import { ensureComfy } from './comfy.ts';
 import type { CharacterSpec } from '../src/vector/character.ts';
 import type { EffectId } from '../src/editor/types.ts';
@@ -399,10 +399,9 @@ const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blu
 function motionPrompt(plan: StoryPlan, text: string, cast: CharacterSpec[], style: string): string {
   let action = text.replace(/\s+/g, ' ').trim();
   for (const c of cast) action = action.split(c.name).join(describeCharacter(c, { named: false }).split(' with ')[0].replace(/^a /, 'the '));
-  const camera: Record<string, string> = { pushIn: 'The camera slowly pushes in.', pullOut: 'The camera slowly pulls back.', panLeft: 'The camera pans slowly to the left.', panRight: 'The camera pans slowly to the right.', tiltUp: 'The camera tilts slowly upward.' };
   const ambient = /night/i.test(plan.time ?? '') ? 'Lights flicker softly and stars twinkle.' : 'Leaves and grass sway gently in the breeze.';
   const label = (ART_STYLE_SPECS[style as StyleSpecId] as { label?: string } | undefined)?.label ?? 'illustrated';
-  return `${action} Natural, gentle movement: hair and clothes move slightly, people blink and breathe. ${ambient} ${camera[plan.camera] ?? 'The camera holds steady.'} A hand-painted 2D ${label} illustration brought to life, flat painted look kept in every frame, same art style, colours and characters throughout, smooth and consistent motion.`;
+  return `${action} Natural, gentle movement: hair and clothes move slightly, people blink and breathe. ${ambient} Static locked-off camera on a tripod, no camera movement, no zoom, no shake. A hand-painted 2D ${label} illustration brought to life, flat painted look kept in every frame, same art style, colours and characters throughout, smooth and consistent motion.`;
 }
 
 /** One Stable Diffusion painting for a scene, with a slow Ken Burns drift and the planned camera move. */
@@ -427,9 +426,9 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
     { id: newId('ai'), kind: 'image', name: `Painting · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: img.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 1, motion: 'kenBurns' },
   ];
   if (animate) {
-    // a 3–5 s clip, played in gentle slow motion so it fills the scene; the painting underneath covers any gap
-    const clipSecs = Math.min(5, Math.max(2, dur * 0.6));
-    const frames = Math.round((clipSecs * VIDEO_FPS) / 8) * 8 + 1;
+    // a clip as long as the scene (up to 8 s), played at normal speed: stretching short clips into slow motion
+    // repeated frames and made the motion judder. The still painting underneath covers any remainder.
+    const clipSecs = Math.min(8, Math.max(2, dur));
     try {
       const clip = await animateImage({
         image: img.file,
@@ -437,13 +436,13 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
         // keep it a 2D illustration: LTX drifts towards photo-real faces without this
         negative: `${buildNegativePrompt(style)}, photorealistic, realistic skin, 3D render, CGI, morphing face, distorted hands, jittery, flicker, blurry, text, watermark`,
         aspect,
-        frames,
+        seconds: clipSecs,
         seed,
         engine,
         onProgress: (m, f) => onProgress(`${plan.place} · moving · ${m}`, paintShare + f * (1 - paintShare), { preview: img.url }),
       });
-      const speed = Math.max(0.4, Math.min(1, clip.seconds / dur));
-      items.push({ id: newId('mv'), kind: 'video', name: `Motion · ${plan.place}`, track: 2, from: round(from), duration: round(Math.min(dur, clip.seconds / speed)), src: clip.url, sourceStart: 0, volume: 0, speed: round(speed), fit: 'cover', zoom: 1, panX: 50, panY: 50 });
+      // overscan (zoom 1.1) so ClipForge's camera move never shows the clip's edge
+      items.push({ id: newId('mv'), kind: 'video', name: `Motion · ${plan.place}`, track: 2, from: round(from), duration: round(Math.min(dur, clip.seconds)), src: clip.url, sourceStart: 0, volume: 0, fit: 'cover', zoom: 1.1, panX: 50, panY: 50 });
     } catch (err) {
       console.warn('[clipforge] image-to-video failed, keeping the still painting:', (err as Error).message);
     }

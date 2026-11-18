@@ -1,0 +1,44 @@
+{
+  "spec": {
+    "id": "fino",
+    "name": "Fino",
+    "description": "Young fox who collects shiny things and helps lost animals",
+    "seed": 3035658031,
+    "age": "adult",
+    "gender": "female",
+    "build": "average",
+    "height": 1.0310737499967217,
+    "skin": "#C98E5F",
+    "face": {
+      "shape": "long",
+      "eyes": "narrow",
+      "eyeColor": "#4E3524",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "ponytail",
+      "color": "#1E1410"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#3A5BA0",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#2A9D8F",
+      "shoes": "boots",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [],
+    "accessoryColor": "#3A5BA0",
+    "holding": "none"
+  },
+  "aliases": [
+    "fino",
+    "the fox"
+  ],
+  "createdAt": "2026-11-18T06:38:18.455Z",
+  "updatedAt": "2026-11-18T07:37:46.861Z"
+}

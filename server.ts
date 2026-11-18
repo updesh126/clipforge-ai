@@ -1,4 +1,6 @@
 import 'dotenv/config';
+// first: tracks helper processes and AI requests so Cancel can stop them (must load before child_process users)
+import { stopAllActivity } from './server/activity.ts';
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +28,7 @@ import {
   parseYoutubeUrl,
 } from './server/youtube.ts';
 import type { AspectRatio, CaptionStyle, Framing, ClipLengthPreset, ClipProject } from './server/types.ts';
-import { finishJob, getJob, progressFor } from './server/progress.ts';
+import { cancelJob, finishJob, getJob, isCancelled, progressFor } from './server/progress.ts';
 import { blankEdit, deleteEdit, editFromClip, getEdit, linkMediaFile, readEdits, saveEdit } from './server/edits.ts';
 import { editWithAI } from './server/editAI.ts';
 import { renderEdit } from './server/remotion.ts';
@@ -41,7 +43,7 @@ import { ENV_KINDS, normaliseEnv, type EnvSpec } from './src/vector/environment.
 import { isTheme, THEME_IDS, type ThemeId } from './src/vector/theme.ts';
 import type { EditProject } from './src/editor/types.ts';
 import { refreshWindowsPath } from './scripts/win-path.mjs';
-import { GENERATED_DIR, generateImage, sdSize, sdStatus, videoModel, videoModels } from './server/imagegen.ts';
+import { GENERATED_DIR, generateImage, sdSize, sdStatus, stopComfy, videoModel, videoModels } from './server/imagegen.ts';
 import { autostartComfy, ensureComfy, findComfy } from './server/comfy.ts';
 import { buildNegativePrompt, buildSdPrompt } from './src/artstyles/prompt.ts';
 
@@ -898,11 +900,29 @@ app.post('/api/script-video', async (req, res) => {
     finishJob(b.jobId, { editId: edit.id }); // lets a reloaded page open the result
     res.status(201).json({ edit });
   } catch (err) {
+    // a cancel can surface as our CancelledError, or as ComfyUI failing because we interrupted it
+    if (isCancelled(b.jobId) || (err instanceof Error && err.name === 'CancelledError')) {
+      console.log('[clipforge] script-video cancelled');
+      finishJob(b.jobId, { error: 'Cancelled' });
+      res.status(499).json({ error: 'Cancelled' });
+      return;
+    }
     console.error('[clipforge] script-video failed:', err);
     const message = err instanceof Error ? err.message : 'Could not build the video.';
     finishJob(b.jobId, { error: message });
     res.status(500).json({ error: message });
   }
+});
+
+// Cancel a running job (Script → video). Stops at the next step and frees the GPU right away.
+app.post('/api/jobs/:id/cancel', async (req, res) => {
+  const ok = cancelJob(req.params.id);
+  // stop all activity, keep the apps: end helper processes (TTS, Whisper, FFmpeg…), abort Ollama / ComfyUI requests…
+  const stopped = stopAllActivity();
+  // …then interrupt ComfyUI's running job and clear its queue (ComfyUI itself keeps running)
+  await stopComfy();
+  console.log(`[clipforge] cancel ${req.params.id}: stopped ${stopped.processes} process(es), ${stopped.requests} AI request(s), ComfyUI interrupted`);
+  res.json({ cancelled: ok, ...stopped });
 });
 
 // Edit by prompt with the local LLM

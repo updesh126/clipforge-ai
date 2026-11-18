@@ -1,0 +1,48 @@
+{
+  "spec": {
+    "id": "granddaughter",
+    "name": "Granddaughter",
+    "description": "Young village girl",
+    "seed": 2182717529,
+    "age": "child",
+    "gender": "female",
+    "build": "slim",
+    "height": 0.9873524428159,
+    "skin": "#D2691E",
+    "face": {
+      "shape": "round",
+      "eyes": "narrow",
+      "eyeColor": "#4E3524",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "braid",
+      "color": "#000080"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#4682B4",
+      "pattern": "dots",
+      "patternColor": "#FFFFFF",
+      "bottom": "dhoti",
+      "bottomColor": "#F4A460",
+      "shoes": "sandals",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [
+      "bindi"
+    ],
+    "accessoryColor": "#277DA1",
+    "holding": "none"
+  },
+  "aliases": [
+    "granddaughter",
+    "meera",
+    "the girl",
+    "she"
+  ],
+  "createdAt": "2026-11-18T07:35:37.209Z",
+  "updatedAt": "2026-11-18T07:36:06.643Z"
+}

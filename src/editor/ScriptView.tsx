@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Wand2, Loader2, AlertCircle, Mic, Sparkles, Check, Loader } from 'lucide-react';
+import { Wand2, Loader2, AlertCircle, Mic, Sparkles, Check, Loader, X } from 'lucide-react';
 import type { EngineStatus, JobProgress } from '../types.ts';
 import type { EditProject } from './types.ts';
 import { StylePicker } from './StylePicker.tsx';
@@ -118,6 +118,10 @@ export function ScriptView({ engines, onCreated }: Props) {
   const [progress, setProgress] = useState<JobProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const polling = useRef(false);
+  const currentJob = useRef<string | null>(null);
+  const stopFollowing = useRef(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const progressRef = useRef<HTMLDivElement | null>(null);
   // bring the progress card into view once, when a run starts
   useEffect(() => {
@@ -136,12 +140,16 @@ export function ScriptView({ engines, onCreated }: Props) {
   const follow = async (jobId: string) => {
     if (polling.current) return;
     polling.current = true;
+    currentJob.current = jobId;
+    stopFollowing.current = false;
     setBusy(true);
     setError(null);
+    setNotice(null);
     let missing = 0;
     try {
       for (;;) {
         await new Promise((r) => setTimeout(r, 1000));
+        if (stopFollowing.current) return; // cancelled from the page — stop waiting right away
         type Job = JobProgress & { result?: { editId?: string; error?: string } };
         const job: Job | null = await fetch(`/api/jobs/${jobId}`)
           .then((r) => r.json() as Promise<{ job: Job | null }>)
@@ -150,6 +158,11 @@ export function ScriptView({ engines, onCreated }: Props) {
         if (job?.result?.editId) {
           store.set(JOB_KEY, null);
           onCreated(job.result.editId);
+          return;
+        }
+        if (job?.result?.error === 'Cancelled') {
+          store.set(JOB_KEY, null);
+          setNotice('Cancelled. Your script is still here — change anything and press Create video again.');
           return;
         }
         if (job?.result?.error) throw new Error(job.result.error);
@@ -165,9 +178,21 @@ export function ScriptView({ engines, onCreated }: Props) {
       setError(err instanceof Error ? err.message : 'Could not build the video.');
     } finally {
       polling.current = false;
+      currentJob.current = null;
       setBusy(false);
+      setCancelling(false);
       setProgress(null);
     }
+  };
+
+  /** Stop the run: the server stops at its next step and frees the GPU; the page stops waiting at once. */
+  const cancel = async () => {
+    const jobId = currentJob.current ?? store.get<{ jobId: string }>(JOB_KEY)?.jobId;
+    setCancelling(true);
+    store.set(JOB_KEY, null);
+    if (jobId) await postJson(`/api/jobs/${jobId}/cancel`, {}).catch(() => null);
+    stopFollowing.current = true; // even if the server no longer knows the job, the card must not stay stuck
+    setNotice('Cancelled. Your script is still here — change anything and press Create video again.');
   };
 
   // a run was in progress when the page reloaded → reconnect to it
@@ -240,11 +265,29 @@ export function ScriptView({ engines, onCreated }: Props) {
             </p>
           )}
 
+          {notice && !busy && (
+            <p className="mt-4 flex items-center gap-2 rounded-lg border border-zinc-800 bg-surface px-3 py-2 text-xs text-zinc-300">
+              <X className="h-4 w-4 shrink-0 text-zinc-500" /> {notice}
+            </p>
+          )}
+
           {busy && (
             <div ref={progressRef} className="mt-5 rounded-xl border border-zinc-800 bg-surface p-4" role="status" aria-live="polite">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-white">{progress?.label || 'Starting…'}</span>
-                <span className="font-mono text-xs text-zinc-400">{progress?.pct ?? 0}%</span>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate text-white">{cancelling ? 'Cancelling…' : progress?.label || 'Starting…'}</span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="font-mono text-xs text-zinc-400">{progress?.pct ?? 0}%</span>
+                  <button
+                    type="button"
+                    onClick={() => void cancel()}
+                    disabled={cancelling}
+                    className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-200 hover:border-red-400 hover:text-red-300 disabled:opacity-60 cursor-pointer"
+                    title="Stop making this video"
+                  >
+                    {cancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                    {cancelling ? 'Cancelling' : 'Cancel'}
+                  </button>
+                </span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-900">
                 <div className="h-full bg-brand-gradient animate-shimmer transition-[width] duration-700" style={{ width: `${Math.max(3, progress?.pct ?? 3)}%` }} />
