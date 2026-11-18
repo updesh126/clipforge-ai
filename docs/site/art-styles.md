@@ -1,6 +1,6 @@
 # Art styles
 
-ClipForge has 14 art styles plus two picker modes. Each style has a full spec in `src/artstyles/<id>.json`.
+ClipForge has 15 art styles plus two picker modes. Each style has a full spec in `src/artstyles/<id>.json`.
 
 | Style | Origin | Best for |
 |---|---|---|
@@ -8,6 +8,7 @@ ClipForge has 14 art styles plus two picker modes. Each style has a full spec in
 | Cartoon | TV cartoon | Comedy, kids, energetic explainers |
 | Flat vector | Modern explainer | Business, tech, education |
 | Hand-drawn | Sketchbook ink and wash | Personal stories, journals |
+| Explainer collage | Editorial photo collage | Documentaries, news explainers, then/now stories, economy and tech — B&W photo cut-outs, torn paper, halftone, one yellow accent |
 | Madhubani | Mithila, Bihar | Indian festivals, folk tales |
 | Ink wash | China / Japan (sumi-e) | Nature, calm reflection |
 | Shadow puppet | Tholu Bommalata, wayang kulit | Myths, legends, drama |

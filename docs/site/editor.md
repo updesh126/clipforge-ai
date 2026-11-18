@@ -23,7 +23,7 @@ In the **Motion** and **Effects** tabs:
 | Motion | Sequences, typography, data, maps, annotations, shapes, layouts, timelines, diagrams, science, finance, audio |
 | Effects | Camera (push, pull, pan, tilt, zoom, shake), Transitions, Particles, Light & film |
 | Titles | Titles and overlays, plus Vox-style explainer graphics |
-| Art | Art-style card, frame and banner for each of the 14 styles |
+| Art | Art-style card, frame and banner for each of the 15 styles |
 | Assets | Characters, animals, places and props from the asset library |
 | Media | Your own video, music and images from disk |
 

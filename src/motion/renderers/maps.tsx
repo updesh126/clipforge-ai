@@ -8,18 +8,14 @@ import { feature } from 'topojson-client';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import world from 'world-atlas/countries-110m.json';
+import { ALIASES, CITIES } from '../places.ts';
 import { enter, exitStyle, FONTS, parseData, clamp01, lerp, type Motion } from '../core.tsx';
 
 type Country = Feature<Geometry, { name: string }>;
 const topo = world as unknown as Topology<{ countries: GeometryCollection<{ name: string }> }>;
 const COUNTRIES = (feature(topo, topo.objects.countries) as FeatureCollection<Geometry, { name: string }>).features as Country[];
 
-const ALIASES: Record<string, string> = {
-  usa: 'United States of America', us: 'United States of America', america: 'United States of America', 'united states': 'United States of America',
-  uk: 'United Kingdom', britain: 'United Kingdom', england: 'United Kingdom', russia: 'Russia', 'south korea': 'South Korea', korea: 'South Korea',
-  uae: 'United Arab Emirates', drc: 'Dem. Rep. Congo', congo: 'Congo', 'czech republic': 'Czechia', burma: 'Myanmar', 'ivory coast': "Côte d'Ivoire",
-  bharat: 'India', hindustan: 'India',
-};
+export { CITIES };
 
 export function findCountry(name: string): Country | undefined {
   const n = name.trim().toLowerCase();
@@ -28,13 +24,6 @@ export function findCountry(name: string): Country | undefined {
   return COUNTRIES.find((c) => c.properties.name.toLowerCase() === want) ?? COUNTRIES.find((c) => c.properties.name.toLowerCase().startsWith(want));
 }
 
-/** Major cities (lon, lat) for pins and routes. */
-export const CITIES: Record<string, [number, number]> = {
-  delhi: [77.21, 28.61], 'new delhi': [77.21, 28.61], mumbai: [72.88, 19.08], bengaluru: [77.59, 12.97], bangalore: [77.59, 12.97], chennai: [80.27, 13.08], kolkata: [88.36, 22.57], hyderabad: [78.49, 17.39], pune: [73.86, 18.52], ahmedabad: [72.57, 23.02], jaipur: [75.79, 26.91], lucknow: [80.95, 26.85], kochi: [76.27, 9.93], goa: [73.83, 15.49], varanasi: [82.97, 25.32], amritsar: [74.87, 31.63], guwahati: [91.74, 26.14], srinagar: [74.8, 34.08], patna: [85.14, 25.59], bhopal: [77.41, 23.26], chandigarh: [76.78, 30.73],
-  london: [-0.13, 51.51], paris: [2.35, 48.86], berlin: [13.4, 52.52], madrid: [-3.7, 40.42], rome: [12.5, 41.9], moscow: [37.62, 55.76], istanbul: [28.98, 41.01], dubai: [55.27, 25.2], riyadh: [46.68, 24.71], cairo: [31.24, 30.04], lagos: [3.38, 6.52], nairobi: [36.82, -1.29], johannesburg: [28.05, -26.2],
-  'new york': [-74.0, 40.71], washington: [-77.04, 38.9], 'los angeles': [-118.24, 34.05], 'san francisco': [-122.42, 37.77], chicago: [-87.63, 41.88], toronto: [-79.38, 43.65], 'mexico city': [-99.13, 19.43], 'sao paulo': [-46.63, -23.55], 'buenos aires': [-58.38, -34.6], lima: [-77.04, -12.05],
-  beijing: [116.41, 39.9], shanghai: [121.47, 31.23], tokyo: [139.69, 35.69], seoul: [126.98, 37.57], singapore: [103.82, 1.35], bangkok: [100.5, 13.76], jakarta: [106.85, -6.21], manila: [120.98, 14.6], 'hong kong': [114.17, 22.32], dhaka: [90.41, 23.81], karachi: [67.0, 24.86], kathmandu: [85.32, 27.72], colombo: [79.86, 6.93], sydney: [151.21, -33.87], melbourne: [144.96, -37.81], auckland: [174.76, -36.85],
-};
 export const cityAt = (name: string): [number, number] | undefined => {
   const n = name.trim().toLowerCase();
   if (CITIES[n]) return CITIES[n];
@@ -46,6 +35,7 @@ export const cityAt = (name: string): [number, number] | undefined => {
 
 function themeColours(m: Motion) {
   const t = m.str('mapTheme', 'dark');
+  if (t === 'collage') return { water: '#E9E8E4', land: '#B4B4B0', border: '#F7F6F2', label: '#111111', grat: 'rgba(0,0,0,.05)' };
   return t === 'paper'
     ? { water: '#BFD7E3', land: '#EFE6D5', border: '#B9A98E', label: '#1D1D1B', grat: 'rgba(0,0,0,.08)' }
     : t === 'light'

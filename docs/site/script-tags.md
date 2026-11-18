@@ -19,6 +19,9 @@ First the farmer checks the sky, then he covers the seeds, and finally he runs h
 | `[kind: name]` | `[transition: irisWipe]` | Same, saying what it is (optional — the name already tells ClipForge) |
 | `[title: text]` | `[title: Why the river turned dark]` | Title banner for this scene |
 | `[move]` / `[still]` | `[still]` | With Motion on: force this scene to move / stay a painting (overrides Mix) |
+| `[place: setting]` | `[place: old market street in Mumbai]` | Where the scene happens. **Carries on** to the next scenes until you write another `[place: …]` |
+| `[scene: picture]` | `[scene: a seller holding up a phone next to a QR code]` | Exactly what this scene's picture shows (also `[show: …]`). Beats the planner's guess |
+| `[time: day/sunset/night/dawn]` | `[time: night]` | Light of the scene; carries on like `[place: …]` |
 
 Rules:
 
@@ -37,6 +40,7 @@ Rules:
 4. **One transition per cut** and one atmosphere per scene; atmosphere suits the mood (rain, fireflies, embers), not decoration.
 5. **Camera:** `pushIn` for emotion, `panLeft`/`panRight` to reveal, `pullOut` for endings, `zoomPunch` for a punchline.
 6. **With Motion on**, use `[move]` on action scenes and `[still]` on quiet ones to steer Mix.
+7. **Pictures off-topic?** Set the setting once with `[place: …]` and describe key pictures with `[scene: …]` — your words always beat the AI planner. Documentaries also get a real world map automatically when a line names a country or a big city.
 7. **Match the video type:** documentary → timelines, maps, quotes; tech → processes, charts, comparisons; fun → questions, myths, countdowns.
 
 ## Camera moves

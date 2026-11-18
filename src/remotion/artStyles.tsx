@@ -2,7 +2,7 @@
  * Art-style motion graphics — ten hand-built, procedural SVG looks (no image assets, fully deterministic,
  * so the browser preview and the Remotion render match frame for frame).
  *
- *   madhubani · inkWash · shadowPuppet · paperCutout · stainedGlass · anime · warli · blueprint · ukiyoe · miniature
+ *   madhubani · inkWash · shadowPuppet · paperCutout · stainedGlass · anime · warli · blueprint · ukiyoe · miniature · collage
  *
  * Each style provides:
  *   Scene  — a full-frame animated backdrop (used by the "Art title card")
@@ -25,6 +25,7 @@ export type ArtStyleId =
   | 'blueprint'
   | 'ukiyoe'
   | 'miniature'
+  | 'collage'
   // procedural vector themes (src/vector)
   | 'storybook'
   | 'flatVector'
@@ -89,6 +90,16 @@ export const ART_STYLES: Record<ArtStyleId, StyleDef> = {
     bannerBg: '#FFF7EC',
     bannerText: '#2D3047',
     bannerBorder: '#FF6B6B',
+  },
+  collage: {
+    label: 'Explainer collage',
+    blurb: 'B&W photo cut-outs, torn paper, halftone dots and one yellow accent',
+    font: 'Impact, "Bahnschrift Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif',
+    titleColor: '#111111',
+    titlePos: 'center',
+    bannerBg: '#111111',
+    bannerText: '#FFFFFF',
+    bannerBorder: '#FFD400',
   },
   stainedGlass: {
     label: 'Stained glass',
@@ -231,6 +242,7 @@ export function styleLook(id: string | undefined, sprite: boolean): { filter?: s
     flatVector: ['saturate(1.15) contrast(1.05)', 'saturate(1.1) contrast(1.03)'],
     handDrawn: [`saturate(0.75) brightness(1.06) ${outline(2, '#2A2622')}`, 'saturate(0.7) brightness(1.08) sepia(0.1)'],
     cartoon: [`saturate(1.35) contrast(1.15) ${outline(4, '#1D1B1F')}`, 'saturate(1.3) contrast(1.1)'],
+    collage: [`grayscale(1) contrast(1.3) ${outline(5, '#F7F6F2')} drop-shadow(5px 8px 5px rgba(0,0,0,.35))`, 'grayscale(1) contrast(1.15) brightness(1.04)'],
   };
   const [sp, bg, blend] = L[id as ArtStyleId];
   return sprite ? { filter: sp, mixBlendMode: blend } : { filter: bg };
@@ -494,6 +506,92 @@ function ShadowPuppetBorder({ w, h, f, draw }: Ctx) {
       {Array.from({ length: 18 }, (_, i) => (
         <circle key={i} cx={(w / 17) * i} cy={-h * 0.01} r={Math.min(w, h) * 0.04 * d} fill="#2A1408" />
       ))}
+    </svg>
+  );
+}
+
+// ============================================================ EXPLAINER COLLAGE
+/** A torn horizontal paper strip as a polygon (deterministic jagged top and bottom edges). */
+function tornStrip(x: number, y: number, w: number, h: number, seed: string, jag: number) {
+  const n = 28;
+  let d = '';
+  for (let i = 0; i <= n; i++) d += `${i ? 'L' : 'M'}${x + (w / n) * i} ${y + jag * (random(`${seed}t${i}`) - 0.5)} `;
+  for (let i = n; i >= 0; i--) d += `L${x + (w / n) * i} ${y + h + jag * (random(`${seed}b${i}`) - 0.5)} `;
+  return `${d}Z`;
+}
+
+function CollageScene(c: Ctx) {
+  const { w, h, f, fps } = c;
+  const u = Math.min(w, h);
+  const slap = (delay: number) => spring({ frame: f - delay, fps, config: { damping: 14, stiffness: 140 } });
+  const sun = slap(4);
+  const strip = slap(10);
+  const sky = slap(0);
+  // skyline: grey card buildings rising like pasted cut-outs
+  const blocks = Array.from({ length: 9 }, (_, i) => {
+    const bw = w * (0.06 + 0.05 * random(`cw${i}`));
+    const bh = h * (0.18 + 0.32 * random(`chh${i}`));
+    const x = (w / 9) * i + w * 0.01 * random(`cx${i}`);
+    return { x, bw, bh, tone: i % 3 === 0 ? '#3A3A3A' : i % 3 === 1 ? '#6E6E6E' : '#9A9A98' };
+  });
+  return (
+    <svg width={w} height={h}>
+      <defs>
+        <pattern id="cl-dots" width={u * 0.018} height={u * 0.018} patternUnits="userSpaceOnUse">
+          <circle cx={u * 0.009} cy={u * 0.009} r={u * 0.0035} fill="#111" />
+        </pattern>
+        <filter id="cl-shadow" x="-10%" y="-10%" width="120%" height="130%">
+          <feDropShadow dx={u * 0.004} dy={u * 0.007} stdDeviation={u * 0.006} floodColor="#000" floodOpacity="0.3" />
+        </filter>
+      </defs>
+      <rect width={w} height={h} fill="#D9D9D6" />
+      {/* halftone dot field, top centre */}
+      <rect x={w * 0.36} y={0} width={w * 0.3} height={h * 0.45} fill="url(#cl-dots)" opacity={0.28 * sky} />
+      {/* the one yellow accent */}
+      <circle cx={w * 0.7} cy={h * 0.3} r={u * 0.2 * sun} fill="#FFD400" />
+      {blocks.map((b, i) => {
+        const up = slap(6 + i * 2);
+        return (
+          <g key={i} filter="url(#cl-shadow)" transform={`translate(0,${(1 - up) * h * 0.4})`}>
+            <rect x={b.x - u * 0.006} y={h - b.bh - u * 0.006} width={b.bw + u * 0.012} height={b.bh + u * 0.012} fill="#F7F6F2" />
+            <rect x={b.x} y={h - b.bh} width={b.bw} height={b.bh} fill={b.tone} />
+            {Array.from({ length: Math.floor(b.bh / (h * 0.05)) }, (_, k) => (
+              <rect key={k} x={b.x + b.bw * 0.2} y={h - b.bh + h * 0.02 + k * h * 0.05} width={b.bw * 0.6} height={h * 0.012} fill="#D9D9D6" opacity={0.35} />
+            ))}
+          </g>
+        );
+      })}
+      {/* torn white paper strip with a yellow highlighter stroke */}
+      <g transform={`translate(${(1 - strip) * -w * 0.6},0) rotate(-2 ${w * 0.3} ${h * 0.5})`} filter="url(#cl-shadow)">
+        <path d={tornStrip(w * 0.04, h * 0.42, w * 0.5, h * 0.16, 'cs', u * 0.02)} fill="#F7F6F2" />
+        <rect x={w * 0.08} y={h * 0.53} width={w * 0.38 * clamp01((f - 18) / 14)} height={h * 0.022} rx={h * 0.011} fill="#FFD400" />
+      </g>
+      <Grain id="cl-g" opacity={0.16} freq={0.9} />
+    </svg>
+  );
+}
+
+function CollageBorder({ w, h, draw }: Ctx) {
+  const d = draw(0, 16);
+  const m = Math.min(w, h) * 0.04 * d;
+  let inner = '';
+  const steps = 70;
+  const jag = (i: number) => Math.min(w, h) * 0.014 * random(`clj${i}`);
+  for (let i = 0; i <= steps; i++) inner += `${i ? 'L' : 'M'}${m + ((w - 2 * m) / steps) * i} ${m + jag(i)} `;
+  for (let i = 0; i <= steps; i++) inner += `L${w - m - jag(i + 99)} ${m + ((h - 2 * m) / steps) * i} `;
+  for (let i = steps; i >= 0; i--) inner += `L${m + ((w - 2 * m) / steps) * i} ${h - m - jag(i + 199)} `;
+  for (let i = steps; i >= 0; i--) inner += `L${m + jag(i + 299)} ${m + ((h - 2 * m) / steps) * i} `;
+  const tape = Math.min(w, h) * 0.11;
+  return (
+    <svg width={w} height={h}>
+      <defs>
+        <filter id="clb">
+          <feDropShadow dx="0" dy="5" stdDeviation="7" floodOpacity="0.35" />
+        </filter>
+      </defs>
+      <path d={`M0 0 H${w} V${h} H0Z ${inner}Z`} fillRule="evenodd" fill="#F7F6F2" filter="url(#clb)" />
+      <rect x={m + tape * 0.1} y={m - tape * 0.12} width={tape} height={tape * 0.26} fill="#FFD400" opacity={0.92 * d} transform={`rotate(-8 ${m} ${m})`} />
+      <rect x={w - m - tape * 1.1} y={h - m - tape * 0.14} width={tape} height={tape * 0.26} fill="#FFD400" opacity={0.92 * d} transform={`rotate(-8 ${w - m} ${h - m})`} />
     </svg>
   );
 }
@@ -1079,6 +1177,7 @@ const SCENES: Record<ArtStyleId, (c: Ctx) => ReactElement> = {
   blueprint: BlueprintScene,
   ukiyoe: UkiyoeScene,
   miniature: MiniatureScene,
+  collage: CollageScene,
 };
 
 const BORDERS: Record<ArtStyleId, (c: Ctx) => ReactElement> = {
@@ -1096,6 +1195,7 @@ const BORDERS: Record<ArtStyleId, (c: Ctx) => ReactElement> = {
   blueprint: BlueprintBorder,
   ukiyoe: UkiyoeBorder,
   miniature: MiniatureBorder,
+  collage: CollageBorder,
 };
 
 type P = Record<string, string | number | boolean>;
@@ -1121,10 +1221,19 @@ function StyledTitle({ style, text, sub, ctx, size = 1 }: { style: ArtStyleId; t
   if (style === 'inkWash') clip = `inset(0 ${100 - t * 100}% 0 0)`;
   if (style === 'blueprint') shown = text.slice(0, Math.round(clamp01((f - 6) / (text.length * 1.2)) * text.length));
   if (style === 'paperCutout') transform = `translateY(${(1 - t) * 60}px) rotate(${(1 - t) * -6}deg)`;
+  if (style === 'collage') transform = `scale(${1.25 - 0.25 * t}) rotate(${-1.5 - (1 - t) * 4}deg)`;
   const box: CSSProperties = {};
   if (style === 'madhubani') Object.assign(box, { background: '#F6E7C1', border: `${fs * 0.08}px solid #111`, outline: `${fs * 0.06}px solid #C1272D`, outlineOffset: fs * 0.08, padding: `${fs * 0.25}px ${fs * 0.5}px` });
   if (style === 'ukiyoe') Object.assign(box, { background: '#F7EDD8', border: '3px solid #1F2A44', padding: `${fs * 0.25}px ${fs * 0.45}px`, boxShadow: 'inset 0 0 0 6px #F7EDD8, inset 0 0 0 8px #B23A2B' });
   if (style === 'paperCutout') Object.assign(box, { background: '#FF6B6B', padding: `${fs * 0.25}px ${fs * 0.5}px`, borderRadius: fs * 0.12, boxShadow: '0 12px 28px rgba(0,0,0,.25)' });
+  if (style === 'collage')
+    Object.assign(box, {
+      background: '#F7F6F2',
+      padding: `${fs * 0.22}px ${fs * 0.45}px ${fs * 0.32}px`,
+      boxShadow: '0 10px 26px rgba(0,0,0,.3)',
+      clipPath: 'polygon(0% 4%, 6% 0%, 14% 3%, 23% 0%, 34% 2%, 46% 0%, 58% 3%, 70% 0%, 81% 2%, 92% 0%, 100% 3%, 99% 50%, 100% 96%, 90% 100%, 78% 97%, 65% 100%, 52% 97%, 40% 100%, 27% 97%, 15% 100%, 5% 97%, 0% 100%, 1% 50%)',
+      backgroundImage: 'linear-gradient(transparent 84%, #FFD400 84%, #FFD400 93%, transparent 93%)',
+    });
   if (style === 'blueprint') Object.assign(box, { border: '3px solid #fff', padding: `${fs * 0.2}px ${fs * 0.4}px`, background: 'rgba(11,61,145,.75)' });
   if (style === 'stainedGlass') Object.assign(box, { background: 'rgba(20,20,20,.72)', border: `${fs * 0.08}px solid #E0B53A`, borderRadius: `${fs * 1.2}px ${fs * 1.2}px ${fs * 0.15}px ${fs * 0.15}px`, padding: `${fs * 0.35}px ${fs * 0.55}px` });
   if (style === 'miniature') Object.assign(box, { background: 'rgba(91,26,24,.88)', border: `${fs * 0.05}px solid #D4A537`, padding: `${fs * 0.2}px ${fs * 0.55}px`, borderRadius: fs * 0.1 });
@@ -1215,10 +1324,10 @@ export function ArtBanner({ props }: { props: P }) {
           textAlign: 'center',
           padding: `${fs * 0.4}px ${fs * 0.7}px`,
           border: `${Math.max(3, fs * 0.08)}px ${style === 'warli' ? 'dashed' : 'solid'} ${s.bannerBorder}`,
-          borderRadius: style === 'paperCutout' ? fs * 0.3 : style === 'stainedGlass' ? `${fs}px ${fs}px ${fs * 0.15}px ${fs * 0.15}px` : 4,
+          borderRadius: style === 'collage' ? 0 : style === 'paperCutout' ? fs * 0.3 : style === 'stainedGlass' ? `${fs}px ${fs}px ${fs * 0.15}px ${fs * 0.15}px` : 4,
           boxShadow: style === 'paperCutout' ? '0 10px 24px rgba(0,0,0,.3)' : style === 'shadowPuppet' ? '0 0 40px rgba(255,154,60,.45)' : '0 10px 30px rgba(0,0,0,.35)',
           textTransform: s.upper ? 'uppercase' : 'none',
-          transform: `translateY(${(1 - t) * 60}px) ${style === 'anime' ? `skewX(-8deg)` : ''}`,
+          transform: `translateY(${(1 - t) * 60}px) ${style === 'anime' ? `skewX(-8deg)` : style === 'collage' ? 'rotate(-1deg)' : ''}`,
           opacity: t,
         }}
       >

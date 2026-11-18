@@ -17,6 +17,7 @@ const ART_SWATCH: Record<string, string[]> = {
   blueprint: ['#0B3D91', '#9CC3FF', '#FFFFFF', '#5C8DD6'],
   ukiyoe: ['#1F2A44', '#5C7FA6', '#C8452F', '#F3E6CC'],
   miniature: ['#5B1A18', '#D4A537', '#2E6B3A', '#1B3A6B'],
+  collage: ['#111111', '#D9D9D6', '#FFD400', '#F7F6F2'],
 };
 import type { ClipProject } from '../types.ts';
 

@@ -7,7 +7,9 @@
  *   "in YEAR … N … by YEAR … M"    → comparison
  *   "first … then … finally …"     → processExplain
  *   a question that the next scene answers → questionReveal (fun)
+ *   a country or a known city               → mapInvestigation (real Natural Earth map, zoom + pin + info card)
  */
+import { ALIASES, CITY_COUNTRY, COUNTRY_NAMES } from '../src/motion/places.ts';
 export interface AutoMotion {
   id: string;
   params: Record<string, string | number>;
@@ -78,6 +80,33 @@ function process_(text: string): AutoMotion | null {
   return { id: 'processExplain', params: { steps: parts.slice(0, 5).join('; ') } };
 }
 
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Longest names first, so "South Korea" wins over "Korea" and "New Delhi" over "Delhi". */
+const PLACE_NAMES: Array<[string, string, string | null]> = [
+  ...COUNTRY_NAMES.map((n) => [n, n, null] as [string, string, string | null]),
+  ...Object.entries(ALIASES).filter(([k]) => k.length > 2).map(([k, v]) => [k, v, null] as [string, string, string | null]),
+  ...Object.entries(CITY_COUNTRY).map(([city, country]) => [city, country, city] as [string, string, string | null]),
+].sort((a, b) => b[0].length - a[0].length);
+const PLACE_RE = new RegExp(`\\b(${PLACE_NAMES.map(([n]) => escapeRe(n)).join('|')})\\b`, 'i');
+
+function place(text: string, earlier = ''): AutoMotion | null {
+  // every place named in the line; the news is a place not talked about before ("beyond India … now France" → France)
+  const found = [...text.matchAll(new RegExp(PLACE_RE.source, 'gi'))]
+    .map((m) => PLACE_NAMES.find(([n]) => n.toLowerCase() === m[1].toLowerCase()))
+    .filter((h): h is [string, string, string | null] => Boolean(h));
+  if (!found.length) return null;
+  const seenBefore = (h: [string, string, string | null]) => new RegExp(`\\b${escapeRe(h[0])}\\b`, 'i').test(earlier) || (!h[2] && new RegExp(`\\b${escapeRe(h[1])}\\b`, 'i').test(earlier));
+  const fresh = found.filter((h) => !seenBefore(h));
+  const others = found.filter((h) => h[1] !== found[0][1]);
+  // a new place wins; else, with two places in the line, the later one (the destination); else the only one
+  const hit = fresh.length ? fresh[fresh.length - 1] : others.length ? found[found.length - 1] : found[0];
+  const [, country, city] = hit;
+  // a city named later in the same scene pins the map; otherwise the country's name is the pin label
+  const cityHit = city ?? Object.keys(CITY_COUNTRY).find((c) => CITY_COUNTRY[c] === country && new RegExp(`\\b${escapeRe(c)}\\b`, 'i').test(text)) ?? null;
+  const title = (s: string) => s.replace(/\b\w/g, (ch) => ch.toUpperCase());
+  return { id: 'mapInvestigation', params: { country, city: cityHit ? title(cityHit) : country, note: words(text, 9) } };
+}
+
 function question(text: string, next: string | undefined): AutoMotion | null {
   const q = text.match(/([^.!?]{8,120}\?)/)?.[1]?.trim();
   if (!q || !next) return null;
@@ -103,18 +132,25 @@ function scriptTimeline(scenes: string[]): { at: number; motion: AutoMotion } | 
 /** Explainer sequences for each scene (null = none), limited to `allowed` ids. */
 export function autoSequences(scenes: string[], allowed: string[]): Array<AutoMotion | null> {
   const wide = allowed.includes('timelineHistory') ? scriptTimeline(scenes) : null;
+  const mapped = new Set<string>(); // one map per country — a second one adds nothing
   return scenes.map((text, i) => {
     if (wide && wide.at === i) return wide.motion;
     const tries: Array<[string, () => AutoMotion | null]> = [
       ['quoteStatement', () => quote(text)],
       ['comparison', () => comparison(text)],
       ['timelineHistory', () => timeline(text)],
+      ['mapInvestigation', () => place(text, scenes.slice(0, i).join(' '))],
       ['processExplain', () => process_(text)],
       ['questionReveal', () => question(text, scenes[i + 1])],
     ];
     for (const [id, make] of tries) {
       if (!allowed.includes(id)) continue;
       const m = make();
+      if (m && m.id === 'mapInvestigation') {
+        const key = String(m.params.country);
+        if (mapped.has(key)) continue;
+        mapped.add(key);
+      }
       if (m) return m;
     }
     return null;

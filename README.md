@@ -10,7 +10,7 @@ Pick a long video, get ranked vertical clips with captions. Everything runs on y
 
 ## Features
 
-- **AI painting (optional)** — paint every story scene with local **Stable Diffusion** (SDXL via ComfyUI) in any of the 14 art styles, with the same characters and seed in every scene. One-command setup: `npm run comfy:setup`, then it starts automatically with `npm run dev`. See [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md)
+- **AI painting (optional)** — paint every story scene with local **Stable Diffusion** (SDXL via ComfyUI) in any of the 15 art styles, with the same characters and seed in every scene. One-command setup: `npm run comfy:setup`, then it starts automatically with `npm run dev`. See [docs/site/stable-diffusion.md](docs/site/stable-diffusion.md)
 - **Art-style specs** — one detailed JSON per style in [`src/artstyles/`](src/artstyles/) (palette, line, texture, characters, composition, motion, prompt modifiers and negative prompts), rebuilt with `npm run artstyles`
 
 - **Motion graphics library** — 200 explainer effects and 30 sequences (typography, charts, maps, annotations, layouts, timelines, diagrams, transitions…), all editable in the Inspector and pickable by the local AI. See [docs/MOTION_LIBRARY.md](docs/MOTION_LIBRARY.md)
@@ -372,7 +372,7 @@ The director skill drives the running app through `node .claude/skills/clipforge
    - **Motion & voice** (right panel): switch on *Hook title* and/or *Voice intro*, and pick a voice.
 4. **Export MP4** (or **Export all**) → watermark-free MP4 + SRT, saved in `data/exports/`. Motion exports take a little longer because HyperFrames renders each frame.
 
-For script → video, you can direct any scene with **[tags]** such as `[bigStat]`, `[rainFx]`, `[pushIn]` or `[transition: irisWipe]` — they are never spoken. Full list: [docs/site/script-tags.md](docs/site/script-tags.md) (regenerate with `npm run tags-doc`).
+For script → video, you can direct any scene with **[tags]** such as `[bigStat]`, `[rainFx]`, `[pushIn]` or `[transition: irisWipe]` — they are never spoken. Pin down what the AI paints with `[place: old market street in Mumbai]` (carries on to later scenes), `[scene: a seller holding up a QR code]` and `[time: night]`; documentaries also get a real world map when a line names a country or a big city. Full list: [docs/site/script-tags.md](docs/site/script-tags.md) (regenerate with `npm run tags-doc`).
 
 To write a script from a YouTube video, open **Writer**, paste the link, pick the video type, length and language, and press **Write script**. Edit the result, then download it or press **Make this video**.
 

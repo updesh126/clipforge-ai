@@ -53,6 +53,7 @@ const grey = (c: string) => {
 
 const PALETTES: Record<string, string[]> = {
   madhubani: ['#C1272D', '#F4B400', '#2E7D32', '#1F4E9E', '#E86A17', '#F6E7C1', '#111111', '#7B3F99', '#F48FB1'],
+  collage: ['#111111', '#3A3A3A', '#6E6E6E', '#9A9A98', '#D9D9D6', '#F7F6F2', '#FFD400'],
   paperCutout: ['#FFADAD', '#FFD6A5', '#FDFFB6', '#CAFFBF', '#9BF6FF', '#A0C4FF', '#BDB2FF', '#FFC6FF', '#6D597A', '#355070', '#FFFFFC', '#2D3047', '#E5989B', '#B5838D'],
   stainedGlass: ['#1E5AA8', '#C0392B', '#E0B53A', '#2E8B57', '#6C3483', '#16A085', '#D35400', '#2471A3', '#F5F0E1', '#5D4037'],
   ukiyoe: ['#1F2A44', '#2F4E7A', '#5C7FA6', '#8FA8C8', '#C8452F', '#B23A2B', '#E0B07A', '#F3E6CC', '#6B7A3A', '#3B2A1A', '#D9C3A0'],
@@ -85,6 +86,8 @@ export function painter(style: string): Paint {
       return { ...base, fill: grey, stroke: '#1A1A1A', sw: 3, bg: (c) => mix('#EFEAE0', grey(c), 0.25), blur: true };
     case 'madhubani':
       return { ...base, fill: (c) => nearest(c, PALETTES.madhubani), stroke: '#111111', sw: 6, bg: (c) => mix(nearest(c, PALETTES.madhubani), '#F6E7C1', 0.55), hatch: true };
+    case 'collage':
+      return { ...base, fill: grey, stroke: '#F7F6F2', sw: 4, bg: (c) => mix('#D9D9D6', grey(c), 0.3), shadow: true };
     case 'paperCutout':
       return { ...base, fill: (c) => nearest(c, PALETTES.paperCutout), stroke: 'none', sw: 0, bg: (c) => nearest(c, PALETTES.paperCutout), shadow: true };
     case 'stainedGlass':

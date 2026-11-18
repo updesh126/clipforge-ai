@@ -6,6 +6,9 @@
  *   The storm hits the village. [rainFx] [shake] [transition: paperTearTransition]
  *
  * Forms:   [name]   [name key=value key="two words"]   [kind: name …]   [move]   [still]   [title: My headline]
+ *          [place: old brick street in Kolkata]  (setting; carries on to later scenes until changed)
+ *          [scene: a hand paying with a phone at a tea stall]  (exactly what this scene's picture shows)
+ *          [time: night]  (day | sunset | night | dawn; carries on)
  * kinds:   motion | effect | graphic | sequence | camera | transition | atmosphere   (optional — the name says what it is)
  * Names match ids or display names, ignoring case, spaces and dashes ("Big statistic reveal" = bigStat).
  * Full list: docs/site/script-tags.md (npm run tags-doc).
@@ -14,7 +17,7 @@ import { EFFECTS_LIB } from '../src/motion/catalog.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
 import { EFFECTS } from '../src/editor/catalog.ts';
 
-export type DirectiveKind = 'sequence' | 'graphic' | 'camera' | 'transition' | 'atmosphere' | 'move' | 'still' | 'title';
+export type DirectiveKind = 'sequence' | 'graphic' | 'camera' | 'transition' | 'atmosphere' | 'move' | 'still' | 'title' | 'place' | 'scene' | 'time';
 
 export interface Directive {
   kind: DirectiveKind;
@@ -71,6 +74,16 @@ export function parseTag(body: string): Directive | null {
   if (/^(still|no motion|static)$/i.test(raw)) return { kind: 'still', id: 'still', params: {}, raw };
   const title = raw.match(/^title\s*:\s*(.+)$/i);
   if (title) return { kind: 'title', id: title[1].trim().replace(/^["“]|["”]$/g, ''), params: {}, raw };
+  // what the picture shows — written by the author, so it always beats the planner's guess
+  const place = raw.match(/^(place|location|setting|where|environment|env)\s*:\s*(.+)$/i);
+  if (place) return { kind: 'place', id: place[2].trim().replace(/^["“]|["”]$/g, '').slice(0, 120), params: {}, raw };
+  const shot = raw.match(/^(scene|show|shot|visual|picture|image)\s*:\s*(.+)$/i);
+  if (shot) return { kind: 'scene', id: shot[2].trim().replace(/^["“]|["”]$/g, '').slice(0, 240), params: {}, raw };
+  const time = raw.match(/^(time|light)\s*:\s*(day|daytime|morning|noon|sunset|evening|dusk|night|dawn|sunrise)$/i);
+  if (time) {
+    const t = time[2].toLowerCase();
+    return { kind: 'time', id: /sunset|evening|dusk/.test(t) ? 'sunset' : /dawn|sunrise/.test(t) ? 'dawn' : t === 'night' ? 'night' : 'day', params: {}, raw };
+  }
   const kind = raw.match(/^(motion|effect|graphic|sequence|camera|transition|atmosphere)\s*:\s*/i);
   const rest = kind ? raw.slice(kind[0].length) : raw;
   const firstParam = rest.search(/\s[A-Za-z][\w]*\s*=/);

@@ -176,7 +176,7 @@ ${motion}
 Prefer a SEQUENCE when the request describes a storytelling beat (a big number, a chart with a point to make, a map, a quote, a timeline…).
 
 CAPTIONS item: look = karaoke | pop | bold | clean, position = bottom | middle | top.
-ART STYLES (for artCard / artFrame / artBanner "style" prop): madhubani, inkWash, shadowPuppet, paperCutout, stainedGlass, anime, warli, blueprint, ukiyoe, miniature. "Make it look like X" usually means adding an artFrame over the whole video plus artBanner captions in that style.
+ART STYLES (for artCard / artFrame / artBanner "style" prop): madhubani, inkWash, shadowPuppet, paperCutout, stainedGlass, anime, warli, blueprint, ukiyoe, miniature, collage. "Make it look like X" usually means adding an artFrame over the whole video plus artBanner captions in that style.
 
 OPERATION SHAPES (replace <...> with real values; never copy placeholders):
 add text:   {"op":"add","item":{"kind":"text","template":"<template id>","at":"<exact words from the transcript>","duration":<seconds>,"props":{<template props>}}}

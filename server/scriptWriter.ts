@@ -14,8 +14,10 @@ import { DATA_DIR, TEMP_DIR } from './store.ts';
 import type { ProgressFn } from './progress.ts';
 import { resolveYtDlpCommand } from './youtube.ts';
 import { transcribeLocal } from './ai.ts';
+import { SD_URL } from './imagegen.ts';
 import { parseTag, scenesWithDirectives, tokeniseScript } from './directives.ts';
 import { autoSequences } from './autoSequences.ts';
+import { accentTag, autoAccents } from './autoAccents.ts';
 import { splitScenes } from './scriptVideo.ts';
 import { VIDEO_TYPES, isVideoType, type VideoType } from '../src/videotypes.ts';
 
@@ -109,11 +111,14 @@ async function fetchWords(url: string, workDir: string, progress: ProgressFn): P
 
 // ---------------------------------------------------------------- 2. the AI
 
-async function ask<T>(model: string, prompt: string, ctx = 16384): Promise<T> {
+/** One context size for every call: Ollama reloads the model whenever num_ctx changes. */
+const WRITER_CTX = 16384;
+
+async function ask<T>(model: string, prompt: string, ctx = WRITER_CTX): Promise<T> {
   const res = await fetch(`${OLLAMA_URL}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, prompt, format: 'json', stream: false, ...(/qwen3|deepseek-r1|gpt-oss|magistral/i.test(model) ? { think: false } : {}), options: { temperature: 0.6, num_ctx: ctx } }),
+    body: JSON.stringify({ model, prompt, format: 'json', stream: false, ...(/qwen3|deepseek-r1|gpt-oss|magistral/i.test(model) ? { think: false } : {}), keep_alive: '15m', options: { temperature: 0.6, num_ctx: ctx } }),
     signal: AbortSignal.timeout(15 * 60_000),
   });
   if (!res.ok) throw new Error(`Ollama (${model}) answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -137,6 +142,9 @@ const chunk = (text: string, size: number): string[] => {
 /** The source channel's own promotion — never carried into the new script. */
 const PROMO = /\b(subscribe|follow (us|the channel|me)|like and share|hit the bell|log on to|visit (our|my)|www\.|https?:|\.com\b|link in the description|sponsor(ed)?|this video is (from|brought)|the video is from|our channel|patreon|merch)/i;
 
+/** Stage directions written as narration ("Map of India highlights…", "Cut to…") — never spoken. */
+const STAGE = /^(map of|cut to|close-up|close up|wide shot|scene \d|visual:|on screen|on-screen|b-roll|graphic:|text on screen|camera |footage of|shot of)/i;
+
 /** Catalogue ids the model sometimes writes as plain words ("timelineHistory events='…'") — they must never be spoken. */
 const BARE_TAG = /\s*\b(?:[a-z]+[A-Z][A-Za-z]*)\b(?:\s+[A-Za-z]+\s*=\s*(?:"[^"]*"|'[^']*'|\S+))+/g;
 
@@ -144,28 +152,90 @@ const BARE_TAG = /\s*\b(?:[a-z]+[A-Z][A-Za-z]*)\b(?:\s+[A-Za-z]+\s*=\s*(?:"[^"]*
  * Add [tags] to the written paragraphs with ClipForge's own rules (small models place them unreliably):
  * the hook gets a word reveal, years/steps/before-after/quotes get their explainer, big numbers a stat, the end a pull-out.
  */
-function tagParagraphs(paragraphs: string[], vtype: VideoType): string[] {
+function tagParagraphs(paragraphs: string[], vtype: VideoType, board: Array<{ place?: string; scene?: string }> = []): string[] {
   const allowed = VIDEO_TYPES[vtype].sequences;
+  const factual = vtype !== 'story';
   const auto = autoSequences(paragraphs, allowed);
-  const quoteVal = (v: string | number) => (typeof v === 'number' ? String(v) : `"${String(v).replace(/"/g, "'")}"`);
+  // full-screen explainers: at most one in every two paragraphs (stories: only quotes), never two in a row
+  const seqAt: boolean[] = [];
+  let lastSeq = -9;
   let stats = 0;
-  let tagged = 0;
+  const seqTags = paragraphs.map((p, i) => {
+    if (i === 0 || i - lastSeq < 2) return null; // the hook carries the title
+    const a = auto[i];
+    if (a && (factual || a.id === 'quoteStatement')) {
+      lastSeq = i;
+      seqAt[i] = true;
+      return accentTag(a);
+    }
+    const m = p.match(/\b(\d[\d,]*(?:\.\d+)?)\s*(%|percent|million|billion|crore|lakh|thousand)/i);
+    if (m && allowed.includes('bigStat') && stats < 3) {
+      const suffix = m[2] === '%' || /percent/i.test(m[2]) ? '%' : ` ${m[2].toLowerCase()}`;
+      lastSeq = i;
+      seqAt[i] = true;
+      stats++;
+      return `[bigStat value=${m[1].replace(/,/g, '')} suffix="${suffix}"]`;
+    }
+    return null;
+  });
+  // small accents on the picture (then/now, name, stamp, stickers, marker, handwritten turn) between explainers
+  const accents = autoAccents(paragraphs, vtype, VIDEO_TYPES[vtype].styles[0], seqAt);
+  const cams = vtype === 'story' ? ['pushIn', 'panRight', 'pullOut', 'panLeft', 'tiltUp'] : ['pushIn', 'panRight', 'panLeft', 'tiltUp'];
+  const cut = vtype === 'documentary' ? 'paperTearTransition' : vtype === 'tech' ? 'wipeTransition' : vtype === 'fun' ? 'whipPan' : 'irisWipe';
+  let place = '';
   return paragraphs.map((p, i) => {
     const tags: string[] = [];
-    if (i === 0) tags.push(vtype === 'story' ? '[pushIn]' : '[wordReveal]');
-    const a = auto[i];
-    if (a && tagged < 4) {
-      tags.push(`[${a.id}${Object.entries(a.params).map(([k, v]) => ` ${k}=${quoteVal(v)}`).join('')}]`);
-      tagged++;
-    } else if (allowed.includes('bigStat') && stats < 2 && tagged < 4 && /\b\d[\d,.]*\s*(%|percent|million|billion|crore|lakh|thousand)/i.test(p)) {
-      const m = p.match(/\b(\d[\d,]*(?:\.\d+)?)\s*(%|percent|million|billion|crore|lakh|thousand)/i)!;
-      const suffix = m[2] === '%' || /percent/i.test(m[2]) ? '%' : ` ${m[2].toLowerCase()}`;
-      tags.push(`[bigStat value=${m[1].replace(/,/g, '')} suffix="${suffix}"]`);
-      stats++;
-      tagged++;
+    const b = board[i] ?? {};
+    // what we see: the setting when it changes (it carries on), and the exact picture for this line
+    const where = (b.place ?? '').trim();
+    if (where && where.toLowerCase() !== place.toLowerCase()) {
+      tags.push(`[place: ${where}]`);
+      place = where;
     }
+    if (b.scene?.trim()) tags.push(`[scene: ${b.scene.trim()}]`);
+    if (i === 0) {
+      tags.push(factual ? '[wordReveal]' : '[pushIn]');
+      if (vtype === 'documentary') tags.push('[filmGrain]');
+    }
+    if (seqTags[i]) tags.push(seqTags[i]!);
+    else if (accents[i]) tags.push(accentTag(accents[i]!));
+    // camera: vary the move; the last line pulls out
     if (i === paragraphs.length - 1 && i > 0) tags.push('[pullOut]');
+    else if (i > 0 && !seqTags[i]) tags.push(`[${cams[i % cams.length]}]`);
+    // a chapter break every fourth paragraph
+    if (i > 0 && i % 4 === 0 && i < paragraphs.length - 1) tags.push(`[transition: ${cut}]`);
     return tags.length ? `${p} ${tags.join(' ')}` : p;
+  });
+}
+
+/** Where and what we see for each paragraph — a short storyboard so every painting matches its line. */
+async function storyboard(model: string, paragraphs: string[], vtype: VideoType): Promise<Array<{ place?: string; scene?: string }>> {
+  type Shot = { i?: number; place?: string; scene?: string; picture?: string; visual?: string; setting?: string };
+  const raw = await ask<unknown>(
+    model,
+    `You are a storyboard artist for a ${VIDEO_TYPES[vtype].label.toLowerCase()} video. For EACH numbered line, decide what the viewer SEES.
+- "place": the real setting in 2-6 words (e.g. "busy market street in Mumbai", "bank server room", "farm field in Punjab"). Keep the same place for lines that happen there.
+- "scene": ONE concrete picture for that exact line in 10-20 words: the real subject, objects and action it talks about (e.g. "a vegetable seller holding up a phone next to a printed QR code"). Never a generic landscape; no text, logos or brand names in the picture.
+Write place and scene in English.
+Reply as JSON: {"scenes":[{"i":0,"place":"…","scene":"…"}]} — one entry per line, in order.
+
+LINES:
+${paragraphs.map((p, i) => `${i}: ${p}`).join('\n')}`,
+  ).catch((err) => {
+    console.warn('[clipforge] writer storyboard failed:', err instanceof Error ? err.message : err);
+    return null;
+  });
+  // small models vary the shape: {"scenes":[…]}, a bare array, {"storyboard":[…]} or {"0":{…},"1":{…}}
+  const list: Shot[] = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object'
+      ? ((Object.values(raw).find((v) => Array.isArray(v)) as Shot[] | undefined) ?? (Object.values(raw).filter((v) => v && typeof v === 'object') as Shot[]))
+      : [];
+  if (!list.length) console.warn('[clipforge] writer storyboard: no scenes in', JSON.stringify(raw)?.slice(0, 200));
+  const clip = (s: unknown, n: number) => (typeof s === 'string' ? s.replace(/[[\]]/g, '').replace(/\s+/g, ' ').trim().slice(0, n) : '');
+  return paragraphs.map((_, i) => {
+    const e = list.find((x) => Number(x?.i) === i) ?? list[i];
+    return { place: clip(e?.place ?? e?.setting, 60), scene: clip(e?.scene ?? e?.picture ?? e?.visual, 200) };
   });
 }
 
@@ -182,12 +252,24 @@ export async function writeScriptFromYoutube(opts: WriterOptions, progress: Prog
   const workDir = path.join(TEMP_DIR, `writer_${id}`);
   fs.mkdirSync(workDir, { recursive: true });
   try {
+    const tRead = Date.now();
     const { info, text, from } = await fetchWords(opts.url, workDir, progress);
+    const readSeconds = Math.round((Date.now() - tRead) / 1000);
     const words = text.split(/\s+/).length;
     if (words < 30) throw new Error('This video has almost no spoken words to work from.');
     const minutes = Math.max(0.5, Math.min(10, opts.minutes || Math.min(5, Math.max(1, Math.round((info.duration ?? 120) / 60)))));
     const targetWords = Math.round(minutes * 150);
     const lang = opts.language === 'hi' ? 'Hindi (Devanagari script)' : opts.language === 'en' ? 'English' : 'the same language as the transcript';
+
+    // the writing model shares the GPU with ComfyUI: free ComfyUI's memory when it is idle, warn when it is painting
+    await makeRoomOnGpu(progress);
+    const t0 = Date.now();
+    const timing: string[] = [`reading ${readSeconds} s`];
+    let tStep = t0;
+    const lap = (name: string) => {
+      timing.push(`${name} ${Math.round((Date.now() - tStep) / 1000)} s`);
+      tStep = Date.now();
+    };
 
     // facts first, in chunks, so nothing from a long video is lost
     const parts = chunk(text, 7000);
@@ -206,6 +288,7 @@ ${p}`,
     }
     if (!facts.length) throw new Error('The AI could not pull facts from this transcript — try a bigger model.');
 
+    lap('facts');
     progress('write', `Writing a new ${VIDEO_TYPES[vtype].label.toLowerCase()} script (~${targetWords} words) with ${model}`, 65);
     const vt = VIDEO_TYPES[vtype];
     const draft = await ask<{ hook?: string; paragraphs?: string[] }>(
@@ -219,6 +302,7 @@ Rules for the script:
 - Build tension: setup → surprising turn → payoff; end with a strong last line.
 - Name people the same way every time.
 - Plain narration only: no brackets, no stage directions, no effect names.
+- Write every number in digits exactly as in the facts (249, 3.5 billion, 2016) — never spell numbers out or change them.
 - Never mention the source channel, its sponsors, links or "follow us / subscribe".
 
 Reply as JSON: {"hook":"…","paragraphs":["…","…"]}
@@ -226,7 +310,6 @@ Reply as JSON: {"hook":"…","paragraphs":["…","…"]}
 SOURCE VIDEO: ${info.title ?? ''} — ${info.uploader ?? info.channel ?? ''}
 FACTS:
 ${facts.map((f) => `- ${f}`).join('\n')}`,
-      24576,
     );
     // clean narration: no stray effect names, no source-channel promotion
     // small models sometimes send one string, or objects like {"text": "…"} — accept all
@@ -235,11 +318,15 @@ ${facts.map((f) => `- ${f}`).join('\n')}`,
       .map((p) => (p && typeof p === 'object' ? Object.values(p as Record<string, unknown>).find((v) => typeof v === 'string') ?? '' : p));
     const paragraphs = paraList
       .map((p) => String(p).replace(/\[[^[\]\n]*\]/g, ' ').replace(BARE_TAG, '').replace(/\s{2,}/g, ' ').replace(/ +([.,!?])/g, '$1').trim())
-      .filter((p) => p && !PROMO.test(p));
+      .filter((p) => p && !PROMO.test(p) && !STAGE.test(p));
     if (!paragraphs.length) throw new Error('The AI returned no script — try again or pick a bigger model.');
     const hook = String(draft.hook ?? '').trim();
     const story = hook && !paragraphs[0].startsWith(hook.slice(0, 30)) ? [hook.replace(BARE_TAG, '').trim(), ...paragraphs] : paragraphs;
-    const body = tagParagraphs(story, vtype).join('\n\n');
+    lap('script');
+    progress('write', 'Storyboarding a place and a picture for every paragraph', 78);
+    const board = await storyboard(model, story, vtype);
+    const body = tagParagraphs(story, vtype, board).join('\n\n');
+    lap('storyboard');
 
     // YouTube packaging as its own step (asked together with the script, small models drop these fields)
     progress('write', 'Writing the YouTube title, description and tags', 85);
@@ -287,7 +374,9 @@ ${story.join('\n\n')}`,
     };
     progress('save', `Saving (${sceneCount} scenes${dropped.length ? `, ${dropped.length} unknown tag(s) removed` : ''})`, 96);
     saveResult(result, text);
-    progress('done', 'Script ready', 100);
+    lap('title, description & tags');
+    progress('done', `Script ready in ${Math.round((Date.now() - tRead) / 1000)} s (${timing.join(', ')})`, 100);
+    console.log(`[clipforge] writer: ${timing.join(', ')} · ${parts.length} part(s), ${words} words, ${model}`);
     return result;
   } finally {
     fs.rm(workDir, { recursive: true, force: true }, () => {});
@@ -375,6 +464,23 @@ export function updateScript(id: string, patch: Partial<Pick<WriterResult, 'titl
   for (const f of [old.files.md, old.files.txt, old.files.md.replace(/\.md$/, '.json')]) fs.rmSync(path.join(SCRIPTS_DIR, f), { force: true });
   saveResult(next, transcript);
   return next;
+}
+
+/**
+ * ComfyUI keeps its painting model in GPU memory; with it loaded, the writing model spills onto the CPU and runs
+ * 5-20x slower. Free it when ComfyUI is idle (it reloads on its next painting); if it is busy, just say so.
+ */
+async function makeRoomOnGpu(progress: ProgressFn) {
+  try {
+    const q = (await (await fetch(`${SD_URL}/queue`, { signal: AbortSignal.timeout(2000) })).json()) as { queue_running?: unknown[]; queue_pending?: unknown[] };
+    if ((q.queue_running?.length ?? 0) + (q.queue_pending?.length ?? 0) > 0) {
+      progress('facts', 'The GPU is busy painting a video — writing will be slower until it finishes', 22);
+      return;
+    }
+    await fetch(`${SD_URL}/free`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unload_models: true, free_memory: true }), signal: AbortSignal.timeout(5000) });
+  } catch {
+    // ComfyUI not running — the GPU is already free for Ollama
+  }
 }
 
 /** Saved scripts, newest first. */

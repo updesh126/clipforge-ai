@@ -19,17 +19,24 @@ export function split(m: Motion): ReactElement {
   const kA = m.at(0, 0.6);
   const kB = m.at(0.5, 0.6);
   const kVs = m.at(1.1, 0.4, 'back');
+  // readable text on any panel colour: dark ink on light panels (yellow, white), white on dark ones
+  const inkOn = (hex: string) => {
+    const h = hex.replace('#', '');
+    const v = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.slice(0, 6);
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16) || 0);
+    return 0.299 * r + 0.587 * g + 0.114 * b > 160 ? '#111111' : '#FFFFFF';
+  };
   const panel = (side: 0 | 1, k: number): CSSProperties => ({
     position: 'absolute',
     ...(vertical ? { left: 0, right: 0, height: '50%', top: side ? '50%' : 0 } : { top: 0, bottom: 0, width: '50%', left: side ? '50%' : 0 }),
     background: side ? m.str('colorB', '#2A6FDB') : m.str('colorA', '#E63946'),
+    color: inkOn(side ? m.str('colorB', '#2A6FDB') : m.str('colorA', '#E63946')),
     transform: vertical ? `translateY(${(1 - k) * (side ? 100 : -100)}%)` : `translateX(${(1 - k) * (side ? 100 : -100)}%)`,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     padding: m.u * 6,
-    color: '#fff',
     textAlign: 'center',
   });
   const block = (title: string, text: string, k: number) => (

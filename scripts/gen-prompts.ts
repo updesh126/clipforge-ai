@@ -48,6 +48,13 @@ const BASE_STYLES: Array<{ id: string; label: string; prompt: string; palette: s
     avoid: 'outlines, glossy shading, photorealism',
   },
   {
+    id: 'collage',
+    label: 'Explainer collage',
+    prompt: 'editorial mixed-media collage, black-and-white halftone photo cut-outs with torn white paper edges on grey textured paper, one bold flat yellow accent shape, soft paper shadows, documentary explainer look',
+    palette: 'monochrome — ink black #111111, concrete grey #6E6E6E, grey paper #D9D9D6, off-white #F7F6F2, one signal yellow #FFD400',
+    avoid: 'full colour, cartoon outlines, painted textures, text and logos',
+  },
+  {
     id: 'stainedGlass',
     label: 'Stained glass',
     prompt: 'stained glass window art, shapes broken into translucent jewel-tone glass pieces, thick dark lead lines between every piece, light glowing through the glass',

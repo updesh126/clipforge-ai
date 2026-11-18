@@ -20,11 +20,28 @@ Pick what kind of video you're making first. It sets the art style, captions and
 | Type | Style it picks | Captions | Motion graphics it uses |
 |---|---|---|---|
 | **Storytelling** | Children's storybook (also paper cutout, Warli, Madhubani, hand-drawn) | Karaoke | Characters and places; a title banner; a quote card only for a real quotation |
-| **Documentary** | Hand-drawn (also ink wash, miniature, ukiyo-e, stained glass) | Clean | Vox-style paper title; timelines from the years you mention, quote cards, maps, big stats, news headlines |
+| **Documentary** | Explainer collage (also hand-drawn, ink wash, miniature, ukiyo-e, stained glass) | Clean | Paper title; timelines from the years you mention, a real world map when a line names a country or big city, quote cards, big stats, news headlines |
 | **Fun** | Cartoon (also anime, paper cutout) | Pop | Question reveals, myth vs fact, countdowns; confetti and sparks |
-| **Tech explainer** | Flat vector (also blueprint) | Bold | Paper title; process steps ("first… then… finally"), comparisons ("in 2016… by 2024…"), charts, cause and effect |
+| **Tech explainer** | Flat vector (also explainer collage, blueprint) | Bold | Paper title; process steps ("first… then… finally"), comparisons ("in 2016… by 2024…"), charts, cause and effect |
 
 The graphics are built only from facts in your narration — every number and year on screen is one you wrote. Write them out plainly: "In 2016 it handled 0.1 million; by 2024 over 13,000 million" becomes a comparison, "First… then… finally…" becomes a process diagram, two or more years become a timeline.
+
+
+## Explainer accents (documentary, tech, fun)
+
+Between the full-screen explainers, ClipForge adds small hand-made accents on top of the picture, built only from words that are actually said:
+
+| The line says… | Accent |
+|---|---|
+| "Ten years ago … today …" | Then-vs-now panel (grey past, yellow present in the collage style) |
+| "Name Surname, a role," | Lower-third with name and role |
+| "reported / announced / headline" | Newspaper zoom with the phrase highlighted (generic masthead) |
+| "banned / approved / fake / official…" | Rubber stamp |
+| "A, B and C" | Sticker list, one chip per item |
+| "the first / biggest / record / more than…" | Marker highlight on that phrase |
+| "But… / However… / Surprisingly…" | Handwritten note |
+
+Never on the title scene, never two in a row, and never on a scene that already has an explainer or a graphic you tagged yourself. Documentaries now allow a full-screen explainer every second scene, including evidence, historical progression, map comparison, photo investigation and a final conclusion.
 
 ## Looks
 
@@ -95,7 +112,7 @@ If you cancel a job inside ComfyUI itself, ClipForge notices within seconds and 
 
 | Option | Values |
 |---|---|
-| Art style | Auto (AI picks), Mix all, or one of 14 styles — see [Art styles](#/docs/art-styles) |
+| Art style | Auto (AI picks), Mix all, or one of 15 styles — see [Art styles](#/docs/art-styles) |
 | Format | 9:16, 1:1, 4:5, 16:9 |
 | Voice | Kokoro voices, or Windows voices (Hindi supported) |
 | Captions | Karaoke, Pop, Bold, Clean or Off |

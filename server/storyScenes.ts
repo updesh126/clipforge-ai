@@ -48,6 +48,10 @@ export interface StoryPlan {
   highlight?: string;
   mood?: Expression; // the scene's emotional tone → default face for its people
   motion?: { id: string; params: Record<string, string | number> }; // a catalogue sequence for this beat
+  /** what the picture shows, in one concrete sentence (from the planner, or the script's [scene: …]) */
+  visual?: string;
+  visualFixed?: boolean; // written by the author with [scene: …]
+  placeFixed?: boolean; // written by the author with [place: …]
 }
 
 /** Sequences the storyboard may use for a narrated beat (each is a short full-screen explainer cutaway). */
@@ -177,8 +181,9 @@ export async function llmStory(scenes: string[], videoType?: VideoType): Promise
   const catalogued = objectNames();
   const known = [...new Set([...catalogued, ...RECIPES.filter((r) => r.spec.type !== 'background').map((r) => r.name), ...(catalogued.length ? [] : listAssets().filter((a) => a.style === 'any').map((a) => a.name))])];
   const prompt = `You are a storyboard artist for an illustrated video. Each numbered scene is narrated exactly as written.${vt ? `\n${vt.plannerHint}` : ''}
-For EVERY scene decide what we SEE (the picture must change with the story):
-- "place": the setting. Prefer one of: ${PLACES.join(', ')}. You may invent a short new one (e.g. "tea garden") if none fits.
+For EVERY scene decide what we SEE (the picture must change with the story and show what the narration is ABOUT):
+- "visual": ONE concrete sentence (12-25 words) describing the picture for this exact line: the real subject, objects and action the narration talks about, e.g. "a hand holding a smartphone scanning a QR code at a busy street tea stall". Never a generic landscape that ignores the words.
+- "place": the setting. ${vt && videoType !== 'story' ? 'Use the REAL kind of place the narration is about (e.g. "bank office", "city street in Mumbai", "server room", "parliament", "factory floor"); never a village or forest unless the narration says so.' : `Prefer one of: ${PLACES.join(', ')}. You may invent a short new one (e.g. "tea garden") if none fits.`}
 - "time": day | sunset | night | dawn
 - "actors": 1-3 things on screen, taken from what the scene talks about. Each: {"name","where","motion"}.
    name: use the plain name of the thing the narration mentions (e.g. "firefly" for "fireflies", never a tree for lights). Prefer an exact name from this library: ${known.slice(0, 600).join(', ')}. If nothing there fits, invent a simple name (e.g. "camel", "fisherwoman") — it will be drawn. Never use abstract things (wind, light, sound, love) as actors.
@@ -195,7 +200,7 @@ Write every title, label, highlight and quote in the SAME language and script as
 SCENES:
 ${scenes.map((s, i) => `${i}: ${s}`).join('\n')}
 
-Reply with ONLY JSON: {"scenes":[{"i":0,"place":"...","time":"day","actors":[{"name":"...","where":"left","motion":"walkIn"}],"camera":"pushIn","graphic":"title","title":"..."}]} — one entry per scene, in order.`;
+Reply with ONLY JSON: {"scenes":[{"i":0,"visual":"...","place":"...","time":"day","actors":[{"name":"...","where":"left","motion":"walkIn"}],"camera":"pushIn","graphic":"title","title":"..."}]} — one entry per scene, in order.`;
   try {
     const res = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: 'POST',
@@ -235,6 +240,7 @@ Reply with ONLY JSON: {"scenes":[{"i":0,"place":"...","time":"day","actors":[{"n
       const graphic = GRAPHICS.includes(raw.graphic as Graphic) ? (raw.graphic as Graphic) : fb.graphic;
       const plan: StoryPlan = {
         place: String(raw.place ?? fb.place).toLowerCase().slice(0, 40) || fb.place,
+        visual: typeof raw.visual === 'string' && raw.visual.trim().length > 8 ? raw.visual.trim().slice(0, 240) : undefined,
         mood: EXPRESSIONS.includes(raw.mood as Expression) ? (raw.mood as Expression) : fb.mood,
         motion: cleanMotion(raw.motion, text, seqs),
         time: ['day', 'sunset', 'night', 'dawn'].includes(String(raw.time)) ? (raw.time as StoryPlan['time']) : undefined,

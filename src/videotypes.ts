@@ -38,10 +38,10 @@ export const VIDEO_TYPES: Record<VideoType, VideoTypeDef> = {
   documentary: {
     label: 'Documentary',
     blurb: 'Real places, history and facts — maps, timelines, dates and stats',
-    styles: ['handDrawn', 'inkWash', 'miniature', 'ukiyoe', 'stainedGlass'],
+    styles: ['collage', 'handDrawn', 'inkWash', 'miniature', 'ukiyoe', 'stainedGlass'],
     captions: 'clean',
-    sequences: ['timelineHistory', 'mapInvestigation', 'bigStat', 'quoteStatement', 'globalStats', 'newsHeadline', 'comparison'],
-    sequenceEvery: 3,
+    sequences: ['timelineHistory', 'mapInvestigation', 'bigStat', 'quoteStatement', 'comparison', 'globalStats', 'newsHeadline', 'evidence', 'historicalProgression', 'mapComparison', 'spotlightInvestigation', 'finalConclusion'],
+    sequenceEvery: 2,
     title: 'paperTitle',
     atmosphere: ['filmGrain', 'vignette', 'dustParticles'],
     plannerHint: 'This is a documentary. Show real places and people; when the narration gives a date, a place, a number or a quote, use a map, timeline, statistic or quote graphic for that beat.',
@@ -60,7 +60,7 @@ export const VIDEO_TYPES: Record<VideoType, VideoTypeDef> = {
   tech: {
     label: 'Tech explainer',
     blurb: 'How things work — processes, data, comparisons',
-    styles: ['flatVector', 'blueprint'],
+    styles: ['flatVector', 'collage', 'blueprint'],
     captions: 'bold',
     sequences: ['processExplain', 'chartExplain', 'comparison', 'causeEffect', 'dataStory', 'bigStat', 'questionReveal'],
     sequenceEvery: 2,

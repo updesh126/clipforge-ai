@@ -471,7 +471,14 @@ export interface SceneBrief {
   actors: string[];
   narration: string;
   mood?: string;
+  /** what the picture shows, in one concrete sentence (planner or the script's [scene: …]) — leads the prompt */
+  visual?: string;
+  /** documentary / tech / fun: no storybook defaults (village, traveller) — the picture follows the facts */
+  factual?: boolean;
 }
+
+/** Storyboard defaults that only make sense in a fable; in a factual video they produced unrelated pictures. */
+const FABLE_DEFAULTS = /^(village|traveller|speaker|forest|countryside|meadow|river valley|himalaya)$/i;
 
 /** What to draw, in short phrases (the style is added by buildSdPrompt). People are described, not named. */
 export function scenePrompt(s: SceneBrief, cast: CharacterSpec[]): string {
@@ -481,10 +488,29 @@ export function scenePrompt(s: SceneBrief, cast: CharacterSpec[]): string {
     return c ? `a ${shortWho(c)}` : a;
   });
   const humans = s.actors.filter((a) => castOf(a)).length;
-  const subject = people.length ? `${people.join(' and ')} in ${s.place}` : s.place;
   // names → "the girl" etc., so the narration's objects and actions still guide the picture
   let moment = s.narration.replace(/\s+/g, ' ').trim();
   for (const c of cast) moment = moment.replace(wordRe(c.name), `the ${shortWho(c).replace(/^(young|elderly|teenage) /, '')}`);
+  const visual = (s.visual ?? '').replace(/\s+/g, ' ').trim();
+  // "documentary photograph" pulls SD towards the 1950s — factual videos are set today unless the line is about the past
+  const era = s.factual && !/\b(1[0-8]\d\d|19[0-8]\d)\b|ancient|centur|medieval|empire|histor|colonial|independence|\bwar\b|olden|long ago|decades ago|vintage|retro/i.test(`${s.narration} ${visual}`)
+    ? 'present day, modern people, clothes, phones and vehicles of the 2020s'
+    : '';
+  if (visual) {
+    // the described picture leads; named cast members are still drawn with their fixed look
+    let v = visual;
+    for (const c of cast) v = v.replace(wordRe(c.name), `a ${shortWho(c)}`);
+    const castPeople = s.actors.filter((a) => castOf(a) && !wordRe(a).test(visual)).map((a) => `a ${shortWho(castOf(a)!)}`);
+    const where = s.place && !FABLE_DEFAULTS.test(s.place) && !v.toLowerCase().includes(s.place.toLowerCase()) ? `in ${s.place}` : '';
+    return [v, castPeople.length ? `with ${castPeople.join(' and ')}` : '', where, era, TIME_LIGHT[s.time ?? ''] ?? '', s.mood && s.mood !== 'neutral' ? `${s.mood} mood` : ''].filter(Boolean).join(', ');
+  }
+  if (s.factual) {
+    // no planner picture: draw what the narration is about, without storybook defaults
+    const realPeople = people.filter((_, k) => castOf(s.actors[k]));
+    const where = s.place && !FABLE_DEFAULTS.test(s.place) ? s.place : '';
+    return [moment.slice(0, 220), realPeople.length ? `showing ${realPeople.join(' and ')}` : '', where, era, TIME_LIGHT[s.time ?? ''] ?? ''].filter(Boolean).join(', ');
+  }
+  const subject = people.length ? `${people.join(' and ')} in ${s.place}` : s.place;
   return [subject, TIME_LIGHT[s.time ?? ''] ?? 'in daylight', humans === 1 ? 'only one person in the scene' : '', moment.slice(0, 200), s.mood && s.mood !== 'neutral' ? `${s.mood} mood` : ''].filter(Boolean).join(', ');
 }
 

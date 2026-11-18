@@ -19,6 +19,7 @@ import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
 import { chooseMotion } from './motionPlan.ts';
 import { autoSequences } from './autoSequences.ts';
+import { accentDirective, autoAccents } from './autoAccents.ts';
 import { PLANNED_CAMERAS, scenesWithDirectives, tokeniseScript, type Directive } from './directives.ts';
 import { VIDEO_TYPES, isVideoType, type VideoType } from '../src/videotypes.ts';
 import { animateImage, describeCharacter, generateImage, sdSize, sdStatus, stylisedScene, videoModel } from './imagegen.ts';
@@ -54,7 +55,11 @@ const STYLE_ACCENT: Record<string, string> = {
   blueprint: '#9CC3FF',
   ukiyoe: '#E07A5F',
   miniature: '#D4A537',
+  collage: '#FFD400',
 };
+
+/** Map look per art style, so real-world maps sit inside the video's look. */
+const MAP_THEME: Record<string, string> = { collage: 'collage', handDrawn: 'paper', inkWash: 'paper', miniature: 'paper', ukiyoe: 'paper', storybook: 'paper', madhubani: 'paper', paperCutout: 'light', flatVector: 'light' };
 
 export interface ScriptVideoOptions {
   script: string;
@@ -329,7 +334,8 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
   if (plan.motion && SEQUENCES[plan.motion.id]) {
     const seq = SEQUENCES[plan.motion.id];
     const mlen = round(Math.max(2, Math.min(seq.duration, dur - 0.4)));
-    return [{ id: newId('mg'), kind: 'text', name: seq.label, track: 5, from: round(from + 0.3), duration: mlen, template: 'motion', props: { ...seq.params, ...plan.motion.params, fx: plan.motion.id } }];
+    const mapLook: Record<string, string> = plan.motion.id === 'mapInvestigation' ? { mapTheme: MAP_THEME[style] ?? 'dark' } : {};
+    return [{ id: newId('mg'), kind: 'text', name: seq.label, track: 5, from: round(from + 0.3), duration: mlen, template: 'motion', props: { ...seq.params, ...mapLook, ...plan.motion.params, fx: plan.motion.id } }];
   }
   switch (plan.graphic) {
     case 'title': {
@@ -450,9 +456,25 @@ function applyStoryDirectives(s: StoryPlan, d: Directive[], text: string): Story
     else if (x.kind === 'sequence') {
       const m = sequenceFromDirective(x, text);
       if (m) out = { ...out, motion: m };
-    }
+    } else if (x.kind === 'place') out = { ...out, place: x.id, placeFixed: true };
+    else if (x.kind === 'scene') out = { ...out, visual: x.id, visualFixed: true };
+    else if (x.kind === 'time') out = { ...out, time: x.id as StoryPlan['time'] };
   }
   return out;
+}
+
+/** [place: …] and [time: …] carry on to the following scenes until the script changes them, like a film slugline. */
+function carryPlaceAndTime(story: StoryPlan[], dirs: Directive[][]): StoryPlan[] {
+  let place: string | null = null;
+  let time: StoryPlan['time'] | null = null;
+  return story.map((s, i) => {
+    const d = dirs[i] ?? [];
+    const p = d.find((x) => x.kind === 'place');
+    const t = d.find((x) => x.kind === 'time');
+    if (p) place = p.id;
+    if (t) time = t.id as StoryPlan['time'];
+    return { ...s, ...(place && !p ? { place, placeFixed: true } : {}), ...(time && !t ? { time } : {}) };
+  });
 }
 
 /** A motion-library overlay (graphic or atmosphere) from a tag; text effects default to the scene's words. */
@@ -490,22 +512,29 @@ function directedExtras(d: Directive[], text: string, from: number, dur: number,
   return out;
 }
 
-const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blueprint', 'stainedGlass']);
+const BORDER_STYLES = new Set(['madhubani', 'warli', 'miniature', 'ukiyoe', 'blueprint', 'stainedGlass', 'collage']);
 
 /**
  * What should move, for image-to-video. LTX-Video likes one plain paragraph: the main action first,
  * then small secondary motion and the camera — and it must not change the picture's style.
  */
 function motionPrompt(plan: StoryPlan, text: string, cast: CharacterSpec[], style: string): string {
-  let action = text.replace(/\s+/g, ' ').trim();
+  let action = (plan.visual ? `${plan.visual.replace(/[.\s]+$/, '')}. ${text}` : text).replace(/\s+/g, ' ').trim();
   for (const c of cast) action = action.split(c.name).join(describeCharacter(c, { named: false }).split(' with ')[0].replace(/^a /, 'the '));
-  const ambient = /night/i.test(plan.time ?? '') ? 'Lights flicker softly and stars twinkle.' : 'Leaves and grass sway gently in the breeze.';
+  const where = `${plan.place} ${plan.visual ?? ''}`.toLowerCase();
+  const ambient = /night/i.test(plan.time ?? '')
+    ? 'Lights flicker softly.'
+    : /street|city|market|office|station|shop|stall|road|traffic|crowd|factory|room/.test(where)
+      ? 'People and things in the background move a little, naturally.'
+      : /forest|field|village|garden|tree|hill|river|farm|meadow|park/.test(where)
+        ? 'Leaves and grass sway gently in the breeze.'
+        : 'Small, natural background movement.';
   const label = (ART_STYLE_SPECS[style as StyleSpecId] as { label?: string } | undefined)?.label ?? 'illustrated';
   return `${action} Natural, gentle movement: hair and clothes move slightly, people blink and breathe. ${ambient} Static locked-off camera on a tripod, no camera movement, no zoom, no shake. A hand-painted 2D ${label} illustration brought to life, flat painted look kept in every frame, same art style, colours and characters throughout, smooth and consistent motion.`;
 }
 
 /** One Stable Diffusion painting for a scene, with a slow Ken Burns drift and the planned camera move. */
-async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string, fraction: number, live?: { preview?: string; step?: number; steps?: number; done?: string }) => void, animate = false, engine?: 'ltx' | 'wan'): Promise<EditItem[]> {
+async function paintedScene(plan: StoryPlan, text: string, from: number, dur: number, style: string, aspect: string, cast: CharacterSpec[], seed: number, onProgress: (m: string, fraction: number, live?: { preview?: string; step?: number; steps?: number; done?: string }) => void, animate = false, engine?: 'ltx' | 'wan', factual = false): Promise<EditItem[]> {
   const [width, height] = sdSize(aspect);
   // people named in the narration (or the only character a "she / he" can mean) always appear, and come first
   const actors = plan.actors.map((a) => a.name);
@@ -516,7 +545,7 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
     if ((named || pronoun) && !has(c.name)) actors.unshift(c.name);
     else if (named && has(c.name)) actors.sort((a, b) => Number(b.toLowerCase() === c.name.toLowerCase()) - Number(a.toLowerCase() === c.name.toLowerCase()));
   }
-  const { prompt, negative } = stylisedScene({ place: plan.place, time: plan.time, actors, narration: text, mood: plan.mood }, style, cast);
+  const { prompt, negative } = stylisedScene({ place: plan.place, time: plan.time, actors, narration: text, mood: plan.mood, visual: plan.visual, factual }, style, cast);
   // painting takes the first part of this scene's progress; animating (if on) the rest
   const paintShare = animate ? 0.45 : 1;
   onProgress(plan.place, 0);
@@ -592,13 +621,21 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
       return keep ? s : { ...s, motion: undefined };
     });
     // the writer's [tags] always win over the planner
-    story = story.map((s, i) => applyStoryDirectives(s, dirs[i] ?? [], scenes[i]));
+    story = carryPlaceAndTime(story.map((s, i) => applyStoryDirectives(s, dirs[i] ?? [], scenes[i])), dirs);
     if (unknownTags.length) progress('plan', `Ignored unknown tags: ${unknownTags.map((t) => `[${t.slice(0, 30)}]`).join(' ')} — see Docs → Script tags`, 6);
     // procedural themes and AI paintings: fix every person's identity once (face, hair, clothes) before drawing any scene
     if (isTheme(opts.style) || opts.illustration === 'ai') {
       progress('plan', 'Casting characters (same look in every scene)', 7);
       await planStorySpecs(opts.script);
     }
+  }
+  // explainer accents (then/now panel, name lower-third, stamp, sticker list, marker highlight, handwritten turn)
+  // on scenes without a full-screen explainer or a graphic the writer chose — added as if they were [tags]
+  if (vtype && vtype !== 'story') {
+    const busy = scenes.map((_, i) => Boolean(story[i]?.motion) || (dirs[i] ?? []).some((x) => x.kind === 'graphic' || x.kind === 'sequence'));
+    autoAccents(scenes, vtype, baseStyle, busy).forEach((a, i) => {
+      if (a) dirs[i] = [...(dirs[i] ?? []), accentDirective(a)];
+    });
   }
   const frame = { width: FRAME_SIZES[aspect][0], height: FRAME_SIZES[aspect][1] };
 
@@ -678,7 +715,7 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
               ...(live ? (live.preview ? { preview: live.preview } : {}) : { preview: undefined, step: 0 }),
               ...(live?.steps ? { step: live.step, steps: live.steps } : {}),
             });
-          }, moving[i], opts.motionEngine)),
+          }, moving[i], opts.motionEngine, Boolean(vtype && vtype !== 'story'))),
         );
       }
       else items.push(...(await buildStoryScene(story[i], sceneStart, sceneDur, style, aspect, frame, (n) => progress('assets', `Scene ${i + 1}: ${n}`, 8 + (80 * (i + 0.75)) / plans.length))));

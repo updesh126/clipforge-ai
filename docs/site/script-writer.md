@@ -23,9 +23,33 @@ Open it from **Writer** in the top bar.
 | Read | Gets the video's subtitles (manual or auto). If there are none, it downloads the audio and transcribes it with Whisper. |
 | Facts | Pulls out **every** fact, number, name and date, in chunks, so long videos aren't cut short. It drops the source channel's own promotion ("subscribe", "follow us", website links, sponsors). |
 | Write | Rewrites the facts as a new script with a hook, a build-up and a strong ending, using different wording and structure from the original. |
-| Tag | ClipForge adds the [tags] itself with fixed rules, so they are always valid. The hook gets `[wordReveal]` (`[pushIn]` for stories). Years get `[timelineHistory]`, steps get `[processExplain]`, before/after numbers get `[comparison]` and quotes get `[quoteStatement]`. Big numbers get `[bigStat]` and the ending gets `[pullOut]`. Each script gets at most four graphics. |
+| Storyboard | A second AI pass gives every paragraph a real setting and one concrete picture, written as `[place: …]` (only when the place changes) and `[scene: …]`, so the AI paintings match the words. |
+| Tag | ClipForge adds the other [tags] itself with fixed rules, so they are always valid. See the list below. |
 | Package | Writes a YouTube title (under 70 characters), a description with bullet points, and 12–18 search tags. |
 | Save | Saves `data/scripts/<date>-<id>-<title>.md`, `.txt` and `.json`. |
+
+## Tags the Writer adds
+
+| When the line has… | Tag |
+|---|---|
+| The opening hook | `[wordReveal]` (stories: `[pushIn]`), documentaries also `[filmGrain]` |
+| Years across the script | `[timelineHistory events="…"]` |
+| A country or big city (one map per country) | `[mapInvestigation country=… city=…]` |
+| "In 2016 … by 2024 …" numbers | `[comparison …]` |
+| "first … then … finally" | `[processExplain steps="…"]` |
+| A quotation | `[quoteStatement text="…" source="…"]` |
+| A big number (%, million, crore…) | `[bigStat value=… suffix="…"]` |
+| "Ten years ago … today …" | `[thenVsNow labelA=… textA=… labelB=Today textB=…]` |
+| "Name, a role," | `[lowerThird text="Name" subtitle="Role"]` |
+| "reported / announced" | `[newspaperZoom …]` |
+| "banned / approved / fake…" | `[stampReveal text="BANNED"]` |
+| "A, B and C" | `[cardList items="A; B; C"]` (sticker chips) |
+| "the first / biggest / record…" | `[markerHighlight text="…"]` |
+| "But… / However…" | `[handwrittenNote text="But…"]` |
+| Every other line | a camera move: `[pushIn]` `[panRight]` `[panLeft]` `[tiltUp]`; the last line `[pullOut]` |
+| Every 4th paragraph | a chapter cut: `[transition: paperTearTransition]` (tech: wipe, fun: whip pan) |
+
+Full-screen explainers never come two in a row, and small accents fill the gaps between them.
 
 ## The saved files
 

@@ -7,6 +7,7 @@ import rules from './_rules.json' with { type: 'json' };
 import anime from './anime.json' with { type: 'json' };
 import auto from './auto.json' with { type: 'json' };
 import blueprint from './blueprint.json' with { type: 'json' };
+import collage from './collage.json' with { type: 'json' };
 import cartoon from './cartoon.json' with { type: 'json' };
 import flatVector from './flatVector.json' with { type: 'json' };
 import handDrawn from './handDrawn.json' with { type: 'json' };
@@ -41,7 +42,7 @@ export interface StyleGeneration {
   sdNegative?: string | null;
 }
 
-export const ART_STYLE_SPECS = { anime, auto, blueprint, cartoon, flatVector, handDrawn, inkWash, madhubani, miniature, mix, paperCutout, shadowPuppet, stainedGlass, storybook, ukiyoe, warli };
+export const ART_STYLE_SPECS = { anime, auto, blueprint, cartoon, collage, flatVector, handDrawn, inkWash, madhubani, miniature, mix, paperCutout, shadowPuppet, stainedGlass, storybook, ukiyoe, warli };
 export type StyleSpecId = keyof typeof ART_STYLE_SPECS;
 export const ART_STYLE_RULES = rules;
 

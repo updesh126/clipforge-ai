@@ -604,6 +604,44 @@
       "negative_prompt": "Modern cartoon style, photorealistic 3D, thick comic outlines, minimal vector design, loose abstract brush strokes.",
       "prompt_modifier": "Render as traditional Indian miniature painting inspired by Mughal, Rajput and Pahari painting traditions. Use extremely fine brushwork, delicate outlines, intricate ornamental details, elaborate patterns, rich natural pigments, decorative borders and carefully detailed architecture and clothing.",
       "negative_modifier": "Modern cartoon style, photorealistic 3D, thick comic outlines, minimalist vector graphics, loose abstract brush strokes."
+    },
+    "collage": {
+      "sourceId": "explainer_collage",
+      "name": "Explainer Collage",
+      "category": "editorial_mixed_media",
+      "description": "Modern documentary explainer look: black-and-white photo cut-outs with torn paper edges on grey textured paper, halftone dots and one bold yellow accent.",
+      "visual_identity": "Editorial mixed-media collage that feels researched and journalistic, but hand-made.",
+      "color_palette": {
+        "approach": "Monochrome photography with a single signal colour",
+        "saturation": "Low, except the yellow accent",
+        "contrast": "High",
+        "colors": [
+          "Black",
+          "Charcoal grey",
+          "Concrete grey",
+          "Off-white paper",
+          "Signal yellow"
+        ]
+      },
+      "linework": "No drawn outlines; edges come from scissor cuts and torn white paper borders.",
+      "textures": "Grey recycled paper grain, newsprint halftone dots, torn paper fibres, slight print grit.",
+      "characters": "Real-looking people as black-and-white photo cut-outs with a thin white torn border.",
+      "backgrounds": "Streets, buildings, skylines, offices and objects as layered photo cut-outs; a big flat yellow circle or block behind the subject.",
+      "lighting": "Even documentary daylight inside the photos; soft paper shadows between layers.",
+      "composition": "Clear subject in the middle, layered cut-outs overlapping, generous empty grey paper for titles and labels.",
+      "best_for": [
+        "Documentaries",
+        "News explainers",
+        "History and social issues",
+        "Before/after and then/now stories",
+        "Tech and economy explainers"
+      ],
+      "generation_instructions": "Create an editorial mixed-media collage: black-and-white halftone photograph cut-outs with torn white paper edges layered on grey textured paper, with exactly one bold flat yellow accent shape. No text.",
+      "negative_prompt": "Text, letters, words, captions, logos, watermark, cartoon, anime, watercolour, oil painting, 3D render, neon colours, rainbow colours, glossy.",
+      "prompt_modifier": "Render as an editorial photo collage: one or two real black-and-white documentary photographs cut out with torn white paper edges, pasted on plain grey recycled paper with visible grain, subtle newsprint halftone dots, a single flat signal-yellow circle or block as the only colour, soft paper shadows, clean uncluttered layout, modern documentary explainer look.",
+      "negative_modifier": "Full-colour photograph, painted look, cartoon outlines, pastel colours, typography, signage text.",
+      "sd_hint": "real black and white documentary photograph cut out with a torn white paper edge, pasted on plain grey paper, one flat yellow circle behind the subject",
+      "sd_negative": "full colour, text, letters, logo, abstract shapes, fragmented faces, cubism, many circles, chaotic layout, line drawing, cartoon"
     }
   },
   "global_generation_rules": {

@@ -29,6 +29,7 @@ const SUBJECTS: Record<string, string> = {
   warli: 'villagers dancing in a circle beside a tree, the sun and a drum',
   blueprint: 'a rocket ship side view with measurement lines',
   ukiyoe: 'a great ocean wave with Mount Fuji and a red sun',
+  collage: 'an old brick street with small shops beside a modern glass building with a cafe, a city skyline behind',
   miniature: 'a royal lady holding a flower in a palace garden with trees and a domed palace',
 };
 

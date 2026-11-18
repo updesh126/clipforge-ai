@@ -1,0 +1,203 @@
+{
+  "id": "collage",
+  "label": "Explainer collage",
+  "family": "graphic",
+  "engine": "remotion-scene",
+  "summary": "B&W photo cut-outs, torn paper, halftone dots and one yellow accent",
+  "origin": "Editorial mixed-media collage (modern documentary explainers)",
+  "history": "Cut-and-paste photo collage from 20th-century magazines and protest posters, revived by online video explainers that layer archive photos, paper and handwritten notes.",
+  "look": "Black-and-white photo cut-outs with torn white edges on grey textured paper, halftone dots, one bold yellow accent, heavy condensed headlines on torn paper, handwritten labels with arrows and sticker chips.",
+  "mood": [
+    "smart",
+    "journalistic",
+    "urgent",
+    "hand-made"
+  ],
+  "bestFor": [
+    "Documentaries",
+    "News and social-issue explainers",
+    "Then/now and before/after stories",
+    "Economy and tech explainers"
+  ],
+  "avoidFor": [
+    "Kids fairy tales",
+    "Calm nature poetry"
+  ],
+  "palette": [
+    {
+      "hex": "#111111",
+      "name": "Ink black",
+      "role": "headlines, chips, photo shadows"
+    },
+    {
+      "hex": "#6E6E6E",
+      "name": "Concrete grey",
+      "role": "photo mid-tones, skyline"
+    },
+    {
+      "hex": "#D9D9D6",
+      "name": "Grey paper",
+      "role": "background"
+    },
+    {
+      "hex": "#F7F6F2",
+      "name": "Off-white paper",
+      "role": "torn strips, title boxes"
+    },
+    {
+      "hex": "#FFD400",
+      "name": "Signal yellow",
+      "role": "the one accent: circles, highlighter, chips"
+    }
+  ],
+  "line": {
+    "weight": "None; torn white paper borders instead",
+    "colour": "White",
+    "quality": "Torn and scissor-cut edges"
+  },
+  "fill": "Monochrome photography, flat yellow shapes",
+  "shading": "Soft paper drop shadows between layers",
+  "texture": "Paper grain, halftone dots, print grit",
+  "characters": {
+    "proportions": "Realistic (photo cut-outs)",
+    "faces": "Real, unstylised",
+    "poses": "Natural documentary poses",
+    "costume": "Everyday real clothes"
+  },
+  "environment": {
+    "motifs": [
+      "torn paper strips",
+      "halftone dot fields",
+      "yellow sun circle",
+      "skyline cut-outs",
+      "handwritten arrows"
+    ],
+    "settings": [
+      "city streets",
+      "offices",
+      "archives",
+      "markets",
+      "maps"
+    ],
+    "sky": "Grey paper with a yellow circle",
+    "ground": "Photo cut-out street or floor"
+  },
+  "border": "Torn off-white paper edge with yellow tape corners",
+  "composition": {
+    "focalPoint": "One photo subject in the middle, yellow shape behind it",
+    "framing": "Layered cut-outs, slightly tilted",
+    "negativeSpace": "Grey paper left or top for the headline",
+    "depth": "Two or three paper layers — gentle parallax",
+    "titlePosition": "center"
+  },
+  "typography": {
+    "fontStack": "Impact, \"Bahnschrift Condensed\", \"Arial Narrow\", \"Helvetica Neue\", Arial, sans-serif",
+    "titleColour": "#111111",
+    "titleStroke": null,
+    "titleShadow": null,
+    "uppercase": false,
+    "titleScale": 1
+  },
+  "banner": {
+    "background": "#111111",
+    "text": "#FFFFFF",
+    "border": "#FFD400"
+  },
+  "motion": {
+    "feel": "Slap-on and slide, like pieces pasted on a board",
+    "pace": "medium",
+    "textReveals": [
+      "paperTitle",
+      "textOnPaper",
+      "textPop"
+    ],
+    "camera": [
+      "pushIn",
+      "panRight",
+      "pullOut"
+    ],
+    "transitions": [
+      "paperTearTransition",
+      "wipeTransition"
+    ],
+    "atmosphere": [
+      "filmGrain",
+      "dustParticles"
+    ],
+    "spriteMotion": [
+      "slideUp",
+      "pop"
+    ]
+  },
+  "libraryPictureLook": {
+    "spriteFilter": "grayscale(1) contrast(1.3) drop-shadow(5px 0 0 #F7F6F2) drop-shadow(-5px 0 0 #F7F6F2) drop-shadow(0 5px 0 #F7F6F2) drop-shadow(0 -5px 0 #F7F6F2) drop-shadow(5px 8px 5px rgba(0,0,0,.35))",
+    "spriteBlend": null,
+    "backgroundFilter": "grayscale(1) contrast(1.15) brightness(1.04)"
+  },
+  "vectorTheme": null,
+  "prompt": {
+    "keywords": [
+      "photo collage",
+      "black and white cut-outs",
+      "torn paper",
+      "halftone",
+      "yellow accent"
+    ],
+    "negative": [
+      "full colour",
+      "cartoon",
+      "text"
+    ]
+  },
+  "dos": [
+    "Keep photos black and white and let yellow be the only colour",
+    "Give every cut-out a torn white edge",
+    "Use handwritten labels and arrows for then/now"
+  ],
+  "donts": [
+    "More than one accent colour",
+    "Painted or cartoon textures",
+    "Any brand names or logos"
+  ],
+  "generation": {
+    "sourceId": "explainer_collage",
+    "category": "editorial_mixed_media",
+    "description": "Modern documentary explainer look: black-and-white photo cut-outs with torn paper edges on grey textured paper, halftone dots and one bold yellow accent.",
+    "visualIdentity": "Editorial mixed-media collage that feels researched and journalistic, but hand-made.",
+    "colourPalette": {
+      "approach": "Monochrome photography with a single signal colour",
+      "saturation": "Low, except the yellow accent",
+      "contrast": "High",
+      "colors": [
+        "Black",
+        "Charcoal grey",
+        "Concrete grey",
+        "Off-white paper",
+        "Signal yellow"
+      ]
+    },
+    "linework": "No drawn outlines; edges come from scissor cuts and torn white paper borders.",
+    "textures": "Grey recycled paper grain, newsprint halftone dots, torn paper fibres, slight print grit.",
+    "characters": "Real-looking people as black-and-white photo cut-outs with a thin white torn border.",
+    "backgrounds": "Streets, buildings, skylines, offices and objects as layered photo cut-outs; a big flat yellow circle or block behind the subject.",
+    "lighting": "Even documentary daylight inside the photos; soft paper shadows between layers.",
+    "composition": "Clear subject in the middle, layered cut-outs overlapping, generous empty grey paper for titles and labels.",
+    "bestFor": [
+      "Documentaries",
+      "News explainers",
+      "History and social issues",
+      "Before/after and then/now stories",
+      "Tech and economy explainers"
+    ],
+    "instructions": "Create an editorial mixed-media collage: black-and-white halftone photograph cut-outs with torn white paper edges layered on grey textured paper, with exactly one bold flat yellow accent shape. No text.",
+    "promptModifier": "Render as an editorial photo collage: one or two real black-and-white documentary photographs cut out with torn white paper edges, pasted on plain grey recycled paper with visible grain, subtle newsprint halftone dots, a single flat signal-yellow circle or block as the only colour, soft paper shadows, clean uncluttered layout, modern documentary explainer look.",
+    "negativePrompt": "Text, letters, words, captions, logos, watermark, cartoon, anime, watercolour, oil painting, 3D render, neon colours, rainbow colours, glossy.",
+    "negativeModifier": "Full-colour photograph, painted look, cartoon outlines, pastel colours, typography, signage text.",
+    "sdHint": "real black and white documentary photograph cut out with a torn white paper edge, pasted on plain grey paper, one flat yellow circle behind the subject",
+    "sdNegative": "full colour, text, letters, logo, abstract shapes, fragmented faces, cubism, many circles, chaotic layout, line drawing, cartoon"
+  },
+  "previews": {
+    "thumbnail": "/styles/collage.jpg",
+    "preview": "/styles/collage-preview.jpg"
+  }
+}

@@ -2,7 +2,7 @@
 import type { EffectId, TemplateId } from './types.ts';
 
 /** Art styles for the art templates (ids must match src/remotion/artStyles.tsx). */
-export const ART_STYLE_OPTIONS = ['storybook', 'cartoon', 'flatVector', 'handDrawn', 'madhubani', 'inkWash', 'shadowPuppet', 'paperCutout', 'stainedGlass', 'anime', 'warli', 'blueprint', 'ukiyoe', 'miniature'];
+export const ART_STYLE_OPTIONS = ['storybook', 'cartoon', 'flatVector', 'handDrawn', 'madhubani', 'inkWash', 'shadowPuppet', 'paperCutout', 'stainedGlass', 'anime', 'warli', 'blueprint', 'ukiyoe', 'miniature', 'collage'];
 export const ART_STYLE_LABELS: Record<string, string> = {
   madhubani: 'Madhubani',
   inkWash: 'Ink wash',
@@ -14,6 +14,7 @@ export const ART_STYLE_LABELS: Record<string, string> = {
   blueprint: 'Blueprint',
   ukiyoe: 'Ukiyo-e',
   miniature: 'Miniature painting',
+  collage: 'Explainer collage',
   storybook: "Children's storybook",
   cartoon: 'Cartoon',
   flatVector: 'Flat vector',
@@ -250,6 +251,7 @@ export const STYLE_INFO: Record<string, StyleInfo> = {
   madhubani: { origin: 'Mithila, Bihar (India)', look: 'Bold double outlines, every shape filled with fine hatching; fish, sun and peacock motifs.', bestFor: 'Indian culture, festivals, folk tales, rural life', palette: ['#C1272D', '#F4B400', '#2E7D32', '#1F4E9E', '#F6E7C1'] },
   inkWash: { origin: 'China / Japan (sumi-e)', look: 'Grey brush ink bleeding into rice paper, misty mountains, a small red seal.', bestFor: 'Nature, calm reflection, philosophy, poetry', palette: ['#141414', '#5E5E5A', '#9A9A96', '#EFEAE0', '#B3261E'] },
   shadowPuppet: { origin: 'Tholu Bommalata (India), wayang kulit (Indonesia)', look: 'Perforated black puppets on sticks against a warm, flickering lamp-lit screen.', bestFor: 'Myths, legends, history, dramatic storytelling', palette: ['#1B0E05', '#5A230A', '#FFB347', '#FFE2A8'] },
+  collage: { origin: 'Editorial mixed-media collage', look: 'Black-and-white photo cut-outs with torn paper edges, halftone dots and one yellow accent.', bestFor: 'Documentaries, news explainers, then/now stories, economy and tech', palette: ['#111111', '#6E6E6E', '#D9D9D6', '#F7F6F2', '#FFD400'] },
   paperCutout: { origin: 'Paper craft / diorama', look: 'Layered pastel paper hills and props with soft drop shadows.', bestFor: 'Kids, education, friendly explainers, product stories', palette: ['#FFADAD', '#FFD6A5', '#CAFFBF', '#A0C4FF', '#6D597A'] },
   stainedGlass: { origin: 'Gothic cathedral windows', look: 'Jewel-tone glass pieces in dark leading, glowing with light.', bestFor: 'Heritage, spiritual, grand or celebratory moments', palette: ['#1E5AA8', '#C0392B', '#E0B53A', '#2E8B57', '#6C3483'] },
   anime: { origin: 'Japanese animation', look: 'Speed lines, sparkles, sky gradients and slam-in titles.', bestFor: 'Youth, energy, hype, gaming, launches', palette: ['#3A7BD5', '#B06AB3', '#FF8FAB', '#FFD166'] },
