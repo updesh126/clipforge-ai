@@ -624,7 +624,7 @@
         ]
       },
       "linework": "No drawn outlines; edges come from scissor cuts and torn white paper borders.",
-      "textures": "Grey recycled paper grain, newsprint halftone dots, torn paper fibres, slight print grit.",
+      "textures": "Grey recycled paper grain, halftone dots, torn paper fibres, slight print grit.",
       "characters": "Real-looking people as black-and-white photo cut-outs with a thin white torn border.",
       "backgrounds": "Streets, buildings, skylines, offices and objects as layered photo cut-outs; a big flat yellow circle or block behind the subject.",
       "lighting": "Even documentary daylight inside the photos; soft paper shadows between layers.",
@@ -638,7 +638,7 @@
       ],
       "generation_instructions": "Create an editorial mixed-media collage: black-and-white halftone photograph cut-outs with torn white paper edges layered on grey textured paper, with exactly one bold flat yellow accent shape. No text.",
       "negative_prompt": "Text, letters, words, captions, logos, watermark, cartoon, anime, watercolour, oil painting, 3D render, neon colours, rainbow colours, glossy.",
-      "prompt_modifier": "Render as an editorial photo collage: one or two real black-and-white documentary photographs cut out with torn white paper edges, pasted on plain grey recycled paper with visible grain, subtle newsprint halftone dots, a single flat signal-yellow circle or block as the only colour, soft paper shadows, clean uncluttered layout, modern documentary explainer look.",
+      "prompt_modifier": "Render as an editorial photo collage: one or two real black-and-white documentary photographs cut out with torn white paper edges, pasted on plain grey recycled paper with visible grain, subtle halftone dot texture, a single flat signal-yellow circle or block as the only colour, soft paper shadows, clean uncluttered layout, modern documentary explainer look.",
       "negative_modifier": "Full-colour photograph, painted look, cartoon outlines, pastel colours, typography, signage text.",
       "sd_hint": "real black and white documentary photograph cut out with a torn white paper edge, pasted on plain grey paper, one flat yellow circle behind the subject",
       "sd_negative": "full colour, text, letters, logo, abstract shapes, fragmented faces, cubism, many circles, chaotic layout, line drawing, cartoon"

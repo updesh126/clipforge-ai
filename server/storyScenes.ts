@@ -218,7 +218,7 @@ Reply with ONLY JSON: {"scenes":[{"i":0,"visual":"...","place":"...","time":"day
     if (!res.ok) return null;
     const parsed = JSON.parse(((await res.json()) as { response: string }).response) as { scenes?: Array<Record<string, unknown>> };
     const fallback = heuristicStory(scenes);
-    return scenes.map((text, i) => {
+    const plans = scenes.map((text, i) => {
       const raw = parsed.scenes?.find((s) => Number(s.i) === i) ?? parsed.scenes?.[i];
       const fb = fallback[i];
       if (!raw) return fb;
@@ -259,9 +259,47 @@ Reply with ONLY JSON: {"scenes":[{"i":0,"visual":"...","place":"...","time":"day
       if (plan.graphic === 'chart' && !(plan.data && /:\s*\d/.test(plan.data))) plan.graphic = 'none';
       return plan;
     });
+    // small models often drop "visual" on long answers — ask once more, only for the lines without a picture
+    const missing = plans.map((p, i) => (p.visual ? -1 : i)).filter((i) => i >= 0);
+    if (missing.length) {
+      const extra = await fillVisuals(scenes, missing, videoType).catch(() => null);
+      for (const [i, v] of Object.entries(extra ?? {})) {
+        const k = Number(i);
+        if (plans[k] && v.visual) plans[k] = { ...plans[k], visual: v.visual, ...(v.place && /^(village|forest|countryside|meadow|city|night sky)$/i.test(plans[k].place) ? { place: v.place } : {}) };
+      }
+    }
+    return plans;
   } catch {
     return null;
   }
+}
+
+/** One concrete picture (and setting) for each of the given lines — the planner's second chance. */
+async function fillVisuals(scenes: string[], which: number[], videoType?: VideoType): Promise<Record<number, { visual: string; place?: string }>> {
+  const factual = videoType && videoType !== 'story';
+  const prompt = `For each numbered line of a ${factual ? `${VIDEO_TYPES[videoType!].label.toLowerCase()} video` : 'story'}, describe the ONE picture the viewer sees.
+- "visual": 12-25 words, the real subject, objects and action the line talks about (e.g. "a hand holding a smartphone scanning a QR code at a busy street tea stall"). No text, logos or brand names.
+- "place": the setting in 2-5 words${factual ? ' (a real kind of place — never a village or forest unless the line says so)' : ''}.
+Reply with ONLY JSON: {"lines":[{"i":3,"visual":"…","place":"…"}]}
+
+LINES:
+${which.map((i) => `${i}: ${scenes[i]}`).join('\n')}`;
+  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: PLAN_MODEL, prompt, format: 'json', stream: false, ...(/qwen3|deepseek-r1|gpt-oss|magistral/i.test(PLAN_MODEL) ? { think: false } : {}), options: { temperature: 0.4, num_ctx: 16384 } }),
+    signal: AbortSignal.timeout(1000 * 60 * 2),
+  });
+  if (!res.ok) return {};
+  const raw = JSON.parse(((await res.json()) as { response: string }).response) as unknown;
+  const list = (Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? (Object.values(raw).find((v) => Array.isArray(v)) as unknown[] | undefined) ?? [] : []) as Array<{ i?: number; visual?: string; place?: string }>;
+  const out: Record<number, { visual: string; place?: string }> = {};
+  list.forEach((e, k) => {
+    const i = Number.isFinite(Number(e?.i)) ? Number(e.i) : which[k];
+    const visual = typeof e?.visual === 'string' ? e.visual.replace(/\s+/g, ' ').trim().slice(0, 240) : '';
+    if (which.includes(i) && visual.length > 8) out[i] = { visual, place: typeof e.place === 'string' ? e.place.trim().toLowerCase().slice(0, 40) : undefined };
+  });
+  return out;
 }
 
 // ---------------------------------------------------------------- build layered items

@@ -57,3 +57,5 @@ Type what you want, for example *"add a stat when they say 85 percent"*. The loc
 ## Saving
 
 Edits save automatically a moment after each change. Render with the button in the top-right — see [Export](#/docs/export).
+
+To delete many videos at once, open **Edit**, click **Select** above **Your edits**, tick the ones to remove (or **Select all**) and click **Delete N videos**. Their voice-overs go too; rendered MP4s stay in `data/exports/`.

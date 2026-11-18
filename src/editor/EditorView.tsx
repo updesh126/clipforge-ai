@@ -29,6 +29,7 @@ import { createEdit, listEdits, loadEdit, saveEditRemote, type EditSummary } fro
 import type { ClipProject, JobProgress, TranscriptSegment } from '../types.ts';
 import type { AssetEntry } from '../assetkit/types.ts';
 import { postJson, withProgress } from '../utils/api.ts';
+import { BulkBar, SelectBox, useSelection } from '../components/BulkSelect.tsx';
 import { formatRelativeDate, formatTimecode } from '../utils/format.ts';
 
 interface Props {
@@ -49,6 +50,7 @@ function segWords(seg: TranscriptSegment) {
 // ---------------------------------------------------------------- start screen
 function EditorStart({ projects, onOpenEdit, onEditsChanged }: Omit<Props, 'editId'>) {
   const [edits, setEdits] = useState<EditSummary[]>([]);
+  const editSel = useSelection();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -142,11 +144,25 @@ function EditorStart({ projects, onOpenEdit, onEditsChanged }: Omit<Props, 'edit
 
         {edits.length > 0 && (
           <section>
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Your edits</h2>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Your edits</h2>
+              <BulkBar
+                sel={editSel}
+                allIds={edits.map((e) => e.id)}
+                noun="video"
+                note="Their voice-overs are removed too. Rendered MP4s stay in data/exports."
+                onDelete={async (ids) => {
+                  await postJson('/api/edits/bulk-delete', { ids });
+                  setEdits((all) => all.filter((x) => !ids.includes(x.id)));
+                  onEditsChanged();
+                }}
+              />
+            </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {edits.map((e) => (
-                <div key={e.id} className="group flex items-center gap-3 rounded-xl border border-zinc-900 bg-surface p-3 hover:border-zinc-700">
-                  <button type="button" onClick={() => onOpenEdit(e.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer">
+                <div key={e.id} className={`group flex items-center gap-3 rounded-xl border bg-surface p-3 hover:border-zinc-700 ${editSel.has(e.id) ? 'border-accent' : 'border-zinc-900'}`}>
+                  <SelectBox sel={editSel} id={e.id} label={e.name} />
+                  <button type="button" onClick={() => (editSel.selecting ? editSel.toggle(e.id) : onOpenEdit(e.id))} className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-lavender/10 text-lavender">
                       <Clapperboard className="h-4 w-4" />
                     </span>
@@ -157,7 +173,7 @@ function EditorStart({ projects, onOpenEdit, onEditsChanged }: Omit<Props, 'edit
                       </span>
                     </span>
                   </button>
-                  <button
+                  {!editSel.selecting && <button
                     type="button"
                     title="Delete edit"
                     onClick={async () => {
@@ -169,7 +185,7 @@ function EditorStart({ projects, onOpenEdit, onEditsChanged }: Omit<Props, 'edit
                     className="p-1.5 text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-400 cursor-pointer"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>

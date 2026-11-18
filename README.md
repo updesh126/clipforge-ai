@@ -128,6 +128,7 @@ If a tool was just installed but the wizard still can't find it, open a **new te
 | **Kokoro voices** (Python) | Natural narration | Optional — system voice otherwise | ~350 MB | Python 3.12 if needed, then `pip install kokoro-onnx soundfile` |
 | **ComfyUI + SDXL** | AI-painted scenes and style thumbnails | Optional — needs NVIDIA 8 GB+ | ~9 GB | 7-Zip if needed, then `npm run comfy:setup` |
 | **Motion model** (in ComfyUI) — you pick | **Motion**: painted scenes that move | Optional — needs ComfyUI | **Fast**: LTX-Video 2B, 11.5 GB · **Best**: Wan 2.2 5B, 18.2 GB · Both: 29.7 GB | The wizard asks which; or `npm run comfy:setup -- -Motion ltx` / `wan` / `both` |
+| **Satellite maps** | Maps on a real satellite photo of Earth | Optional | 22 MB (32.5 MB download) | The wizard asks; or `npm run maps:setup` |
 
 ### Optional extras by hand
 
@@ -254,6 +255,7 @@ Open **http://localhost:3000**. The top bar shows how many engines are ready; cl
 | `npm run dev` | Start ClipForge (and ComfyUI) |
 | `npm run comfy` | Start ComfyUI only |
 | `npm run comfy:setup` | Install ComfyUI + SDXL + Fast Motion model (Windows). Options: `-- -Motion ltx\|wan\|both\|none`, `-- -SkipModel` (no SDXL), `-- -Dir D:\ComfyUI` |
+| `npm run maps:setup` | Download NASA Blue Marble satellite imagery for maps (asks first; `-- --yes` to skip the question) |
 | `npm run thumbs:ai` | Repaint the art-style picker thumbnails with Stable Diffusion (`-- warli anime` for some) |
 | `npm run artstyles` | Rebuild `src/artstyles/*.json` from the style presets |
 | `npm run prompts` | Write image-generation prompts for every style and asset to `assets/prompts/` |
@@ -278,6 +280,10 @@ Set `CLIPFORGE_DATA_DIR` to keep `data/` on a bigger drive.
 1. On the new laptop: `git clone`, then double-click `setup.cmd` (or `npm install` and `npm run setup`). It installs what's missing.
 2. To skip big downloads, copy the ComfyUI folder across first: put it next to the project as `..\ComfyUI`, or in `%LOCALAPPDATA%\ClipForge\ComfyUI`, or set `SD_COMFY_DIR`. Setup finds it and only downloads missing models.
 3. To bring your projects too, copy `data/` and `.env`.
+
+### AI models (download in the app)
+
+Open the **engines** button in the top bar → **Manage AI models**. It lists the Ollama models on this computer (online "cloud" models are flagged, because their prompts leave this computer), suggests good ones with their sizes (Qwen 3.5 4B, Spark-X2.5 4B in 4-bit or official 16-bit, Qwen 2.5 3B), downloads any model from ollama.com by name with live progress and a Stop button (a stopped download carries on where it stopped), and removes models you no longer need. New models show up in the Script Writer's AI model list straight away.
 
 ### Settings (`.env`)
 
@@ -372,7 +378,7 @@ The director skill drives the running app through `node .claude/skills/clipforge
    - **Motion & voice** (right panel): switch on *Hook title* and/or *Voice intro*, and pick a voice.
 4. **Export MP4** (or **Export all**) → watermark-free MP4 + SRT, saved in `data/exports/`. Motion exports take a little longer because HyperFrames renders each frame.
 
-For script → video, you can direct any scene with **[tags]** such as `[bigStat]`, `[rainFx]`, `[pushIn]` or `[transition: irisWipe]` — they are never spoken. Pin down what the AI paints with `[place: old market street in Mumbai]` (carries on to later scenes), `[scene: a seller holding up a QR code]` and `[time: night]`; documentaries also get a real world map when a line names a country or a big city. Full list: [docs/site/script-tags.md](docs/site/script-tags.md) (regenerate with `npm run tags-doc`).
+For script → video, you can direct any scene with **[tags]** such as `[bigStat]`, `[rainFx]`, `[pushIn]` or `[transition: irisWipe]` — they are never spoken. Press **Plan scenes (preview)** to see every line as a task — what we see, where, camera, graphics, Motion — edit it and lock it in before making the video (the Script Writer does this automatically). Pin down what the AI paints with `[place: old market street in Mumbai]` (carries on to later scenes), `[scene: a seller holding up a QR code]` and `[time: night]`; documentaries also get a real world map when a line names a country or a big city — on a real satellite photo of Earth once `npm run maps:setup` has downloaded the imagery. Full list: [docs/site/script-tags.md](docs/site/script-tags.md) (regenerate with `npm run tags-doc`).
 
 To write a script from a YouTube video, open **Writer**, paste the link, pick the video type, length and language, and press **Write script**. Edit the result, then download it or press **Make this video**.
 

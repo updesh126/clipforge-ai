@@ -51,7 +51,7 @@ export const DOC_GROUPS: DocGroup[] = [
       page('clipping', 'Clip long videos', 'docs/site/clipping.md', clipping),
       page('script-writer', 'Script Writer (from YouTube)', 'docs/site/script-writer.md', scriptWriter),
       page('script-to-video', 'Script → video', 'docs/site/script-to-video.md', scriptToVideo),
-      page('script-guide', 'Writing a story script', 'docs/STORY_SCRIPT_GUIDE.md', scriptGuide),
+      page('script-guide', 'Writing a script (all video types)', 'docs/STORY_SCRIPT_GUIDE.md', scriptGuide),
       page('script-tags', 'Script tags (all effects)', 'docs/site/script-tags.md', scriptTags),
       page('art-styles', 'Art styles', 'docs/site/art-styles.md', artStyles),
       page('stable-diffusion', 'Stable Diffusion setup', 'docs/site/stable-diffusion.md', stableDiffusion),

@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "black-dragonfish",
+    "name": "Black Dragonfish",
+    "description": "Deep sea predator",
+    "seed": 3622908461,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "round",
+    "height": 1.0554673218773678,
+    "skin": "#2C3E50",
+    "face": {
+      "shape": "round",
+      "eyes": "almond",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#2C1810"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "jacket",
+      "topColor": "#2C3E50",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#2C3E50",
+      "shoes": "shoes",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [],
+    "accessoryColor": "#E4572E",
+    "holding": "none"
+  },
+  "aliases": [
+    "black dragonfish"
+  ],
+  "createdAt": "2026-11-18T11:33:22.088Z",
+  "updatedAt": "2026-11-18T11:33:22.088Z"
+}

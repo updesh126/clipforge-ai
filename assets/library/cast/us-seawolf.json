@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "us-seawolf",
+    "name": "US Seawolf",
+    "description": "Nuclear submarine",
+    "seed": 1588101622,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "slim",
+    "height": 1.047610529330559,
+    "skin": "#7F8C8D",
+    "face": {
+      "shape": "long",
+      "eyes": "round",
+      "eyeColor": "#4E3524",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#2C1810"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "shirt",
+      "topColor": "#95A5A6",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#95A5A6",
+      "shoes": "shoes",
+      "shoeColor": "#7A4E2D"
+    },
+    "accessories": [],
+    "accessoryColor": "#F4D35E",
+    "holding": "none"
+  },
+  "aliases": [
+    "us seawolf"
+  ],
+  "createdAt": "2026-11-18T11:33:22.084Z",
+  "updatedAt": "2026-11-18T11:33:22.084Z"
+}

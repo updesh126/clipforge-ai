@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "emperor-penguin",
+    "name": "Emperor Penguin",
+    "description": "Antarctic bird",
+    "seed": 2048375259,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "broad",
+    "height": 0.9930294865649194,
+    "skin": "#FFFFFF",
+    "face": {
+      "shape": "heart",
+      "eyes": "almond",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "curly",
+      "color": "#2C1810"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#F5D0C9",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#2C3E50",
+      "shoes": "sandals",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [],
+    "accessoryColor": "#E4572E",
+    "holding": "none"
+  },
+  "aliases": [
+    "emperor penguin"
+  ],
+  "createdAt": "2026-11-18T11:33:22.084Z",
+  "updatedAt": "2026-11-18T11:33:22.084Z"
+}

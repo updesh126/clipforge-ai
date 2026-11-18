@@ -3,6 +3,9 @@ import { AlertCircle, Check, Copy, Download, FileText, Loader2, PenLine, Save, W
 import type { JobProgress } from '../types.ts';
 import { VIDEO_TYPES, VIDEO_TYPE_IDS, type VideoType } from '../videotypes.ts';
 import { newJobId, postJson } from '../utils/api.ts';
+import { BulkBar, SelectBox, useSelection } from '../components/BulkSelect.tsx';
+import { StoryboardView, type Storyboard } from './StoryboardView.tsx';
+import { ExternalAiPanel } from './ExternalAiPanel.tsx';
 
 /** A script written from a YouTube video (server/scriptWriter.ts). */
 interface WrittenScript {
@@ -18,6 +21,7 @@ interface WrittenScript {
   script: string;
   facts: string[];
   files: { md: string; txt: string };
+  board?: Storyboard;
 }
 interface ModelInfo {
   name: string;
@@ -64,6 +68,7 @@ export function WriterView({ onOpenScript }: { onOpenScript: () => void }) {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [defaultModel, setDefaultModel] = useState('');
   const [history, setHistory] = useState<WrittenScript[]>([]);
+  const scriptSel = useSelection();
   const [current, setCurrent] = useState<WrittenScript | null>(null);
   const [edit, setEdit] = useState<{ title: string; description: string; tags: string; script: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -217,6 +222,15 @@ export function WriterView({ onOpenScript }: { onOpenScript: () => void }) {
     onOpenScript();
   };
 
+  /** A script written elsewhere (another AI) → Script → video, with this page's video type. */
+  const externalToVideo = (script: string) => {
+    const prev = load<Record<string, unknown>>(SCRIPT_DRAFT_KEY) ?? {};
+    const vt = VIDEO_TYPES[videoType];
+    const title = script.match(/\[title:\s*([^\]]+)\]/i)?.[1]?.trim() ?? '';
+    save(SCRIPT_DRAFT_KEY, { ...prev, script, title, videoType, mode: 'story', style: vt.styles[0], captions: vt.captions });
+    onOpenScript();
+  };
+
   const spokenWords = edit ? edit.script.replace(TAG_RE, ' ').trim().split(/\s+/).filter(Boolean).length : 0;
   const tagCount = edit ? (edit.script.match(TAG_RE) ?? []).length : 0;
   const chosen = model || defaultModel;
@@ -293,6 +307,8 @@ export function WriterView({ onOpenScript }: { onOpenScript: () => void }) {
           )}
           {notice && !busy && <p className="mt-3 text-xs text-zinc-400">{notice}</p>}
 
+          {!busy && <ExternalAiPanel videoType={videoType} minutes={minutes} language={language} onMakeVideo={externalToVideo} />}
+
           {current && edit && (
             <div className="mt-8 space-y-5">
               <div className="flex flex-wrap items-center gap-2">
@@ -368,6 +384,16 @@ export function WriterView({ onOpenScript }: { onOpenScript: () => void }) {
                 </p>
               </section>
 
+              {current.board && (
+                <section>
+                  <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">Scene plan — every line as a task</h2>
+                  <p className="mb-3 text-[11px] text-zinc-500">
+                    What each line will show and do in the video. Change a picture, place or time and press <span className="text-zinc-300">Update script</span> to write it in as [tags], then Save edits.
+                  </p>
+                  <StoryboardView board={current.board} lockLabel="Update script" onLock={(locked) => setEdit({ ...edit, script: locked })} />
+                </section>
+              )}
+
               <details className="rounded-lg border border-zinc-900 p-3">
                 <summary className="cursor-pointer text-xs text-zinc-400">Facts kept from the source ({current.facts.length})</summary>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-zinc-400">
@@ -442,17 +468,36 @@ export function WriterView({ onOpenScript }: { onOpenScript: () => void }) {
           </section>
 
           <section>
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Saved scripts</h2>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Saved scripts</h2>
+              <BulkBar
+                sel={scriptSel}
+                allIds={history.map((s) => s.id)}
+                noun="script"
+                note="Their .md, .txt and .json files in data/scripts are removed."
+                onDelete={async (ids) => {
+                  await postJson('/api/writer/bulk-delete', { ids });
+                  if (current && ids.includes(current.id)) {
+                    setCurrent(null);
+                    setEdit(null);
+                  }
+                  await refresh();
+                }}
+              />
+            </div>
             {history.length === 0 ? (
               <p className="text-xs text-zinc-600">Nothing yet. Scripts are saved in data/scripts.</p>
             ) : (
               <ul className="space-y-1">
                 {history.map((s) => (
-                  <li key={s.id}>
+                  <li key={s.id} className="flex items-start gap-1.5">
+                    <span className="pt-2">
+                      <SelectBox sel={scriptSel} id={s.id} label={s.title} />
+                    </span>
                     <button
                       type="button"
-                      onClick={() => open(s)}
-                      className={`flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left cursor-pointer ${current?.id === s.id ? 'bg-zinc-900' : 'hover:bg-zinc-950'}`}
+                      onClick={() => (scriptSel.selecting ? scriptSel.toggle(s.id) : open(s))}
+                      className={`flex min-w-0 flex-1 items-start gap-2 rounded-lg px-2 py-1.5 text-left cursor-pointer ${scriptSel.has(s.id) ? 'bg-accent/10' : current?.id === s.id ? 'bg-zinc-900' : 'hover:bg-zinc-950'}`}
                     >
                       {current?.id === s.id ? <PenLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" /> : <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-600" />}
                       <span className="min-w-0">

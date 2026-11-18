@@ -1,12 +1,14 @@
 import { Trash2, FolderOpen, Download, Film } from 'lucide-react';
 import type { ClipProject } from '../types.ts';
 import { formatBytes, formatRelativeDate, formatTimecode } from '../utils/format.ts';
+import { BulkBar, SelectBox, useSelection } from './BulkSelect.tsx';
 
 interface LibraryViewProps {
   projects: ClipProject[];
   activeProjectId: string | null;
   onOpenProject: (project: ClipProject) => void;
   onDeleteProject: (projectId: string) => Promise<void>;
+  onDeleteProjects: (projectIds: string[]) => Promise<void>;
   onNewVideo: () => void;
 }
 
@@ -15,8 +17,10 @@ export function LibraryView({
   activeProjectId,
   onOpenProject,
   onDeleteProject,
+  onDeleteProjects,
   onNewVideo,
 }: LibraryViewProps) {
+  const sel = useSelection();
   if (projects.length === 0) {
     return (
       <div className="flex-1 bg-black flex items-center justify-center px-6">
@@ -54,13 +58,18 @@ export function LibraryView({
               Stored on disk in data/uploads and data/exports · {projects.length} {projects.length === 1 ? 'project' : 'projects'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onNewVideo}
-            className="rounded-lg border border-zinc-800 bg-[#0C0C0E] px-3.5 py-2 text-xs font-medium text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900 transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            Import Another Video
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <BulkBar sel={sel} allIds={projects.map((p) => p.id)} noun="project" note="Each project's imported video copy, clips and exports are removed from disk." onDelete={onDeleteProjects} />
+            {!sel.selecting && (
+              <button
+                type="button"
+                onClick={onNewVideo}
+                className="rounded-lg border border-zinc-800 bg-[#0C0C0E] px-3.5 py-2 text-xs font-medium text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+              >
+                Import Another Video
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="mt-6 divide-y divide-zinc-900 border border-zinc-900 rounded-xl bg-[#09090B]">
@@ -77,8 +86,10 @@ export function LibraryView({
             return (
               <div
                 key={project.id}
-                className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#0F0F12] transition-colors"
+                onClick={sel.selecting ? () => sel.toggle(project.id) : undefined}
+                className={`p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#0F0F12] transition-colors ${sel.selecting ? 'cursor-pointer' : ''} ${sel.has(project.id) ? 'bg-accent/5' : ''}`}
               >
+                <SelectBox sel={sel} id={project.id} label={project.name} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2.5">
                     <h3 className="text-sm font-semibold text-white truncate">
@@ -110,7 +121,7 @@ export function LibraryView({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                {!sel.selecting && <div className="flex items-center gap-2 shrink-0">
                   {latestExport && (
                     <a
                       href={`/api/download/${latestExport.fileName}`}
@@ -136,7 +147,7 @@ export function LibraryView({
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
-                </div>
+                </div>}
               </div>
             );
           })}

@@ -14,6 +14,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DATA_DIR } from './store.ts';
+import { noTextPrompt, withNoTextNegative } from './noText.ts';
 import { buildNegativePrompt, buildSdPrompt } from '../src/artstyles/prompt.ts';
 import type { CharacterSpec } from '../src/vector/character.ts';
 
@@ -209,7 +210,8 @@ export async function generateImage(opts: GenerateOptions): Promise<{ url: strin
   const st = await sdStatus(true);
   if (!st.running) throw new Error(`Stable Diffusion (ComfyUI) is not running at ${SD_URL}. Start ComfyUI, then try again.`);
   if (!st.checkpoint) throw new Error('ComfyUI has no checkpoint. Put an SDXL .safetensors file in ComfyUI/models/checkpoints and restart it.');
-  const o = { prompt: opts.prompt, negative: opts.negative ?? '', width: opts.width, height: opts.height, seed: opts.seed ?? 1, steps: opts.steps ?? STEPS, cfg: opts.cfg ?? CFG };
+  // no writing in paintings: text triggers out of the prompt, a strong weighted no-text negative in
+  const o = { prompt: noTextPrompt(opts.prompt), negative: withNoTextNegative(opts.negative ?? ''), width: opts.width, height: opts.height, seed: opts.seed ?? 1, steps: opts.steps ?? STEPS, cfg: opts.cfg ?? CFG };
   const key = crypto.createHash('sha1').update(JSON.stringify({ ...o, ckpt: st.checkpoint, SAMPLER, SCHEDULER })).digest('hex').slice(0, 20);
   fs.mkdirSync(GENERATED_DIR, { recursive: true });
   const file = path.join(GENERATED_DIR, `${key}.png`);
@@ -349,7 +351,9 @@ export async function animateImage(opts: AnimateOptions): Promise<{ url: string;
   if (fs.existsSync(file)) return { url, file, cached: true, seconds, engine };
   const input = await uploadImage(opts.image);
   // shaky camera and flicker are what make clips look unstable — always steer away from them
-  const negative = `${opts.negative || 'worst quality, inconsistent motion, blurry, distorted, morphing faces, extra limbs, text, watermark'}, camera shake, shaky handheld camera, jittery motion, flickering, strobing, warping background`;
+  const negative = withNoTextNegative(`${opts.negative || 'worst quality, inconsistent motion, blurry, distorted, morphing faces, extra limbs'}, camera shake, shaky handheld camera, jittery motion, flickering, strobing, warping background`);
+  // moving clips must not grow writing either (signs, screens, captions appearing mid-clip)
+  const motionText = noTextPrompt(opts.prompt);
   // saved near-lossless; the deflicker pass below makes the delivery file
   const save = (images: [string, number]) => ({ class_type: 'SaveWEBM', inputs: { images, filename_prefix: 'clipforge_video', codec: 'vp9', fps: genFps, crf: 12 } });
 
@@ -360,7 +364,7 @@ export async function animateImage(opts: AnimateOptions): Promise<{ url: string;
     wf = {
       '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: m.checkpoint } },
       '2': { class_type: 'CLIPLoader', inputs: { clip_name: m.textEncoder, type: 'ltxv' } },
-      '3': { class_type: 'CLIPTextEncode', inputs: { text: opts.prompt, clip: ['2', 0] } },
+      '3': { class_type: 'CLIPTextEncode', inputs: { text: motionText, clip: ['2', 0] } },
       '4': { class_type: 'CLIPTextEncode', inputs: { text: negative, clip: ['2', 0] } },
       '5': { class_type: 'LoadImage', inputs: { image: input } },
       '6': { class_type: 'LTXVPreprocess', inputs: { image: ['5', 0], img_compression: 30 } },
@@ -379,7 +383,7 @@ export async function animateImage(opts: AnimateOptions): Promise<{ url: string;
       '1': { class_type: 'UNETLoader', inputs: { unet_name: m.model, weight_dtype: 'default' } },
       '2': { class_type: 'CLIPLoader', inputs: { clip_name: m.textEncoder, type: 'wan' } },
       '3': { class_type: 'VAELoader', inputs: { vae_name: m.vae } },
-      '4': { class_type: 'CLIPTextEncode', inputs: { text: opts.prompt, clip: ['2', 0] } },
+      '4': { class_type: 'CLIPTextEncode', inputs: { text: motionText, clip: ['2', 0] } },
       '5': { class_type: 'CLIPTextEncode', inputs: { text: negative, clip: ['2', 0] } },
       '6': { class_type: 'LoadImage', inputs: { image: input } },
       '7': { class_type: 'Wan22ImageToVideoLatent', inputs: { vae: ['3', 0], width, height, length: frames, batch_size: 1, start_image: ['6', 0] } },
@@ -519,7 +523,7 @@ export function stylisedScene(s: SceneBrief, style: string, cast: CharacterSpec[
   const inScene = cast.filter((c) => s.actors.some((a) => a.toLowerCase() === c.name.toLowerCase()));
   const timed = Boolean(TIME_LIGHT[s.time ?? '']);
   return {
-    prompt: buildSdPrompt(scenePrompt(s, cast), style, inScene.map((c) => describeCharacter(c, { named: false })), { lighting: timed ? '' : undefined }),
+    prompt: noTextPrompt(buildSdPrompt(scenePrompt(s, cast), style, inScene.map((c) => describeCharacter(c, { named: false })), { lighting: timed ? '' : undefined })),
     negative: [
       buildNegativePrompt(style),
       'text, letters, watermark, signature, logo, extra limbs, deformed hands, duplicate characters, blurry',

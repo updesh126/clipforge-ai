@@ -25,8 +25,25 @@ Open it from **Writer** in the top bar.
 | Write | Rewrites the facts as a new script with a hook, a build-up and a strong ending, using different wording and structure from the original. |
 | Storyboard | A second AI pass gives every paragraph a real setting and one concrete picture, written as `[place: …]` (only when the place changes) and `[scene: …]`, so the AI paintings match the words. |
 | Tag | ClipForge adds the other [tags] itself with fixed rules, so they are always valid. See the list below. |
+| Scene plan | Runs the Script → video planner on the new script and explains **every line as a task**: what we see, where and when, the camera move, the explainer and on-screen graphics, how the scene opens, the mood, and whether it becomes a moving clip. Shown under the script and saved in the files. |
 | Package | Writes a YouTube title (under 70 characters), a description with bullet points, and 12–18 search tags. |
 | Save | Saves `data/scripts/<date>-<id>-<title>.md`, `.txt` and `.json`. |
+
+## Write with another AI (ChatGPT, Claude, Gemini…)
+
+Prefer another AI, or have no YouTube link? Open **Write with another AI** on the Writer page:
+
+1. **Copy the prompt** (or download it as .md). It is built for the video type, length and language picked on the right. It teaches the other AI the format (one paragraph per scene, plain narration), the scene tags `[place:]`, `[scene:]`, `[time:]` and `[title:]`, the effect tags that suit that video type (only tags ClipForge really has), a structure and a short example. Replace its last line with your topic, notes or a transcript.
+2. **Paste the script it writes** into the box and press **Check it**. You see the number of scenes, the length, how many scenes describe their picture, and any problems:
+   - headings or "Scene 1:" labels, which would be read aloud
+   - code blocks and bullet points
+   - stage directions in (round brackets)
+   - tags ClipForge doesn't know, which are skipped
+
+   **Tidy up** removes code blocks, headings, bold and "Scene 1:" labels for you.
+3. **Make this video** opens it on the Script page with the video type, art style and captions set (the title comes from its `[title: …]`). Press **Plan scenes** to preview every line, then **Create video**.
+
+Online AIs send your topic and notes to their servers, so don't paste anything private or confidential.
 
 ## Tags the Writer adds
 
@@ -59,13 +76,14 @@ Each `.md` and `.txt` file has, in this order:
 - Description
 - Tags
 - Script with [tags]
+- Scene plan (each line: what we see, where, camera, on screen, opening, mood, Motion)
 - **every fact kept** from the source
 - the source link and channel
 - the **full original transcript**
 
 You can always check the new script against the original.
 
-Download the files from the Writer page, or open them in the `data/scripts/` folder. **Saved scripts** on the right lists every script you've written.
+Download the files from the Writer page, or open them in the `data/scripts/` folder. **Saved scripts** on the right lists every script you've written. To remove several at once, click **Select**, tick them (or **Select all**) and click **Delete N scripts**.
 
 ## Tips
 

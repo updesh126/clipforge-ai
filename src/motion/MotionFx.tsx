@@ -39,6 +39,7 @@ export const RENDERERS: Record<BaseId, (m: Motion) => ReactElement> = {
   waterfall: data.waterfall,
   worldMap: maps.worldMap,
   globe: maps.globe,
+  aiNote: maps.aiNoteFx,
   scribble: ann.scribble,
   arrow: ann.arrow,
   connector: ann.connector,

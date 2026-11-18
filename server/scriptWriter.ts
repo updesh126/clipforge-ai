@@ -18,6 +18,7 @@ import { SD_URL } from './imagegen.ts';
 import { parseTag, scenesWithDirectives, tokeniseScript } from './directives.ts';
 import { autoSequences } from './autoSequences.ts';
 import { accentTag, autoAccents } from './autoAccents.ts';
+import { storyboard as scenePlan, type Storyboard } from './storyboard.ts';
 import { splitScenes } from './scriptVideo.ts';
 import { VIDEO_TYPES, isVideoType, type VideoType } from '../src/videotypes.ts';
 
@@ -49,6 +50,8 @@ export interface WriterResult {
   script: string;
   facts: string[];
   files: { md: string; txt: string };
+  /** scene-by-scene plan: what every line will show and do in the video (made right after writing) */
+  board?: Storyboard;
 }
 
 // ---------------------------------------------------------------- 1. the video's words
@@ -334,6 +337,7 @@ ${facts.map((f) => `- ${f}`).join('\n')}`,
       model,
       `Write YouTube packaging for this video script, in ${lang}.
 - "title": under 70 characters, makes people click, honest to the content, no clickbait lies
+- Use ONLY numbers, names and claims that appear in the SCRIPT below — never invent a figure (no "1 trillion" if the script does not say it)
 - "description": 2 hooky opening lines, then 3–5 bullet points ("• …") of what viewers will learn, then one line asking them to subscribe — 120–200 words. Do not mention any other channel or website.
 - "tags": 12–18 YouTube search tags (keywords and short phrases people search, no #)
 Reply as JSON: {"title":"…","description":"…","tags":["…"]}
@@ -372,9 +376,16 @@ ${story.join('\n\n')}`,
       facts,
       files: { md: '', txt: '' },
     };
+    lap('title, description & tags');
+    // every line as a task: what we see, where, on screen, camera, Motion — the same planner as Script → video
+    progress('plan', 'Planning every scene: what we see, where, what is on screen', 90);
+    result.board = await scenePlan({ script, videoType: vtype, mode: 'story', illustration: 'ai', style: VIDEO_TYPES[vtype].styles[0], animate: true, motionMode: 'mix', aspect: '16:9' }).catch((err) => {
+      console.warn('[clipforge] writer scene plan failed:', err instanceof Error ? err.message : err);
+      return undefined;
+    });
+    lap('scene plan');
     progress('save', `Saving (${sceneCount} scenes${dropped.length ? `, ${dropped.length} unknown tag(s) removed` : ''})`, 96);
     saveResult(result, text);
-    lap('title, description & tags');
     progress('done', `Script ready in ${Math.round((Date.now() - tRead) / 1000)} s (${timing.join(', ')})`, 100);
     console.log(`[clipforge] writer: ${timing.join(', ')} · ${parts.length} part(s), ${words} words, ${model}`);
     return result;
@@ -410,7 +421,10 @@ ${r.tags.join(', ')}
 
 ${r.script}
 
-## Facts kept from the source (${r.facts.length})
+${r.board ? `## Scene plan (${r.board.scenes.length} scenes, about ${r.board.totalSeconds} s)
+
+${boardMarkdown(r.board)}
+` : ''}## Facts kept from the source (${r.facts.length})
 
 ${r.facts.map((f) => `- ${f}`).join('\n')}
 
@@ -430,7 +444,9 @@ ${r.tags.join(', ')}
 SCRIPT
 ${r.script}
 
-FACTS KEPT (${r.facts.length})
+${r.board ? `SCENE PLAN (${r.board.scenes.length} scenes, about ${r.board.totalSeconds} s)
+${boardText(r.board)}
+` : ''}FACTS KEPT (${r.facts.length})
 ${r.facts.map((f) => `- ${f}`).join('\n')}
 
 SOURCE
@@ -481,6 +497,64 @@ async function makeRoomOnGpu(progress: ProgressFn) {
   } catch {
     // ComfyUI not running — the GPU is already free for Ollama
   }
+}
+
+/** The scene plan as Markdown: each line as a task. */
+function boardMarkdown(b: Storyboard): string {
+  return b.scenes
+    .map((s) =>
+      [
+        `### Scene ${s.i + 1} · ~${s.seconds} s${s.moving === true ? ' · moving clip' : s.moving === false ? ' · still painting' : ''}`,
+        '',
+        `> ${s.text}`,
+        '',
+        `- **We see:** ${s.picture}`,
+        `- **Where / when:** ${s.place || '—'}${s.time ? `, ${s.time}` : ''}`,
+        `- **Camera:** ${s.camera.what || s.camera.label}`,
+        s.explainer ? `- **Explainer:** ${s.explainer.label} — ${s.explainer.what}` : '',
+        s.onScreen.length ? `- **On screen:** ${s.onScreen.map((o) => `${o.label} — ${o.what}`).join('; ')}` : '',
+        s.transition ? `- **Opens with:** ${s.transition.label}` : '',
+        s.atmosphere ? `- **Mood:** ${s.atmosphere.label}` : '',
+        `- **What it does:** ${s.summary}`,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    )
+    .join('\n\n');
+}
+
+/** The scene plan as plain text. */
+function boardText(b: Storyboard): string {
+  return b.scenes
+    .map((s) =>
+      [
+        `Scene ${s.i + 1} (~${s.seconds} s${s.moving === true ? ', moving clip' : s.moving === false ? ', still painting' : ''})`,
+        `  Line: ${s.text}`,
+        `  We see: ${s.picture}`,
+        `  Where / when: ${s.place || '-'}${s.time ? `, ${s.time}` : ''}`,
+        `  Camera: ${s.camera.what || s.camera.label}`,
+        s.explainer ? `  Explainer: ${s.explainer.label} - ${s.explainer.what}` : '',
+        s.onScreen.length ? `  On screen: ${s.onScreen.map((o) => o.label).join(', ')}` : '',
+        s.transition ? `  Opens with: ${s.transition.label}` : '',
+        s.atmosphere ? `  Mood: ${s.atmosphere.label}` : '',
+        `  What it does: ${s.summary}`,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    )
+    .join('\n\n');
+}
+
+/** Delete saved scripts (their .md, .txt and .json). Returns how many were removed. */
+export function deleteScripts(ids: string[]): number {
+  const want = new Set(ids);
+  let n = 0;
+  for (const s of listScripts()) {
+    if (!want.has(s.id)) continue;
+    for (const f of [s.files.md, s.files.txt, s.files.md.replace(/\.md$/, '.json')]) fs.rmSync(path.join(SCRIPTS_DIR, path.basename(f)), { force: true });
+    n++;
+  }
+  return n;
 }
 
 /** Saved scripts, newest first. */

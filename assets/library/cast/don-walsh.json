@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "don-walsh",
+    "name": "Don Walsh",
+    "description": "First human to breach the Hadal Zone in 1960",
+    "seed": 1492062841,
+    "age": "adult",
+    "gender": "male",
+    "build": "average",
+    "height": 0.9407645656634123,
+    "skin": "#f4e1c2",
+    "face": {
+      "shape": "oval",
+      "eyes": "almond",
+      "eyeColor": "#3B2416",
+      "nose": "pointed",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#5d4037"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "uniform",
+      "topColor": "#b71c1c",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#311b92",
+      "shoes": "boots",
+      "shoeColor": "#3B2A1A"
+    },
+    "accessories": [
+      "necklace"
+    ],
+    "accessoryColor": "#9C6644",
+    "holding": "none"
+  },
+  "aliases": [
+    "don walsh"
+  ],
+  "createdAt": "2026-11-18T11:12:20.505Z",
+  "updatedAt": "2026-11-18T11:12:30.549Z"
+}

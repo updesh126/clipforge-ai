@@ -185,6 +185,19 @@ export default function App() {
     }
   };
 
+  const handleDeleteProjects = async (projectIds: string[]) => {
+    const res = await fetch('/api/projects/bulk-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: projectIds }) });
+    if (!res.ok) return;
+    setProjects((prev) => {
+      const remaining = prev.filter((p) => !projectIds.includes(p.id));
+      if (activeProjectId && projectIds.includes(activeProjectId)) {
+        setActiveProjectId(remaining[0]?.id ?? null);
+        if (remaining.length === 0) setShowUploadStage(true);
+      }
+      return remaining;
+    });
+  };
+
   const openInEditor = async (projectId: string, clipId: string) => {
     try {
       const e = await createEdit({ projectId, clipId });
@@ -309,6 +322,7 @@ export default function App() {
             setActiveTab('studio');
           }}
           onDeleteProject={handleDeleteProject}
+          onDeleteProjects={handleDeleteProjects}
           onNewVideo={openUpload}
         />
       )}

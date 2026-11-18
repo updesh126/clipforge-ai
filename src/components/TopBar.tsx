@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Cpu, RefreshCw } from 'lucide-react';
+import { Plus, Cpu, RefreshCw, Download } from 'lucide-react';
+import { ModelManager } from './ModelManager.tsx';
 import type { AppTab, EngineStatus } from '../types.ts';
 
 interface TopBarProps {
@@ -65,6 +66,7 @@ const DOT: Record<Level, string> = { ok: 'bg-accent', warn: 'bg-peach', off: 'bg
 
 export function TopBar({ activeTab, engines, onRefreshEngines, onSelectTab, onNewVideo, onHome }: TopBarProps) {
   const [open, setOpen] = useState(false);
+  const [models, setModels] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const rows = engineRows(engines);
@@ -163,6 +165,16 @@ export function TopBar({ activeTab, engines, onRefreshEngines, onSelectTab, onNe
                   </li>
                 ))}
               </ul>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setModels(true);
+                }}
+                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1.5 text-xs text-zinc-200 hover:border-zinc-600 cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" /> Manage AI models
+              </button>
               <p className="mt-3 border-t border-zinc-900 pt-2 text-[11px] text-zinc-500">Everything runs on this computer. Nothing is uploaded.</p>
             </div>
           )}
@@ -176,6 +188,7 @@ export function TopBar({ activeTab, engines, onRefreshEngines, onSelectTab, onNe
           <span className="hidden sm:inline">New video</span>
         </button>
       </div>
+      {models && <ModelManager onClose={() => setModels(false)} />}
     </header>
   );
 }

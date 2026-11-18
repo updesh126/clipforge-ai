@@ -61,6 +61,7 @@ If a tool was just installed but the wizard still can't find it, open a **new te
 | **Kokoro voices** (Python) | Natural narration | Optional — system voice otherwise | ~350 MB | Python 3.12 if needed, then `pip install kokoro-onnx soundfile` |
 | **ComfyUI + SDXL** | AI-painted scenes and style thumbnails | Optional — needs NVIDIA 8 GB+ | ~9 GB | 7-Zip if needed, then `npm run comfy:setup` |
 | **Motion model** (in ComfyUI) — you pick | **Motion**: painted scenes that move | Optional — needs ComfyUI | **Fast**: LTX-Video 2B, 11.5 GB · **Best**: Wan 2.2 5B, 18.2 GB · Both: 29.7 GB | The wizard asks which; or `npm run comfy:setup -- -Motion ltx` / `wan` / `both` |
+| **Satellite maps** | Maps on a real satellite photo of Earth | Optional | 22 MB (32.5 MB download) | The wizard asks; or `npm run maps:setup` |
 
 ## Optional extras by hand
 
@@ -187,6 +188,7 @@ Open **http://localhost:3000**. The top bar shows how many engines are ready; cl
 | `npm run dev` | Start ClipForge (and ComfyUI) |
 | `npm run comfy` | Start ComfyUI only |
 | `npm run comfy:setup` | Install ComfyUI + SDXL + Fast Motion model (Windows). Options: `-- -Motion ltx\|wan\|both\|none`, `-- -SkipModel` (no SDXL), `-- -Dir D:\ComfyUI` |
+| `npm run maps:setup` | Download NASA Blue Marble satellite imagery for maps (asks first; `-- --yes` to skip the question) |
 | `npm run thumbs:ai` | Repaint the art-style picker thumbnails with Stable Diffusion (`-- warli anime` for some) |
 | `npm run artstyles` | Rebuild `src/artstyles/*.json` from the style presets |
 | `npm run prompts` | Write image-generation prompts for every style and asset to `assets/prompts/` |

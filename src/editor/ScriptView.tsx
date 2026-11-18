@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Wand2, Loader2, AlertCircle, Mic, Sparkles, Check, Loader, X } from 'lucide-react';
+import { Wand2, Loader2, AlertCircle, Mic, Sparkles, Check, Loader, X, Clapperboard } from 'lucide-react';
+import { StoryboardView, type Storyboard } from './StoryboardView.tsx';
 import type { EngineStatus, JobProgress } from '../types.ts';
 import type { EditProject } from './types.ts';
 import { StylePicker } from './StylePicker.tsx';
@@ -221,6 +222,26 @@ export function ScriptView({ engines, onCreated }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // storyboard preview: what every line will show and do, before any voice or painting
+  const [board, setBoard] = useState<Storyboard | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const planScenes = async () => {
+    if (!script.trim() || planning || busy) return;
+    setPlanning(true);
+    setPlanError(null);
+    try {
+      const d = await postJson<{ board: Storyboard }>('/api/script-video/plan', { script, title, aspect, style, voice, language, captions, mode, illustration: mode === 'story' ? illustration : 'vector', animate: mode === 'story' && illustration === 'ai' && animate, motionEngine: engineToUse, motionMode, videoType: videoType ?? undefined });
+      setBoard(d.board);
+      window.setTimeout(() => boardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : 'Could not plan the scenes.');
+    } finally {
+      setPlanning(false);
+    }
+  };
+
   const create = async () => {
     if (!script.trim() || busy) return;
     const jobId = newJobId();
@@ -286,6 +307,21 @@ export function ScriptView({ engines, onCreated }: Props) {
             </button>
           )}
 
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void planScenes()}
+              disabled={!script.trim() || planning || busy}
+              title="See what every line will show and do — picture, place, camera, graphics, Motion — before making the video"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-200 hover:border-accent hover:text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {planning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clapperboard className="h-3.5 w-3.5" />}
+              {planning ? 'Planning every scene…' : board ? 'Plan scenes again' : 'Plan scenes (preview)'}
+            </button>
+            <span className="text-[11px] text-zinc-500">Each line as a task: what we see, where, on screen, camera — in about 20 seconds, nothing painted.</span>
+          </div>
+          {planError && <p className="mt-2 text-xs text-red-400">{planError}</p>}
+
           {error && (
             <p className="mt-4 flex items-center gap-2 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs text-red-200">
               <AlertCircle className="h-4 w-4 shrink-0" /> {error}
@@ -332,6 +368,29 @@ export function ScriptView({ engines, onCreated }: Props) {
                 ))}
               </ol>
             </div>
+          )}
+
+          {board && (
+            <section ref={boardRef} className="mt-8">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Scene plan</h2>
+                <button type="button" onClick={() => setBoard(null)} className="text-[11px] text-zinc-500 hover:text-white cursor-pointer">
+                  Hide
+                </button>
+              </div>
+              <p className="mb-3 text-[11px] text-zinc-500">
+                Change any picture, place or time, then <span className="text-zinc-300">Use this plan</span> — it is written into your script as [tags], so Create video follows it exactly.
+              </p>
+              <StoryboardView
+                board={board}
+                onLock={(locked) => {
+                  setScript(locked);
+                  setBoard(null);
+                  setNotice('Plan written into the script as [tags]. Press Create video — every scene will follow it.');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </section>
           )}
         </div>
 

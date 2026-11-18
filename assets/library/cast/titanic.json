@@ -1,0 +1,43 @@
+{
+  "spec": {
+    "id": "titanic",
+    "name": "Titanic",
+    "description": "Famous shipwreck",
+    "seed": 1620760713,
+    "age": "adult",
+    "gender": "neutral",
+    "build": "average",
+    "height": 0.9891298599727453,
+    "skin": "#7F8C8D",
+    "face": {
+      "shape": "long",
+      "eyes": "round",
+      "eyeColor": "#3E5F3A",
+      "nose": "pointed",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#2C1810"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "kurta",
+      "topColor": "#95A5A6",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#95A5A6",
+      "shoes": "shoes",
+      "shoeColor": "#A23B1E"
+    },
+    "accessories": [],
+    "accessoryColor": "#E4572E",
+    "holding": "none"
+  },
+  "aliases": [
+    "titanic"
+  ],
+  "createdAt": "2026-11-18T11:33:22.081Z",
+  "updatedAt": "2026-11-18T11:33:22.081Z"
+}

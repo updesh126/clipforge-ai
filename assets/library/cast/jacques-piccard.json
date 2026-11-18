@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "id": "jacques-piccard",
+    "name": "Jacques Piccard",
+    "description": "First human to breach the Hadal Zone in 1960",
+    "seed": 3632277393,
+    "age": "adult",
+    "gender": "male",
+    "build": "average",
+    "height": 0.9769101066375152,
+    "skin": "#f4e1c2",
+    "face": {
+      "shape": "long",
+      "eyes": "narrow",
+      "eyeColor": "#1C1C1C",
+      "nose": "button",
+      "freckles": false
+    },
+    "hair": {
+      "style": "short",
+      "color": "#5d4037"
+    },
+    "beard": "none",
+    "outfit": {
+      "top": "uniform",
+      "topColor": "#b71c1c",
+      "pattern": "none",
+      "patternColor": "#FFFFFF",
+      "bottom": "trousers",
+      "bottomColor": "#311b92",
+      "shoes": "boots",
+      "shoeColor": "#33415C"
+    },
+    "accessories": [
+      "necklace"
+    ],
+    "accessoryColor": "#3D405B",
+    "holding": "none"
+  },
+  "aliases": [
+    "jacques piccard"
+  ],
+  "createdAt": "2026-11-18T11:12:20.506Z",
+  "updatedAt": "2026-11-18T11:12:30.549Z"
+}

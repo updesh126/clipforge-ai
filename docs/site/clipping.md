@@ -12,6 +12,8 @@
    - **Motion & voice**: switch on a hook title and a voice intro.
 4. Click **Export MP4** (or **Export all**). You get a watermark-free MP4 and an SRT file in `data/exports/`.
 
+To delete several projects at once, open **Library**, click **Select**, tick them (or **Select all**) and click **Delete N projects**.
+
 ## Open a clip in the editor
 
 **Open in editor** builds a full edit from a clip: footage, karaoke captions, hook banner, zoom punches, progress bar and end card. From there you can change everything.

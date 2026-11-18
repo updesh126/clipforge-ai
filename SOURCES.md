@@ -38,6 +38,7 @@ Icons are each site's favicon (shown via Google's favicon service when viewed on
 | <img src="https://www.google.com/s2/favicons?domain=expressjs.com&sz=32" width="16"> | 📦 [Express](https://expressjs.com) | Local API server | MIT |
 | <img src="https://www.google.com/s2/favicons?domain=lucide.dev&sz=32" width="16"> | 📦 [Lucide](https://lucide.dev) | UI icons | ISC |
 | <img src="https://www.google.com/s2/favicons?domain=fonts.google.com&sz=32" width="16"> | 📦 [Google Fonts](https://fonts.google.com): DM Sans, Plus Jakarta Sans, JetBrains Mono | App typography | SIL Open Font License |
+| <img src="https://www.google.com/s2/favicons?domain=nasa.gov&sz=32" width="16"> | 🌍 [NASA Blue Marble Next Generation](https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/) | Satellite photo under maps (`npm run maps:setup`, saved in `data/maps/`) | Public domain (NASA Earth Observatory) |
 
 ## Asset sources (you download; ClipForge imports)
 

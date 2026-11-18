@@ -53,7 +53,7 @@ export const SEQUENCES: Record<string, SeqDef> = {
     fields: [t('country', 'Country'), t('city', 'Pin city'), t('note', 'Info card')],
     steps: [
       { fx: 'mapZoomIn', at: 0, dur: 8, props: { country: '{{country}}', note: '{{note}}', labels: false, mapTheme: '{{mapTheme}}' } },
-      { fx: 'leaderLine', at: 3.4, dur: 4.6, props: { x: 47, y: 62, lx: 60, ly: 30, text: '{{city}}' } },
+      { fx: 'leaderLine', at: 3.4, dur: 4.6, props: { x: 50, y: 50, lx: 64, ly: 30, text: '{{city}}' } },
     ],
   },
   evidence: {

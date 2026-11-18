@@ -99,6 +99,19 @@ Put these in `.env` (see [Settings](#/docs/settings)):
 | `SD_COMFY_ARGS` | — | Extra ComfyUI arguments, e.g. `--lowvram` |
 | `SD_PREVIEW` | `taesd` | Live preview while painting: `taesd`, `latent2rgb`, `auto` or `none` |
 
+## No text in pictures or moving clips
+
+AI paintings and Motion clips never get writing. Words for the screen are added by ClipForge as graphics: titles, stats, captions, the newspaper zoom.
+
+Before anything is sent to ComfyUI:
+- **Quoted words, numbers, logos, headlines and brand-like capitals are removed** from the prompt. "249 banks" becomes "many banks"; "UPI logo" becomes "a simple abstract emblem".
+- **Screens "showing" something** get soft abstract glowing shapes instead.
+- **Signs and labels are made blank.**
+- **Newspapers, magazines and documents become plain folded paper.**
+- **A strong, weighted no-text negative** is added to every painting and every LTX/Wan clip.
+
+QR codes, TVs and LED lights stay, because they're patterns or objects rather than text.
+
 ## How prompts are built
 
 1. The story plan gives each scene a place, time of day, characters and mood.

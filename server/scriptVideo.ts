@@ -13,7 +13,7 @@ import { FRAME_SIZES } from '../src/editor/types.ts';
 import { ART_STYLE_OPTIONS, TEMPLATES } from '../src/editor/catalog.ts';
 import { audioDuration, speak } from './tts.ts';
 import { transcribeLocal } from './ai.ts';
-import { UPLOADS_DIR } from './store.ts';
+import { DATA_DIR, UPLOADS_DIR } from './store.ts';
 import { blankEdit, newId, saveEdit } from './edits.ts';
 import type { ProgressFn } from './progress.ts';
 import { planStorySpecs } from './vector.ts';
@@ -59,6 +59,9 @@ const STYLE_ACCENT: Record<string, string> = {
 };
 
 /** Map look per art style, so real-world maps sit inside the video's look. */
+/** Real satellite photo under maps when the imagery is installed (npm run maps:setup); else the style's drawn look. */
+const satelliteReady = () => fs.existsSync(path.join(DATA_DIR, 'maps', 'bluemarble', 'world.jpg')) && fs.existsSync(path.join(DATA_DIR, 'maps', 'bluemarble', 'tiles', 'r7c15.jpg'));
+const mapThemeFor = (style: string) => (satelliteReady() ? 'satellite' : MAP_THEME[style] ?? 'dark');
 const MAP_THEME: Record<string, string> = { collage: 'collage', handDrawn: 'paper', inkWash: 'paper', miniature: 'paper', ukiyoe: 'paper', storybook: 'paper', madhubani: 'paper', paperCutout: 'light', flatVector: 'light' };
 
 export interface ScriptVideoOptions {
@@ -316,7 +319,7 @@ function sameScript(title: string | undefined, text: string): string {
   return deva(title) === deva(text) ? title : '';
 }
 
-function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, style: string, index: number, videoTitle = '', vtype?: VideoType): EditItem[] {
+export function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, style: string, index: number, videoTitle = '', vtype?: VideoType): EditItem[] {
   const accent = STYLE_ACCENT[style] ?? '#B5E2DD';
   const start = round(from + 0.5);
   const len = round(Math.max(1.2, Math.min(dur - 0.6, 4.5)));
@@ -334,7 +337,7 @@ function storyGraphic(plan: StoryPlan, text: string, from: number, dur: number, 
   if (plan.motion && SEQUENCES[plan.motion.id]) {
     const seq = SEQUENCES[plan.motion.id];
     const mlen = round(Math.max(2, Math.min(seq.duration, dur - 0.4)));
-    const mapLook: Record<string, string> = plan.motion.id === 'mapInvestigation' ? { mapTheme: MAP_THEME[style] ?? 'dark' } : {};
+    const mapLook: Record<string, string> = plan.motion.id === 'mapInvestigation' ? { mapTheme: mapThemeFor(style) } : {};
     return [{ id: newId('mg'), kind: 'text', name: seq.label, track: 5, from: round(from + 0.3), duration: mlen, template: 'motion', props: { ...seq.params, ...mapLook, ...plan.motion.params, fx: plan.motion.id } }];
   }
   switch (plan.graphic) {
@@ -387,7 +390,7 @@ const ATMOSPHERE_CUES: Array<[RegExp, string]> = [
 ];
 
 /** One see-through atmosphere overlay per painted scene: from the narration if it asks for one, else the style's. */
-function sceneAtmosphere(plan: StoryPlan, text: string, style: string, from: number, dur: number, index: number, vtype?: VideoType): EditItem[] {
+export function sceneAtmosphere(plan: StoryPlan, text: string, style: string, from: number, dur: number, index: number, vtype?: VideoType): EditItem[] {
   const cue = ATMOSPHERE_CUES.find(([re]) => re.test(text))?.[1] ?? (plan.time === 'night' ? 'twinklingStars' : plan.time === 'dawn' || plan.time === 'sunset' ? 'lightRays' : undefined);
   // the video type's mood first (confetti for fun, film grain for documentary…), then the art style's own
   const own = [...(vtype ? VIDEO_TYPES[vtype].atmosphere : []), ...(styleMotion(style)?.atmosphere ?? [])].filter((id) => SEE_THROUGH.has(id));
@@ -397,7 +400,7 @@ function sceneAtmosphere(plan: StoryPlan, text: string, style: string, from: num
 }
 
 /** Scene-to-scene hand-off in the style's own manner (paper tear for paper cutout, grid wipe for stained glass…). */
-function styleTransition(style: string, cut: number, index: number): EditItem {
+export function styleTransition(style: string, cut: number, index: number): EditItem {
   const list = styleMotion(style)?.transitions ?? [];
   // fade in / out alone would be a cut to black — use a dip through black instead
   const pick = (list.length ? list[(index - 1) % list.length] : 'whipPan').replace(/^fade(In|Out)$/, 'dipToColour');
@@ -463,17 +466,34 @@ function applyStoryDirectives(s: StoryPlan, d: Directive[], text: string): Story
   return out;
 }
 
-/** [place: …] and [time: …] carry on to the following scenes until the script changes them, like a film slugline. */
+/**
+ * [place: …] and [time: …] carry on to the following scenes until the script changes them, like a film slugline —
+ * but a carried place stops where the planner clearly moved somewhere else (a bank office, Paris…), so a later
+ * line is never painted "in a Mumbai market" when it is about a server room.
+ */
 function carryPlaceAndTime(story: StoryPlan[], dirs: Directive[][]): StoryPlan[] {
   let place: string | null = null;
   let time: StoryPlan['time'] | null = null;
+  const keyWords = (s: string) => new Set(s.toLowerCase().match(/[a-zऀ-ॿ]{4,}/g) ?? []);
+  const GENERIC = /^(village|forest|countryside|meadow|river valley|himalaya|street|city|town|room|outdoors|indoors)?$/i;
   return story.map((s, i) => {
     const d = dirs[i] ?? [];
     const p = d.find((x) => x.kind === 'place');
     const t = d.find((x) => x.kind === 'time');
     if (p) place = p.id;
     if (t) time = t.id as StoryPlan['time'];
-    return { ...s, ...(place && !p ? { place, placeFixed: true } : {}), ...(time && !t ? { time } : {}) };
+    let carry = Boolean(place && !p);
+    if (carry && !s.placeFixed) {
+      // the planner's own setting for this line: keep the tagged place only if it is generic or overlaps
+      const own = keyWords(s.place ?? '');
+      const tagged = keyWords(place!);
+      const overlaps = [...own].some((w) => tagged.has(w));
+      if (!GENERIC.test((s.place ?? '').trim()) && !overlaps) {
+        carry = false;
+        place = null; // the story has moved on; the next [place: …] starts a new stretch
+      }
+    }
+    return { ...s, ...(carry && place ? { place, placeFixed: true } : {}), ...(time && !t ? { time } : {}) };
   });
 }
 
@@ -488,7 +508,7 @@ function directedOverlay(d: Directive, text: string, from: number, dur: number, 
 }
 
 /** A transition from a tag, centred on the cut into this scene. */
-function directedTransition(d: Directive, cut: number, style: string): EditItem[] {
+export function directedTransition(d: Directive, cut: number, style: string): EditItem[] {
   if (d.id in EFFECTS) {
     const e = EFFECTS[d.id as EffectId];
     const from = d.id === 'fadeIn' ? cut : Math.max(0, cut - e.duration / 2);
@@ -500,7 +520,7 @@ function directedTransition(d: Directive, cut: number, style: string): EditItem[
 }
 
 /** Motion graphics and extra camera effects from tags (sequences and planned cameras go through the scene plan). */
-function directedExtras(d: Directive[], text: string, from: number, dur: number, style: string): EditItem[] {
+export function directedExtras(d: Directive[], text: string, from: number, dur: number, style: string): EditItem[] {
   const out: EditItem[] = [];
   for (const x of d) {
     if (x.kind === 'graphic') out.push(directedOverlay(x, text, from, dur, style, 5, false));
@@ -554,6 +574,10 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
   const items: EditItem[] = [
     { id: newId('ai'), kind: 'image', name: `Painting · ${plan.place}`, track: 1, from: round(from), duration: round(dur), src: img.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 1, motion: 'kenBurns' },
   ];
+  // national flags painted by AI can be wrong in detail — say so on screen, like on maps
+  if (/\bflags?\b|\btiranga\b/i.test(`${text} ${plan.visual ?? ''} ${plan.place}`)) {
+    items.push({ id: newId('note'), kind: 'text', name: 'AI visuals note', track: 6, from: round(from), duration: round(dur), template: 'motion', props: { fx: 'aiNote' } });
+  }
   if (animate) {
     // a clip as long as the scene (up to 8 s), played at normal speed: stretching short clips into slow motion
     // repeated frames and made the motion judder. The still painting underneath covers any remainder.
@@ -580,7 +604,12 @@ async function paintedScene(plan: StoryPlan, text: string, from: number, dur: nu
   return items;
 }
 
-export async function scriptToVideo(opts: ScriptVideoOptions, progress: ProgressFn): Promise<EditProject> {
+/**
+ * Everything decided before any voice or painting: scenes and their [tags], the art style, the storyboard
+ * (place, picture, people, camera, explainer per scene), video-type rules and accents. Used by Script → video
+ * and by the storyboard preview (server/storyboard.ts), so the preview shows exactly what the video will do.
+ */
+export async function planScenes(opts: ScriptVideoOptions, progress: ProgressFn, castPeople = false) {
   // [tags] in the script direct each scene (motion graphic, camera, transition, atmosphere…) and are never spoken
   const { script: tokenised, tags } = tokeniseScript(opts.script || '');
   const directed = scenesWithDirectives(splitScenes(tokenised), tags);
@@ -624,19 +653,27 @@ export async function scriptToVideo(opts: ScriptVideoOptions, progress: Progress
     story = carryPlaceAndTime(story.map((s, i) => applyStoryDirectives(s, dirs[i] ?? [], scenes[i])), dirs);
     if (unknownTags.length) progress('plan', `Ignored unknown tags: ${unknownTags.map((t) => `[${t.slice(0, 30)}]`).join(' ')} — see Docs → Script tags`, 6);
     // procedural themes and AI paintings: fix every person's identity once (face, hair, clothes) before drawing any scene
-    if (isTheme(opts.style) || opts.illustration === 'ai') {
+    if (castPeople && (isTheme(opts.style) || opts.illustration === 'ai')) {
       progress('plan', 'Casting characters (same look in every scene)', 7);
       await planStorySpecs(opts.script);
     }
   }
   // explainer accents (then/now panel, name lower-third, stamp, sticker list, marker highlight, handwritten turn)
   // on scenes without a full-screen explainer or a graphic the writer chose — added as if they were [tags]
+  const userDirs = dirs.map((d) => [...d]);
   if (vtype && vtype !== 'story') {
     const busy = scenes.map((_, i) => Boolean(story[i]?.motion) || (dirs[i] ?? []).some((x) => x.kind === 'graphic' || x.kind === 'sequence'));
     autoAccents(scenes, vtype, baseStyle, busy).forEach((a, i) => {
       if (a) dirs[i] = [...(dirs[i] ?? []), accentDirective(a)];
     });
   }
+  return { scenes, dirs, userDirs, unknownTags, aspect, vtype, choice, mode, lang, baseStyle, plans, story };
+}
+
+export async function scriptToVideo(opts: ScriptVideoOptions, progress: ProgressFn): Promise<EditProject> {
+  const { scenes, dirs, unknownTags, aspect, vtype, choice, mode, lang, baseStyle, plans, story } = await planScenes(opts, progress, true);
+  void unknownTags;
+  void scenes;
   const frame = { width: FRAME_SIZES[aspect][0], height: FRAME_SIZES[aspect][1] };
 
   // AI illustration: one painted frame per scene from local Stable Diffusion, same cast + seed for consistency

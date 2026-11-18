@@ -1,12 +1,14 @@
 import 'dotenv/config';
 // first: tracks helper processes and AI requests so Cancel can stop them (must load before child_process users)
 import { stopAllActivity } from './server/activity.ts';
+import { SUGGESTED_MODELS, installedModels, pullModel, removeModel, validModelName } from './server/models.ts';
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import {
+  DATA_DIR,
   EXPORTS_DIR,
   UPLOADS_DIR,
   deleteProjectById,
@@ -33,6 +35,8 @@ import { blankEdit, deleteEdit, editFromClip, getEdit, linkMediaFile, readEdits,
 import { editWithAI } from './server/editAI.ts';
 import { renderEdit } from './server/remotion.ts';
 import { scriptToVideo, voiceFilesOf } from './server/scriptVideo.ts';
+import { storyboard } from './server/storyboard.ts';
+import { checkScript, externalPrompt } from './server/externalPrompt.ts';
 import { importFolder } from './server/importer.ts';
 import { ASSETS_DIR, INBOX_DIR, cleanSpec, creditsFor, ensureAsset, ensureAssetDirs, importUserPng, licenceIssues, processInbox, searchAssets, setLicence } from './server/assets.ts';
 import type { AssetType } from './src/assetkit/types.ts';
@@ -44,7 +48,7 @@ import { isTheme, THEME_IDS, type ThemeId } from './src/vector/theme.ts';
 import type { EditProject } from './src/editor/types.ts';
 import { refreshWindowsPath } from './scripts/win-path.mjs';
 import { GENERATED_DIR, generateImage, sdSize, sdStatus, stopComfy, videoModel, videoModels } from './server/imagegen.ts';
-import { SCRIPTS_DIR, WRITER_MODEL, listScripts, updateScript, writeScriptFromYoutube, writerModels } from './server/scriptWriter.ts';
+import { SCRIPTS_DIR, WRITER_MODEL, deleteScripts, listScripts, updateScript, writeScriptFromYoutube, writerModels } from './server/scriptWriter.ts';
 import { autostartComfy, ensureComfy, findComfy } from './server/comfy.ts';
 import { buildNegativePrompt, buildSdPrompt } from './src/artstyles/prompt.ts';
 
@@ -94,6 +98,7 @@ async function previewUrlFor(
 app.use('/media/uploads', express.static(UPLOADS_DIR));
 app.use('/media/exports', express.static(EXPORTS_DIR));
 app.use('/media/generated', express.static(GENERATED_DIR)); // Stable Diffusion paintings (cache)
+app.use('/media/maps', express.static(path.join(DATA_DIR, 'maps'), { maxAge: '7d' })); // satellite map imagery (npm run maps:setup)
 ensureAssetDirs();
 app.use('/media/assets', express.static(ASSETS_DIR));
 
@@ -677,6 +682,13 @@ app.get('/api/download/:fileName', (req, res) => {
   res.download(fullPath, safeName);
 });
 
+// Delete many projects at once
+app.post('/api/projects/bulk-delete', (req, res) => {
+  let deleted = 0;
+  for (const id of idList(req.body)) if (deleteProjectById(id)) deleted++;
+  res.json({ deleted });
+});
+
 // Delete a local project and clean up disk files
 app.delete('/api/projects/:id', (req, res) => {
   const deleted = deleteProjectById(req.params.id);
@@ -737,6 +749,17 @@ app.put('/api/edits/:id', (req, res) => {
     items: Array.isArray(body.items) ? (body.items as EditProject['items']) : current.items,
   };
   res.json({ edit: saveEdit(next) });
+});
+
+// Delete many edits at once (and the voice-over clips that belong to each)
+app.post('/api/edits/bulk-delete', (req, res) => {
+  let deleted = 0;
+  for (const id of idList(req.body)) {
+    const edit = getEdit(id);
+    if (deleteEdit(id)) deleted++;
+    for (const f of edit ? voiceFilesOf(edit) : []) fs.rmSync(f, { force: true });
+  }
+  res.json({ deleted });
 });
 
 app.delete('/api/edits/:id', (req, res) => {
@@ -886,6 +909,27 @@ app.post('/api/assets/import', (req, res) => {
 });
 
 // Script → video: voice-over + motion graphics + captions, built as an editable edit
+/** Script → video options from a request body (shared by the video run and the storyboard preview). */
+function scriptVideoOptions(b: Record<string, string>, script: string) {
+  return { script, title: b.title, aspect: b.aspect, style: b.style, voice: b.voice, language: b.language === 'hi' ? ('hi' as const) : b.language === 'en' ? ('en' as const) : undefined, captions: b.captions as never, mode: b.mode === 'graphics' ? ('graphics' as const) : ('story' as const), illustration: b.illustration === 'ai' ? ('ai' as const) : ('vector' as const), animate: String(b.animate) === 'true', motionEngine: b.motionEngine === 'wan' ? ('wan' as const) : b.motionEngine === 'ltx' ? ('ltx' as const) : undefined, motionMode: b.motionMode === 'all' ? ('all' as const) : ('mix' as const), videoType: ['story', 'documentary', 'fun', 'tech'].includes(b.videoType) ? (b.videoType as never) : undefined };
+}
+
+// Storyboard preview: the plan for every line (what we see, where, on screen, camera, Motion) — no voice or painting
+app.post('/api/script-video/plan', async (req, res) => {
+  const b = (req.body ?? {}) as Record<string, string>;
+  const script = String(b.script ?? '').slice(0, 20000);
+  if (!script.trim()) {
+    res.status(400).json({ error: 'Paste a script first.' });
+    return;
+  }
+  try {
+    res.json({ board: await storyboard(scriptVideoOptions(b, script), progressFor(b.jobId)) });
+  } catch (err) {
+    console.error('[clipforge] storyboard failed:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not plan the scenes.' });
+  }
+});
+
 app.post('/api/script-video', async (req, res) => {
   const b = (req.body ?? {}) as Record<string, string>;
   const script = String(b.script ?? '').slice(0, 20000);
@@ -948,6 +992,26 @@ app.post('/api/writer', async (req, res) => {
     res.status(500).json({ error: message });
   }
 });
+/** ids from a bulk-delete body: strings only, at most 500. */
+const idList = (body: unknown): string[] =>
+  Array.isArray((body as { ids?: unknown })?.ids) ? ((body as { ids: unknown[] }).ids.filter((x) => typeof x === 'string' && x.length < 200) as string[]).slice(0, 500) : [];
+
+// Write the script with another AI: a ready-made prompt, and a check of what ClipForge makes of the pasted result
+app.get('/api/writer/external-prompt', (req, res) => {
+  res.json({ prompt: externalPrompt({ videoType: String(req.query.videoType ?? ''), minutes: Number(req.query.minutes) || undefined, language: String(req.query.language ?? 'same') }) });
+});
+app.post('/api/script/check', (req, res) => {
+  const script = String(req.body?.script ?? '').slice(0, 20000);
+  if (!script.trim()) {
+    res.status(400).json({ error: 'Paste a script first.' });
+    return;
+  }
+  res.json(checkScript(script));
+});
+
+app.post('/api/writer/bulk-delete', (req, res) => {
+  res.json({ deleted: deleteScripts(idList(req.body)) });
+});
 app.put('/api/writer/:id', (req, res) => {
   const updated = updateScript(path.basename(req.params.id), req.body ?? {});
   if (!updated) {
@@ -964,6 +1028,43 @@ app.get('/api/writer/file/:name', (req, res) => {
     return;
   }
   res.download(file, name);
+});
+
+// ---------------------------------------------------------------- AI models (Ollama): list, download, remove
+app.get('/api/models', async (_req, res) => {
+  const installed = await installedModels();
+  res.json({ ollama: installed !== null, installed: installed ?? [], suggested: SUGGESTED_MODELS, defaults: { writer: WRITER_MODEL } });
+});
+app.post('/api/models/pull', async (req, res) => {
+  const name = String(req.body?.name ?? '').trim();
+  const jobId = String(req.body?.jobId ?? '');
+  if (!validModelName(name)) {
+    res.status(400).json({ error: 'Type a model name like qwen3.5:4b or maternion/spark-x2.5:4b-q4_K_M.' });
+    return;
+  }
+  try {
+    await pullModel(name, progressFor(jobId));
+    finishJob(jobId, { model: name });
+    res.json({ ok: true, model: name });
+  } catch (err) {
+    const cancelled = isCancelled(jobId) || (err instanceof Error && (err.name === 'AbortError' || err.name === 'CancelledError'));
+    const message = cancelled ? 'Cancelled' : err instanceof Error ? err.message : 'Download failed.';
+    finishJob(jobId, { error: message });
+    res.status(cancelled ? 499 : 500).json({ error: message });
+  }
+});
+app.post('/api/models/remove', async (req, res) => {
+  const name = String(req.body?.name ?? '').trim();
+  if (!validModelName(name)) {
+    res.status(400).json({ error: 'Unknown model name.' });
+    return;
+  }
+  try {
+    await removeModel(name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not remove the model.' });
+  }
 });
 
 // Cancel a running job (Script → video). Stops at the next step and frees the GPU right away.

@@ -8,6 +8,7 @@ import { Lottie, type LottieAnimationData } from '@remotion/lottie';
 import type { AudioItem, CaptionsItem, CompositionProps, EditItem, EffectItem, ImageItem, VideoItem } from '../editor/types.ts';
 import { TEMPLATE_COMPONENTS } from './templates.tsx';
 import { styleLook } from './artStyles.tsx';
+import { setAssetBase } from '../motion/assetBase.ts';
 
 const FONT = '"Arial Black", "Segoe UI", Arial, Helvetica, sans-serif';
 
@@ -378,6 +379,7 @@ function ItemLayer({ item, base, preview }: { item: EditItem; base: string; prev
 }
 
 export function EditorComposition({ edit, assetBase, preview }: CompositionProps) {
+  setAssetBase(assetBase); // motion graphics (satellite maps) load /media files from here
   const { fps } = useVideoConfig();
   const effects = edit.items.filter((i): i is EffectItem => i.kind === 'effect');
   const fx = useEffects(effects);

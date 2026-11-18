@@ -2,6 +2,8 @@
 
 The wizard creates `.env` from `.env.example`. Change what you need and restart `npm run dev`.
 
+**Downloading AI models:** you don't need the command line. Open the **engines** button in the top bar → **Manage AI models** to download suggested or any ollama.com model (with progress and Stop), see what's installed, and remove models. To make one the default, set `WRITER_MODEL` or `OLLAMA_EDIT_MODEL` below to its name.
+
 | Setting | Default | Notes |
 |---|---|---|
 | `PORT` | `3000` | Web app port |

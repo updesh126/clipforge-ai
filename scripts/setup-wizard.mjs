@@ -364,6 +364,21 @@ async function stepHyperframes() {
   report('HyperFrames', ok ? 'ok' : 'missing');
 }
 
+async function stepMaps() {
+  section('Satellite maps', 'real Earth photo under maps (NASA Blue Marble, public domain)');
+  const dataDir = path.resolve(process.env.CLIPFORGE_DATA_DIR || path.join(ROOT, 'data'));
+  const ok = fs.existsSync(path.join(dataDir, 'maps', 'bluemarble', 'world.jpg')) && fs.existsSync(path.join(dataDir, 'maps', 'bluemarble', 'tiles', 'r7c15.jpg'));
+  if (ok) {
+    console.log(`  ${OK} installed`);
+    return report('Satellite maps', 'ok');
+  }
+  console.log(`  ${OPT} not installed — maps use the drawn look`);
+  if (CHECK_ONLY) return report('Satellite maps', 'optional', 'npm run maps:setup');
+  if (await ask('Download the satellite imagery now (32.5 MB from NASA)?')) run('node', ['scripts/setup-maps.mjs', '--yes']);
+  const done = fs.existsSync(path.join(dataDir, 'maps', 'bluemarble', 'tiles', 'r7c15.jpg'));
+  report('Satellite maps', done ? 'ok' : 'optional', done ? '' : 'npm run maps:setup');
+}
+
 function gpuInfo() {
   try {
     const out = execFileSync('nvidia-smi', ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'], { encoding: 'utf8', timeout: 8000, windowsHide: true });
@@ -484,6 +499,7 @@ await stepOllama();
 await stepVoices();
 await stepHyperframes();
 await stepStableDiffusion();
+await stepMaps();
 
 console.log(`\n${bold('Summary')}`);
 for (const r of results) console.log(`  ${r.state === 'ok' ? OK : r.state === 'missing' ? NO : OPT} ${r.name.padEnd(18)} ${dim(r.note)}`);
