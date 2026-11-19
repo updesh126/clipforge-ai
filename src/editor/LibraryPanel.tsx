@@ -24,6 +24,7 @@ const ART_SWATCH: Record<string, string[]> = {
   collage: ['#111111', '#D9D9D6', '#FFD400', '#F7F6F2'],
 };
 import type { ClipProject } from '../types.ts';
+import { startDrag } from './studio/dnd.ts';
 
 interface Props {
   projects: ClipProject[];
@@ -84,7 +85,7 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddMotion
             <div key={heading} className="space-y-1.5">
               <p className="px-1 pt-1 text-[10.5px] font-semibold uppercase tracking-wider text-zinc-500">{heading}</p>
               {ids.map((id) => (
-                <button key={id} type="button" className={card} onClick={() => onAddTemplate(id)}>
+                <button key={id} type="button" className={card} onClick={() => onAddTemplate(id)} draggable onDragStart={(e) => startDrag(e, { type: 'template', id, label: TEMPLATES[id].label })}>
                   <span className="flex items-center justify-between text-xs font-medium text-white">
                     {TEMPLATES[id].label.replace(' (Vox)', '')}
                     <Plus className="h-3.5 w-3.5 text-zinc-600 group-hover:text-accent" />
@@ -116,6 +117,8 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddMotion
                     type="button"
                     title={TEMPLATES[t].description}
                     onClick={() => onAddTemplate(t, { style })}
+                    draggable
+                    onDragStart={(e) => startDrag(e, { type: 'template', id: t, props: { style }, label: `${label} · ${ART_STYLE_LABELS[style]}` })}
                     className="rounded border border-zinc-800 py-1 text-[10.5px] text-zinc-300 hover:border-accent hover:text-white cursor-pointer"
                   >
                     + {label}

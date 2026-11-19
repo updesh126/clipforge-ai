@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowUp, Crosshair, Diamond, Film, Library, Loader2, MessageSquare, PanelLeftClose, Plus, Sparkles, Undo2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ArrowUp, BookOpen, Crosshair, Diamond, Film, Library, Loader2, MessageSquare, PanelLeftClose, Plus, Sparkles, Undo2, X } from 'lucide-react';
 import { REF_COLOR, refText, type StudioRef } from './refs.ts';
+import { allTags, searchTags, type TagInfo } from '../../motion/tagInfo.ts';
 
 export interface ChatMsg {
   role: 'user' | 'ai' | 'error';
@@ -8,6 +9,7 @@ export interface ChatMsg {
   refs?: StudioRef[]; // what the user pointed at with this message
   steps?: string[]; // what the AI changed, one sentence each
   applied?: number;
+  suggest?: TagInfo[]; // effects that match the request, when the AI could not make a change
 }
 
 const SUGGESTIONS = [
@@ -17,6 +19,9 @@ const SUGGESTIONS = [
   'Add a lower third for the speaker',
   'Switch captions to pop style',
 ];
+
+/** Tags apply at once, at what you pointed at or the playhead (no model needed). Same tags as scripts. */
+const TAG_EXAMPLES = ['[creatorSlam "YOU NEED *REPS*"]', '[chalkCounter 30 "of its data" "can lose up to" %]', '[cleanChecklist "Plan; Build; Launch"]', '[creatorCounter 200 "real leads"]'];
 
 /** A numbered reference chip: hovering lights its mark in the viewer and timeline, clicking jumps there. */
 export function RefPill({ r, onHover, onClick, onRemove }: { r: StudioRef; onHover?: (n: number | null) => void; onClick?: () => void; onRemove?: () => void }) {
@@ -65,6 +70,39 @@ interface Props {
 export function ChatColumn(p: Props) {
   const [text, setText] = useState('');
   const [menu, setMenu] = useState(false);
+  const [caret, setCaret] = useState(0);
+  const [pick, setPick] = useState<{ start: number; end: number; q: string } | null>(null); // the effects picker
+  const [pickIdx, setPickIdx] = useState(0);
+  const results = useMemo(() => (pick ? searchTags(pick.q, 40) : []), [pick]);
+
+  /** Open the picker while the word at the cursor is "[name" or "/name" (not "[1]" references, not once values follow). */
+  const trigger = (value: string, at: number) => {
+    const before = value.slice(0, at);
+    const m = /\[([A-Za-z][\w-]*)?$/.exec(before) ?? /^\/([A-Za-z][\w-]*)?$/.exec(before);
+    if (m) {
+      setPick({ start: m.index, end: at, q: m[1] ?? '' });
+      setPickIdx(0);
+    } else setPick(null);
+  };
+  /** The tag being written at the cursor, for the "values: …" hint under it. */
+  const writing: TagInfo | null = useMemo(() => {
+    const m = /\[([A-Za-z][\w-]*)\s[^\]]*$/.exec(text.slice(0, caret));
+    if (!m) return null;
+    const id = m[1].toLowerCase().replace(/-/g, '');
+    return allTags().find((t) => t.id.toLowerCase() === id) ?? null;
+  }, [text, caret]);
+  const insert = (t: TagInfo) => {
+    const start = pick?.start ?? caret, end = pick?.end ?? caret;
+    const next = `${text.slice(0, start)}${t.usage} ${text.slice(end)}`;
+    setText(next);
+    setPick(null);
+    const at = start + t.usage.length + 1;
+    requestAnimationFrame(() => {
+      box.current?.focus();
+      box.current?.setSelectionRange(at, at);
+      setCaret(at);
+    });
+  };
   const thread = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
 
@@ -124,6 +162,14 @@ export function ChatColumn(p: Props) {
                   </button>
                 ))}
               </div>
+              <p className="pt-2 text-[12px] text-studio-muted">Or type a tag to add a graphic straight away (same tags as scripts):</p>
+              <div className="flex flex-wrap gap-1.5">
+                {TAG_EXAMPLES.map((t) => (
+                  <button key={t} type="button" onClick={() => send(t)} className="rounded-md border border-studio-border-strong bg-studio-raised px-2 py-1 font-mono text-[11px] text-studio-text hover:border-accent cursor-pointer">
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {p.messages.map((m, i) =>
@@ -151,6 +197,27 @@ export function ChatColumn(p: Props) {
                   </ul>
                 )}
                 <p>{m.text}</p>
+                {m.suggest && m.suggest.length > 0 && (
+                  <div className="space-y-1.5">
+                    {m.suggest.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setPick(null);
+                          setText((cur) => `${cur ? cur.trimEnd() + ' ' : ''}${t.usage} `);
+                          box.current?.focus();
+                        }}
+                        className="block w-full rounded-lg border border-studio-border bg-studio-raised px-2.5 py-2 text-left hover:border-accent/60 cursor-pointer"
+                      >
+                        <span className="block text-[12.5px] font-medium text-studio-text">{t.label}</span>
+                        <span className="block text-[11.5px] text-studio-muted">{t.description}</span>
+                        <span className="mt-1 block truncate font-mono text-[11px] text-accent">{t.usage}</span>
+                      </button>
+                    ))}
+                    <p className="text-[11px] text-studio-faint">Click one to put it in your message, change the values, then send.</p>
+                  </div>
+                )}
                 {Boolean(m.applied) && i === p.messages.length - 1 && (
                   <div className="flex items-center justify-between rounded-lg border border-studio-border bg-studio-raised px-2.5 py-1.5 text-[11.5px] text-studio-muted">
                     <span>{m.applied} change{m.applied === 1 ? '' : 's'} on the timeline</span>
@@ -178,7 +245,40 @@ export function ChatColumn(p: Props) {
           send(text);
         }}
       >
-        <div className="rounded-xl border border-studio-border-strong bg-studio-raised p-2 focus-within:border-accent/60">
+        <div className="relative rounded-xl border border-studio-border-strong bg-studio-raised p-2 focus-within:border-accent/60">
+          {pick && (
+            <div className="absolute bottom-full left-0 right-0 z-40 mb-1.5 overflow-hidden rounded-[10px] border border-studio-border-strong bg-studio-raised shadow-[0_16px_40px_rgba(0,0,0,.5)]">
+              <div className="flex items-center justify-between gap-2 border-b border-studio-border px-2.5 py-1.5 text-[11px] text-studio-faint">
+                <span className="truncate">{pick.q ? `Effects matching “${pick.q}”` : `All ${allTags().length} effects and motions`}</span>
+                <span className="shrink-0">↑↓ · Enter · Esc</span>
+              </div>
+              <div role="listbox" aria-label="Effects" className="max-h-80 overflow-y-auto p-1">
+                {results.map((t, i) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="option"
+                    aria-selected={i === pickIdx}
+                    onMouseEnter={() => setPickIdx(i)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      insert(t);
+                    }}
+                    className={`block w-full rounded-md px-2.5 py-2 text-left cursor-pointer ${i === pickIdx ? 'bg-studio-hover' : ''}`}
+                  >
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="truncate text-[12.5px] font-medium text-studio-text">{t.label}</span>
+                      <span className="shrink-0 text-[10.5px] text-studio-faint">{t.group}</span>
+                    </span>
+                    <span className="block text-[11.5px] leading-snug text-studio-muted">{t.description}</span>
+                    <span className="mt-1 block truncate font-mono text-[11px] text-accent">{t.usage}</span>
+                    {t.args.length > 0 && <span className="block text-[10.5px] text-studio-faint">values in order: {t.args.join(', ')}</span>}
+                  </button>
+                ))}
+                {!results.length && <p className="px-2.5 py-3 text-[12px] text-studio-muted">No effect called “{pick.q}”. Try a word from what it does: counter, map, chalk, highlight…</p>}
+              </div>
+            </div>
+          )}
           {p.draft.length > 0 && (
             <div className="mb-1.5 flex flex-wrap gap-1">
               {p.draft.map((r) => <RefPill key={r.n} r={r} onHover={p.onHoverRef} onClick={() => p.onJumpRef(r)} onRemove={() => p.onRemoveRef(r.n)} />)}
@@ -189,20 +289,62 @@ export function ChatColumn(p: Props) {
             id="studio-chat-input"
             rows={2}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              setCaret(e.target.selectionStart);
+              trigger(e.target.value, e.target.selectionStart);
+            }}
+            onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
             onKeyDown={(e) => {
+              if (pick && results.length) {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setPickIdx((i) => (i + (e.key === 'ArrowDown' ? 1 : results.length - 1)) % results.length);
+                  return;
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault();
+                  insert(results[pickIdx]);
+                  return;
+                }
+              }
+              if (pick && e.key === 'Escape') {
+                e.preventDefault();
+                setPick(null);
+                return;
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 send(text);
               }
             }}
-            placeholder={p.draft.length ? `Say what to change at ${p.draft.map((r) => `[${r.n}]`).join(' ')}…` : 'Say what to change. Point first to be exact.'}
+            placeholder={p.draft.length ? `Say what to change at ${p.draft.map((r) => `[${r.n}]`).join(' ')}…` : 'Say what to change, or type [ for an effect by name'}
             className="max-h-40 min-h-[44px] w-full resize-none bg-transparent text-[14px] leading-[22px] text-studio-text placeholder:text-studio-faint focus:outline-none"
           />
+          {writing && !pick && (
+            <p className="mb-1 truncate text-[11px] text-studio-faint">
+              <span className="text-studio-muted">{writing.label}</span>{writing.args.length ? ` · values in order: ${writing.args.join(', ')}` : ' · no values needed'}
+            </p>
+          )}
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-1">
               <button type="button" onClick={() => setMenu((v) => !v)} aria-expanded={menu} title="Point at something" className="grid h-[26px] w-[26px] place-items-center rounded-md text-studio-muted hover:bg-studio-hover hover:text-studio-text cursor-pointer">
                 <Plus className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pick) setPick(null);
+                  else {
+                    setPick({ start: caret, end: caret, q: '' });
+                    setPickIdx(0);
+                  }
+                }}
+                aria-expanded={Boolean(pick)}
+                title="Effects and motions by name, with how to use them ([ or /)"
+                className="inline-flex h-[26px] items-center gap-1 rounded-md px-1.5 text-[11.5px] text-studio-muted hover:bg-studio-hover hover:text-studio-text cursor-pointer"
+              >
+                <BookOpen className="h-3.5 w-3.5" /> Effects
               </button>
               <span className="text-[11px] text-studio-faint">Local model · Ollama</span>
               {menu && (

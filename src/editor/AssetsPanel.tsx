@@ -1,4 +1,5 @@
 import { LottieThumb } from './LottieThumb.tsx';
+import { startDrag } from './studio/dnd.ts';
 import { useEffect, useState } from 'react';
 import { Search, Loader2, Wand2, Upload, AlertCircle } from 'lucide-react';
 import type { AssetEntry, AssetType } from '../assetkit/types.ts';
@@ -141,6 +142,8 @@ export function AssetsPanel({ onAdd }: Props) {
                 type="button"
                 title={`${a.name} · ${a.style === 'any' ? 'your PNG' : a.style}${a.aspect ? ` · ${a.aspect}` : ''}${a.source ? `\nSource: ${a.source}` : ''}${a.licence ? `\nLicence: ${a.licence}` : ''}`}
                 onClick={() => onAdd(a)}
+                draggable
+                onDragStart={(e) => startDrag(e, { type: 'asset', asset: a, label: a.name })}
                 className="block w-full cursor-pointer"
               >
                 {a.animated ? (

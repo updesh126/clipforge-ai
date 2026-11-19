@@ -7,7 +7,8 @@
  */
 import type { EditProject, EditWord } from '../src/editor/types.ts';
 import { EFFECTS, TEMPLATES } from '../src/editor/catalog.ts';
-import { CATEGORIES, EFFECTS_LIB } from '../src/motion/catalog.ts';
+import { argsFor, CATEGORIES, EFFECTS_LIB } from '../src/motion/catalog.ts';
+import { parseTag } from './directives.ts';
 import { isMotionId, SEQUENCES } from '../src/motion/sequences.ts';
 import { applyOps, type EditOp } from './edits.ts';
 
@@ -218,6 +219,50 @@ function describeOps(edit: EditProject, ops: EditOp[]): string[] {
   });
 }
 
+/**
+ * [tags] typed in the chat (the same ones scripts use, e.g. [chalkCounter 30 "of its data"]) are applied at once,
+ * without the model: at the stretch or moment the user pointed at, else at the playhead. Returns what is left to ask.
+ */
+export function applyChatTags(edit: EditProject, instruction: string, refs: StudioRef[], playhead: number): { edit: EditProject; rest: string; steps: string[]; applied: number; unknown: string[] } {
+  const steps: string[] = [];
+  const unknown: string[] = [];
+  const ops: EditOp[] = [];
+  const range = refs.find((r) => r.kind === 'range' && r.t0 !== undefined && r.t1 !== undefined);
+  const point = refs.find((r) => r.t !== undefined);
+  const clip = refs.find((r) => r.kind === 'clip' && r.itemId);
+  const clipItem = clip ? edit.items.find((i) => i.id === clip.itemId) : undefined;
+  const at = range?.t0 ?? clipItem?.from ?? point?.t ?? Math.max(0, playhead);
+  const span = range ? range.t1! - range.t0! : clipItem ? clipItem.duration : undefined;
+  let track = Math.max(6, ...edit.items.map((i) => i.track + 1));
+  const rest = instruction.replace(/\[([^[\]\n]{1,600})\]/g, (whole, body: string) => {
+    if (/^\d+$/.test(body.trim())) return whole; // [1] is a reference number, not a tag
+    const d = parseTag(body);
+    if (!d) {
+      unknown.push(body);
+      return ' ';
+    }
+    if ((d.kind === 'graphic' || d.kind === 'atmosphere' || d.kind === 'sequence') && (EFFECTS_LIB[d.id] || SEQUENCES[d.id])) {
+      const seq = SEQUENCES[d.id];
+      const def = EFFECTS_LIB[d.id];
+      const duration = span ?? seq?.duration ?? def?.duration ?? 4;
+      ops.push({ op: 'add', item: { kind: 'text', template: 'motion', name: seq?.label ?? def?.label, track: track++, from: at, duration, props: { fx: d.id, ...(seq ? seq.params : {}), ...d.params } } });
+      steps.push(`Added ${seq?.label ?? def?.label} at ${at.toFixed(1)}s${Object.keys(d.params).length ? ` (${Object.entries(d.params).map(([k, v]) => `${k}=${v}`).join(', ')})` : ''}`);
+    } else if ((d.kind === 'camera' || d.kind === 'transition') && d.id in EFFECTS) {
+      const e = EFFECTS[d.id as keyof typeof EFFECTS];
+      ops.push({ op: 'add', item: { kind: 'effect', effect: d.id, name: e.label, track: 1, from: at, duration: span ?? e.duration, intensity: Number(d.params.intensity) || 1 } });
+      steps.push(`Added ${e.label} at ${at.toFixed(1)}s`);
+    } else if (d.kind === 'transition' && EFFECTS_LIB[d.id]) {
+      const def = EFFECTS_LIB[d.id];
+      ops.push({ op: 'add', item: { kind: 'text', template: 'motion', name: def.label, track: 7, from: Math.max(0, at - def.duration / 2), duration: def.duration, props: { fx: d.id, ...d.params } } });
+      steps.push(`Added ${def.label} around ${at.toFixed(1)}s`);
+    } else unknown.push(body); // place / scene / title tags belong to scripts, not the timeline
+    return ' ';
+  }).replace(/\s{2,}/g, ' ').trim();
+  if (!ops.length) return { edit, rest: unknown.length ? instruction : rest, steps, applied: 0, unknown };
+  const { edit: next, applied } = applyOps(edit, ops);
+  return { edit: next, rest, steps: steps.slice(0, applied), applied, unknown };
+}
+
 export async function editWithAI(edit: EditProject, instruction: string, refs: StudioRef[] = []): Promise<{ edit: EditProject; reply: string; applied: number; steps: string[] }> {
   const words = timelineWords(edit);
   const total = Math.max(...edit.items.map((i) => i.from + i.duration), 1);
@@ -302,6 +347,10 @@ Reply with ONLY JSON: {"reply":"<one short sentence of what you changed>","ops":
 /** Compact, fixed catalogue for prompts: sequences with their parameters, effect ids grouped by category. */
 export function motionCatalogueForPrompt(): string {
   const seqs = Object.values(SEQUENCES).map((q) => `- ${q.id}: ${q.description}. params: ${Object.keys(q.params).join(', ')}`);
-  const groups = CATEGORIES.filter((c) => c.id !== 'sequences').map((c) => `${c.label}: ${Object.values(EFFECTS_LIB).filter((e) => e.category === c.id).map((e) => e.id).join(', ')}`);
+  const groups = CATEGORIES.filter((c) => c.id !== 'sequences').map((c) =>
+    c.id === 'styles'
+      ? `${c.label} (full-frame looks; props in this order): ${Object.values(EFFECTS_LIB).filter((e) => e.category === c.id).map((e) => `${e.id}(${argsFor(e.id).join(', ')})`).join(', ')}`
+      : `${c.label}: ${Object.values(EFFECTS_LIB).filter((e) => e.category === c.id).map((e) => e.id).join(', ')}`,
+  );
   return ['SEQUENCES:', ...seqs, 'SINGLE EFFECTS (by category):', ...groups].join('\n');
 }

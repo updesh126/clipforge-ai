@@ -4,6 +4,7 @@ import type { EditItem, EditProject } from './types.ts';
 import { KIND_STYLE, itemLabel, r2 } from './ops.ts';
 import { formatTimecode } from '../utils/format.ts';
 import { REF_COLOR, type StudioRef } from './studio/refs.ts';
+import { isLibraryDrag, readDrag, type DragItem } from './studio/dnd.ts';
 
 const ROW = 34;
 const HEAD = 96;
@@ -29,11 +30,14 @@ interface Props {
   /** references to mark on the ruler; `hot` is lit */
   marks?: StudioRef[];
   hot?: number | null;
+  /** something dragged from the library was dropped at this time on this track */
+  onDropItem?: (item: DragItem, t: number, track: number) => void;
 }
 
 type Mode = 'move' | 'trimL' | 'trimR';
 
-export function Timeline({ edit, duration, time, selectedId, onSeek, onSelect, onDrag, onDragEnd, pps: ppsProp, bare, marks = [], hot = null }: Props) {
+export function Timeline({ edit, duration, time, selectedId, onSeek, onSelect, onDrag, onDragEnd, pps: ppsProp, bare, marks = [], hot = null, onDropItem }: Props) {
+  const [dropAt, setDropAt] = useState<{ t: number; track: number } | null>(null);
   const [ppsState, setPps] = useState(40); // pixels per second
   const pps = ppsProp ?? ppsState;
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -55,6 +59,15 @@ export function Timeline({ edit, duration, time, selectedId, onSeek, onSelect, o
     const el = scrollRef.current!;
     const rect = el.getBoundingClientRect();
     return Math.max(0, (clientX - rect.left - HEAD + el.scrollLeft) / pps);
+  };
+
+  /** time and track under the pointer while something is dragged over the tracks */
+  const dropTarget = (e: React.DragEvent) => {
+    const el = scrollRef.current!;
+    const rect = el.getBoundingClientRect();
+    const y = e.clientY - rect.top + el.scrollTop - 24; // below the ruler
+    const row = Math.max(0, Math.min(tracks.length - 1, Math.floor(y / ROW)));
+    return { t: r2(snap(timeAt(e.clientX), '')), track: tracks[row] };
   };
 
   const snap = (t: number, id: string) => {
@@ -114,6 +127,24 @@ export function Timeline({ edit, duration, time, selectedId, onSeek, onSelect, o
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onDragOver={(e) => {
+          if (!onDropItem || !isLibraryDrag(e)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          const d = dropTarget(e);
+          setDropAt((cur) => (cur && cur.t === d.t && cur.track === d.track ? cur : d));
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropAt(null);
+        }}
+        onDrop={(e) => {
+          if (!onDropItem || !isLibraryDrag(e)) return;
+          e.preventDefault();
+          const item = readDrag(e);
+          const d = dropTarget(e);
+          setDropAt(null);
+          if (item) onDropItem(item, d.t, d.track);
+        }}
       >
         <div style={{ width: width + HEAD }} className="relative">
           {/* Ruler */}
@@ -197,6 +228,13 @@ export function Timeline({ edit, duration, time, selectedId, onSeek, onSelect, o
               </div>
             </div>
           ))}
+
+          {/* Where a dragged library item will land */}
+          {dropAt && (
+            <div className="pointer-events-none absolute z-40 rounded border-2 border-dashed border-accent bg-accent/15" style={{ left: HEAD + dropAt.t * pps, top: 24 + tracks.indexOf(dropAt.track) * ROW + 2, width: 3 * pps, height: ROW - 4 }}>
+              <span className="absolute -top-5 left-0 whitespace-nowrap rounded bg-accent px-1 font-mono text-[10px] font-semibold text-black">{formatTimecode(dropAt.t, true)}</span>
+            </div>
+          )}
 
           {/* Playhead */}
           <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-white" style={{ left: HEAD + time * pps }}>

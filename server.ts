@@ -32,7 +32,8 @@ import {
 import type { AspectRatio, CaptionStyle, Framing, ClipLengthPreset, ClipProject } from './server/types.ts';
 import { cancelJob, finishJob, getJob, isCancelled, progressFor } from './server/progress.ts';
 import { blankEdit, deleteEdit, editFromClip, getEdit, linkMediaFile, readEdits, saveEdit } from './server/edits.ts';
-import { editWithAI, parseRefs } from './server/editAI.ts';
+import { applyChatTags, editWithAI, parseRefs } from './server/editAI.ts';
+import { searchTags } from './src/motion/tagInfo.ts';
 import { renderEdit } from './server/remotion.ts';
 import { scriptToVideo, voiceFilesOf } from './server/scriptVideo.ts';
 import { storyboard } from './server/storyboard.ts';
@@ -1093,11 +1094,31 @@ app.post('/api/edits/:id/ai', async (req, res) => {
     return;
   }
   try {
-    const result = await editWithAI(edit, instruction, parseRefs(req.body?.refs));
-    const saved = result.applied ? saveEdit(result.edit) : edit;
-    res.json({ edit: saved, reply: result.reply, applied: result.applied, steps: result.steps });
+    const refs = parseRefs(req.body?.refs);
+    const playhead = Number(req.body?.time) || 0;
+    // [tags] in the message are applied at once; whatever else was asked goes to the model
+    const tagged = applyChatTags(edit, instruction, refs, playhead);
+    const skipped = tagged.unknown.length ? ` Not a timeline tag: ${tagged.unknown.map((u) => `[${u}]`).join(', ')}.` : '';
+    if (tagged.applied && !tagged.rest.replace(/\[\d+\]/g, '').trim()) {
+      const saved = saveEdit(tagged.edit);
+      res.json({ edit: saved, reply: `Done.${skipped}`, applied: tagged.applied, steps: tagged.steps });
+      return;
+    }
+    const result = await editWithAI(tagged.edit, tagged.applied ? tagged.rest : instruction, refs);
+    const applied = tagged.applied + result.applied;
+    const saved = applied ? saveEdit(result.applied ? result.edit : tagged.edit) : edit;
+    // nothing changed: offer the effects whose names and descriptions match the request
+    const suggest = result.applied ? [] : searchTags(tagged.rest || instruction, 3);
+    const reply = result.applied ? result.reply : suggest.length ? 'I could not turn that into a change. These effects match what you asked for:' : result.reply;
+    res.json({ edit: saved, reply: reply + skipped, applied, steps: [...tagged.steps, ...result.steps], suggest });
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'AI edit failed.' });
+    // the model is not running (or failed): still answer, with the effects that match, since tags need no model
+    const suggest = searchTags(instruction, 3);
+    if (!suggest.length) {
+      res.status(500).json({ error: err instanceof Error ? err.message : 'AI edit failed.' });
+      return;
+    }
+    res.json({ edit, reply: `${err instanceof Error ? err.message : 'The AI edit failed.'} Effects you can add without the model:`, applied: 0, steps: [], suggest });
   }
 });
 

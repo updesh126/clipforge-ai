@@ -44,6 +44,8 @@ import { nextN, refTime, type StudioRef } from './studio/refs.ts';
 import { PRESETS, DEFAULT_LAYOUT, useStudioLayout } from './studio/layout.ts';
 import { Splitter } from './studio/Splitter.tsx';
 import { PointStrip, RegionOverlay } from './studio/Pointing.tsx';
+import { isLibraryDrag, readDrag, type DragItem } from './studio/dnd.ts';
+import type { TagInfo } from '../motion/tagInfo.ts';
 import { KIND_STYLE, itemLabel } from './ops.ts';
 import { newEffectItem, newMotionItem, newTemplateItem, r2, splitItem, topTrack, uid } from './ops.ts';
 import { createEdit, listEdits, loadEdit, saveEditRemote, type EditSummary } from './api.ts';
@@ -373,16 +375,16 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
     setSelectedId(item.id);
     setInspTab('properties');
   };
-  const addTemplate = (t: TemplateId, props?: Record<string, string | number>) => {
-    const item = newTemplateItem(t, time, Math.max(6, topTrack(edit) + 1));
+  const addTemplate = (t: TemplateId, props?: Record<string, string | number>, at = time, track?: number) => {
+    const item = newTemplateItem(t, r2(at), track ?? Math.max(6, topTrack(edit) + 1));
     if (props && item.kind === 'text') {
       item.props = { ...item.props, ...props };
       if (typeof props.style === 'string') item.name = `${item.name} · ${props.style}`;
     }
     addItem(item);
   };
-  const addEffect = (fx: EffectId) => addItem(newEffectItem(fx, time));
-  const addMotion = (fx: string) => addItem(newMotionItem(fx, time, Math.max(6, topTrack(edit) + 1)));
+  const addEffect = (fx: EffectId, at = time) => addItem(newEffectItem(fx, r2(at)));
+  const addMotion = (fx: string, at = time, track?: number) => addItem(newMotionItem(fx, r2(at), track ?? Math.max(6, topTrack(edit) + 1)));
   const deleteSelected = () => {
     if (!selected) return;
     apply((e) => ({ ...e, items: e.items.filter((i) => i.id !== selected.id) }));
@@ -415,10 +417,10 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
   };
 
   /** Drop a library asset at the playhead: backgrounds fill the frame, sprites stand on the ground and walk in. */
-  const addAsset = (a: AssetEntry) => {
-    const from = r2(time);
+  const addAsset = (a: AssetEntry, at = time, dropTrack?: number) => {
+    const from = r2(at);
     if (a.type === 'background') {
-      addItem({ id: uid('bg'), kind: 'image', name: a.name, track: 1, from, duration: 6, src: a.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 0.35, motion: 'kenBurns', assetId: a.id });
+      addItem({ id: uid('bg'), kind: 'image', name: a.name, track: dropTrack ?? 1, from, duration: 6, src: a.url, fit: 'cover', scale: 1, x: 50, y: 50, depth: 0.35, motion: 'kenBurns', assetId: a.id });
       return;
     }
     const portrait = edit.height > edit.width;
@@ -428,7 +430,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       id: uid('act'),
       kind: 'image',
       name: a.name,
-      track: Math.max(3, topTrack(edit) + 1),
+      track: dropTrack ?? Math.max(3, topTrack(edit) + 1),
       from,
       duration: 5,
       src: a.url,
@@ -442,6 +444,15 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       assetId: a.id,
     });
   };
+
+  /** Something dragged from the library and dropped on the timeline (at a time and track) or on the picture (at the playhead). */
+  const dropItem = (d: DragItem, at = time, track?: number) => {
+    if (d.type === 'motion') addMotion(d.fx, at, track);
+    else if (d.type === 'effect') addEffect(d.id, at);
+    else if (d.type === 'template') addTemplate(d.id, d.props, at, track);
+    else addAsset(d.asset, at, track);
+  };
+  const [viewerDrop, setViewerDrop] = useState(false);
 
   const addProjectVideo = (p: ClipProject) => {
     const from = r2(time);
@@ -484,7 +495,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       // make sure the server has the latest timeline first
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
       await saveEditRemote(edit);
-      const data = await postJson<{ edit: EditProject; reply: string; applied: number; steps?: string[] }>(`/api/edits/${edit.id}/ai`, { instruction, refs: sent });
+      const data = await postJson<{ edit: EditProject; reply: string; applied: number; steps?: string[]; suggest?: TagInfo[] }>(`/api/edits/${edit.id}/ai`, { instruction, refs: sent, time });
       if (data.applied) {
         past.current.push(edit);
         future.current = [];
@@ -492,7 +503,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
         setSaveState('saved');
         force((n) => n + 1);
       }
-      setChat((c) => [...c, { role: 'ai', text: data.reply, steps: data.steps, applied: data.applied }]);
+      setChat((c) => [...c, { role: 'ai', text: data.reply, steps: data.steps, applied: data.applied, suggest: data.suggest?.length ? data.suggest : undefined }]);
     } catch (err) {
       setChat((c) => [...c, { role: 'error', text: err instanceof Error ? err.message : 'AI edit failed.' }]);
     } finally {
@@ -769,8 +780,26 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
                   {layout.inspector ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
                 </button>
               </div>
-              <div className="flex-1 min-h-0 flex items-center justify-center p-4">
-                <div className="relative h-full max-h-full max-w-full overflow-hidden rounded-[3px] shadow-[0_16px_40px_rgba(0,0,0,.5)]" style={{ aspectRatio: aspect }}>
+              <div
+                className="flex-1 min-h-0 flex items-center justify-center p-4"
+                onDragOver={(e) => {
+                  if (!isLibraryDrag(e)) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'copy';
+                  setViewerDrop(true);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setViewerDrop(false);
+                }}
+                onDrop={(e) => {
+                  if (!isLibraryDrag(e)) return;
+                  e.preventDefault();
+                  setViewerDrop(false);
+                  const d = readDrag(e);
+                  if (d) dropItem(d);
+                }}
+              >
+                <div className={`relative h-full max-h-full max-w-full overflow-hidden rounded-[3px] shadow-[0_16px_40px_rgba(0,0,0,.5)] ${viewerDrop ? 'outline-2 outline-dashed outline-accent' : ''}`} style={{ aspectRatio: aspect }}>
                   <Player
                     ref={playerRef}
                     component={EditorComposition}
@@ -785,6 +814,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
                     clickToPlay={!pointMode}
                     acknowledgeRemotionLicense
                   />
+                  {viewerDrop && <span className="pointer-events-none absolute inset-x-0 bottom-3 z-20 mx-auto w-fit rounded bg-accent px-2 py-1 text-[11px] font-semibold text-black">Drop to add at {formatTimecode(time, true)}</span>}
                   <RegionOverlay active={pointMode} refs={allRefs} hot={hot} time={time} onRegion={addRegion} />
                 </div>
               </div>
@@ -893,6 +923,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
             <div className="flex-1 min-h-0">
               <Timeline
                 bare
+                onDropItem={(d, t, track) => dropItem(d, t, track)}
                 pps={pps}
                 marks={allRefs}
                 hot={hot}

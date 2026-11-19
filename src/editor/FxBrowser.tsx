@@ -5,6 +5,7 @@ import { AbsoluteFill } from 'remotion';
 import { MotionFx } from '../motion/MotionFx.tsx';
 import { EditorComposition } from '../remotion/EditorComposition.tsx';
 import type { EditItem, EditProject, EffectId } from './types.ts';
+import { startDrag } from './studio/dnd.ts';
 
 /**
  * Library browser shared by the Motion and Effects tabs.
@@ -112,7 +113,13 @@ export function FxBrowser({ entries, groups, initialGroup, initialId, noun, aspe
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-b border-zinc-900 p-2 space-y-2">
-        <div className={`relative mx-auto overflow-hidden rounded-md border border-zinc-800 bg-black ${portrait ? 'w-[46%]' : 'w-full'}`} style={{ aspectRatio: `${aspect.width} / ${aspect.height}` }}>
+        <div
+          draggable
+          onDragStart={(ev) => startDrag(ev, cur.kind === 'camera' ? { type: 'effect', id: cur.id as EffectId, label: cur.label } : { type: 'motion', fx: cur.id, label: cur.label })}
+          title="Drag onto the timeline or the picture"
+          className={`relative mx-auto cursor-grab overflow-hidden rounded-md border border-zinc-800 bg-black active:cursor-grabbing ${portrait ? 'w-[46%]' : 'w-full'}`}
+          style={{ aspectRatio: `${aspect.width} / ${aspect.height}` }}
+        >
           {camera ? (
             <Player
               key={cur.id}
@@ -184,6 +191,9 @@ export function FxBrowser({ entries, groups, initialGroup, initialId, noun, aspe
               tabIndex={0}
               onClick={() => setSelectedId(e.id)}
               onDoubleClick={() => add(e)}
+              draggable
+              onDragStart={(ev) => startDrag(ev, e.kind === 'camera' ? { type: 'effect', id: e.id as EffectId, label: e.label } : { type: 'motion', fx: e.id, label: e.label })}
+              title="Drag onto the timeline or the picture, or press + to add at the playhead"
               onKeyDown={(ev) => {
                 if (ev.key === 'Enter' || ev.key === ' ') {
                   ev.preventDefault();
