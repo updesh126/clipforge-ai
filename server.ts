@@ -34,6 +34,7 @@ import { cancelJob, finishJob, getJob, isCancelled, progressFor } from './server
 import { blankEdit, deleteEdit, editFromClip, getEdit, linkMediaFile, readEdits, saveEdit } from './server/edits.ts';
 import { applyChatTags, editWithAI, parseRefs } from './server/editAI.ts';
 import { searchTags } from './src/motion/tagInfo.ts';
+import { autoEditFromClips } from './server/autoEdit.ts';
 import { renderEdit } from './server/remotion.ts';
 import { scriptToVideo, voiceFilesOf } from './server/scriptVideo.ts';
 import { storyboard } from './server/storyboard.ts';
@@ -1083,6 +1084,29 @@ app.post('/api/jobs/:id/cancel', async (req, res) => {
   await stopComfy();
   console.log(`[clipforge] cancel ${req.params.id}: stopped ${stopped.processes} process(es), ${stopped.requests} AI request(s), ComfyUI interrupted`);
   res.json({ cancelled: ok, ...stopped });
+});
+
+// Clips dropped into the editor chat: placed in order, transcribed, cut and directed ("edit these like that")
+app.post('/api/edits/:id/auto', upload.array('clips', 20), async (req, res) => {
+  const edit = getEdit(req.params.id);
+  const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+  if (!edit || !files.length) {
+    res.status(400).json({ error: edit ? 'Add at least one clip.' : 'Edit not found.' });
+    return;
+  }
+  const jobId = typeof req.body?.jobId === 'string' ? req.body.jobId : `auto_${Date.now()}`;
+  try {
+    const result = await autoEditFromClips(
+      edit,
+      files.map((f) => ({ path: f.path, name: f.originalname, url: `/media/uploads/${f.filename}` })),
+      String(req.body?.instruction ?? '').slice(0, 1000),
+      progressFor(jobId),
+      jobId,
+    );
+    res.json({ edit: saveEdit(result.edit), reply: result.reply, steps: result.steps, applied: result.applied });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Auto-edit failed.' });
+  }
 });
 
 // Edit by prompt with the local LLM

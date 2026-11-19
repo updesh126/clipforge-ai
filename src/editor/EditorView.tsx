@@ -511,6 +511,42 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
     }
   };
 
+  const [aiProgress, setAiProgress] = useState<string | null>(null);
+  /** Clips dropped into the chat: uploaded, placed in order, captioned and directed on the server. */
+  const sendClips = async (files: File[], instruction: string) => {
+    setChat((c) => [...c, { role: 'user', text: instruction, files: files.map((f) => f.name) }]);
+    setAiBusy(true);
+    setAiProgress(`Uploading ${files.length} clip${files.length === 1 ? '' : 's'}…`);
+    try {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      await saveEditRemote(edit);
+      const data = await withProgress(
+        async (jobId) => {
+          const form = new FormData();
+          for (const f of files) form.append('clips', f, f.name);
+          form.append('instruction', instruction);
+          form.append('jobId', jobId);
+          const r = await fetch(`/api/edits/${edit.id}/auto`, { method: 'POST', body: form });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error((j as { error?: string }).error || `Upload failed (${r.status}).`);
+          return j as { edit: EditProject; reply: string; steps: string[]; applied: number };
+        },
+        (p) => setAiProgress(p?.label ?? null),
+      );
+      past.current.push(edit);
+      future.current = [];
+      setEditState(data.edit);
+      setSaveState('saved');
+      force((n) => n + 1);
+      setChat((c) => [...c, { role: 'ai', text: data.reply, steps: data.steps, applied: data.applied }]);
+    } catch (err) {
+      setChat((c) => [...c, { role: 'error', text: err instanceof Error ? err.message : 'Could not edit the clips.' }]);
+    } finally {
+      setAiBusy(false);
+      setAiProgress(null);
+    }
+  };
+
   const startRender = async () => {
     setRender({ busy: true, progress: null });
     try {
@@ -745,6 +781,8 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
                 library={layout.library}
                 libraryPanel={<LibraryPanel projects={projects} onAddTemplate={addTemplate} onAddEffect={addEffect} onAddMotion={addMotion} aspect={{ width: edit.width, height: edit.height }} onAddFile={addFromDisk} onAddProjectVideo={addProjectVideo} onAddAsset={addAsset} />}
                 onSend={(t) => void sendAi(t)}
+                onSendClips={(f, t) => void sendClips(f, t)}
+                progress={aiProgress}
                 onRemoveRef={(n) => setRefs((cur) => cur.filter((r) => r.n !== n))}
                 onHoverRef={setHot}
                 onJumpRef={jumpRef}

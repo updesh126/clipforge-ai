@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowUp, BookOpen, Crosshair, Diamond, Film, Library, Loader2, MessageSquare, PanelLeftClose, Plus, Sparkles, Undo2, X } from 'lucide-react';
+import { ArrowUp, BookOpen, Crosshair, Paperclip, Clapperboard, Diamond, Film, Library, Loader2, MessageSquare, PanelLeftClose, Plus, Sparkles, Undo2, X } from 'lucide-react';
 import { REF_COLOR, refText, type StudioRef } from './refs.ts';
 import { allTags, searchTags, type TagInfo } from '../../motion/tagInfo.ts';
 
@@ -10,6 +10,7 @@ export interface ChatMsg {
   steps?: string[]; // what the AI changed, one sentence each
   applied?: number;
   suggest?: TagInfo[]; // effects that match the request, when the AI could not make a change
+  files?: string[]; // clips sent with this message
 }
 
 const SUGGESTIONS = [
@@ -55,6 +56,9 @@ interface Props {
   library: boolean;
   libraryPanel: ReactNode;
   onSend: (text: string) => void;
+  /** clips attached to the message: cut, captioned and directed by the AI */
+  onSendClips: (files: File[], text: string) => void;
+  progress?: string | null;
   onRemoveRef: (n: number) => void;
   onHoverRef: (n: number | null) => void;
   onJumpRef: (r: StudioRef) => void;
@@ -71,6 +75,13 @@ export function ChatColumn(p: Props) {
   const [text, setText] = useState('');
   const [menu, setMenu] = useState(false);
   const [caret, setCaret] = useState(0);
+  const [files, setFiles] = useState<File[]>([]);
+  const [fileDrop, setFileDrop] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const addFiles = (list: FileList | File[] | null) => {
+    const ok = [...(list ?? [])].filter((f) => /^(video|audio|image)\//.test(f.type) || /\.(mp4|mov|mkv|webm|m4v|mp3|wav|m4a|png|jpe?g|webp)$/i.test(f.name));
+    if (ok.length) setFiles((cur) => [...cur, ...ok].slice(0, 20));
+  };
   const [pick, setPick] = useState<{ start: number; end: number; q: string } | null>(null); // the effects picker
   const [pickIdx, setPickIdx] = useState(0);
   const results = useMemo(() => (pick ? searchTags(pick.q, 40) : []), [pick]);
@@ -116,13 +127,38 @@ export function ChatColumn(p: Props) {
 
   const send = (t: string) => {
     const v = t.trim();
-    if (!v || p.busy) return;
+    if (p.busy) return;
+    if (files.length) {
+      p.onSendClips(files, v);
+      setFiles([]);
+      setText('');
+      return;
+    }
+    if (!v) return;
     p.onSend(v);
     setText('');
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-studio-panel">
+    <div
+      className={`relative flex h-full min-h-0 flex-col bg-studio-panel ${fileDrop ? 'ring-2 ring-inset ring-accent' : ''}`}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
+        setFileDrop(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setFileDrop(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.files.length) return;
+        e.preventDefault();
+        setFileDrop(false);
+        addFiles(e.dataTransfer.files);
+        p.onToggleLibrary(false);
+      }}
+    >
+      {fileDrop && <div className="pointer-events-none absolute inset-0 z-50 grid place-items-center bg-black/60 text-[13px] font-medium text-studio-text">Drop clips to edit them</div>}
       <div className="flex h-10 shrink-0 items-center gap-1 border-b border-studio-border px-1.5">
         {([
           [false, 'Chat', MessageSquare],
@@ -153,6 +189,9 @@ export function ChatColumn(p: Props) {
                 <Sparkles className="h-4 w-4 text-accent" /> What should change?
               </p>
               <p className="text-[12.5px] leading-relaxed text-studio-muted">
+                Drop your clips here (or press <Paperclip className="inline h-3 w-3" /> Clips) and say how to edit them, in any language: “edit these like a reel”, “bilkul mast edit kar de”. ClipForge cuts them in order, adds captions, then picks motion graphics and effects from what is said.
+              </p>
+              <p className="text-[12.5px] leading-relaxed text-studio-muted">
                 Say it in words. To be exact, point first: press <kbd className="rounded bg-studio-field px-1 font-mono text-[11px]">M</kbd> for the moment under the playhead, drag along the strip under the picture for a stretch, turn on <Crosshair className="inline h-3 w-3" /> and drag a box on the picture, or press <kbd className="rounded bg-studio-field px-1 font-mono text-[11px]">Ctrl+L</kbd> for the selected clip.
               </p>
               <div className="flex flex-wrap gap-1.5 pt-1">
@@ -180,7 +219,14 @@ export function ChatColumn(p: Props) {
                     {m.refs.map((r) => <RefPill key={r.n} r={r} onHover={p.onHoverRef} onClick={() => p.onJumpRef(r)} />)}
                   </div>
                 )}
-                <p className="whitespace-pre-wrap">{m.text}</p>
+                {m.files && m.files.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {m.files.map((f, k) => (
+                      <span key={k} className="inline-flex max-w-full items-center gap-1 rounded-md bg-studio-raised px-1.5 py-0.5 text-[11px] text-studio-muted"><Clapperboard className="h-3 w-3 shrink-0" /><span className="truncate">{f}</span></span>
+                    ))}
+                  </div>
+                )}
+                {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
               </div>
             ) : m.role === 'error' ? (
               <p key={i} className="rounded-xl border border-red-900/60 bg-red-950/30 px-3 py-2 text-[12.5px] text-red-200">{m.text}</p>
@@ -231,7 +277,7 @@ export function ChatColumn(p: Props) {
           )}
           {p.busy && (
             <p className="flex items-center gap-2 text-[12.5px] text-studio-muted">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" /> Reading the timeline and making the changes…
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" /> {p.progress || 'Reading the timeline and making the changes…'}
             </p>
           )}
         </div>
@@ -284,6 +330,18 @@ export function ChatColumn(p: Props) {
               {p.draft.map((r) => <RefPill key={r.n} r={r} onHover={p.onHoverRef} onClick={() => p.onJumpRef(r)} onRemove={() => p.onRemoveRef(r.n)} />)}
             </div>
           )}
+          {files.length > 0 && (
+            <div className="mb-1.5 flex flex-wrap gap-1">
+              {files.map((f, k) => (
+                <span key={k} className="inline-flex max-w-full items-center gap-1 rounded-md border border-studio-border bg-studio-field pl-1.5 pr-1 text-[11px] text-studio-text">
+                  <Clapperboard className="h-3 w-3 shrink-0 text-studio-muted" />
+                  <span className="truncate">{f.name}</span>
+                  <span className="shrink-0 text-studio-faint">{(f.size / 1e6).toFixed(f.size > 1e8 ? 0 : 1)} MB</span>
+                  <button type="button" onClick={() => setFiles((cur) => cur.filter((_, j) => j !== k))} aria-label={`Remove ${f.name}`} className="text-studio-faint hover:text-studio-text cursor-pointer"><X className="h-3 w-3" /></button>
+                </span>
+              ))}
+            </div>
+          )}
           <textarea
             ref={box}
             id="studio-chat-input"
@@ -318,7 +376,7 @@ export function ChatColumn(p: Props) {
                 send(text);
               }
             }}
-            placeholder={p.draft.length ? `Say what to change at ${p.draft.map((r) => `[${r.n}]`).join(' ')}…` : 'Say what to change, or type [ for an effect by name'}
+            placeholder={files.length ? 'How should I edit these? e.g. “punchy reel, Creator style”' : p.draft.length ? `Say what to change at ${p.draft.map((r) => `[${r.n}]`).join(' ')}…` : 'Say what to change, or type [ for an effect by name'}
             className="max-h-40 min-h-[44px] w-full resize-none bg-transparent text-[14px] leading-[22px] text-studio-text placeholder:text-studio-faint focus:outline-none"
           />
           {writing && !pick && (
@@ -346,6 +404,21 @@ export function ChatColumn(p: Props) {
               >
                 <BookOpen className="h-3.5 w-3.5" /> Effects
               </button>
+              <button type="button" onClick={() => fileInput.current?.click()} title="Add clips to edit (or drop them on the chat)" className="inline-flex h-[26px] items-center gap-1 rounded-md px-1.5 text-[11.5px] text-studio-muted hover:bg-studio-hover hover:text-studio-text cursor-pointer">
+                <Paperclip className="h-3.5 w-3.5" /> Clips
+              </button>
+              <input
+                ref={fileInput}
+                id="studio-clip-files"
+                type="file"
+                multiple
+                accept="video/*,audio/*,image/*"
+                className="hidden"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
               <span className="text-[11px] text-studio-faint">Local model · Ollama</span>
               {menu && (
                 <div className="absolute bottom-8 left-0 z-40 w-60 rounded-[10px] border border-studio-border-strong bg-studio-raised p-1 shadow-[0_16px_40px_rgba(0,0,0,.5)]" onMouseLeave={() => setMenu(false)}>
@@ -372,7 +445,7 @@ export function ChatColumn(p: Props) {
                 </div>
               )}
             </div>
-            <button type="submit" disabled={p.busy || !text.trim()} aria-label="Send" className="grid h-[26px] w-[26px] place-items-center rounded-md bg-studio-ink text-black disabled:opacity-30 cursor-pointer">
+            <button type="submit" disabled={p.busy || (!text.trim() && !files.length)} aria-label="Send" className="grid h-[26px] w-[26px] place-items-center rounded-md bg-studio-ink text-black disabled:opacity-30 cursor-pointer">
               {p.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
             </button>
           </div>
