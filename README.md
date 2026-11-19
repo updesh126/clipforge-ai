@@ -262,6 +262,8 @@ Open **http://localhost:3000**. The top bar shows how many engines are ready; cl
 | `npm run thumbs` | Make the older vector (procedural) style thumbnails |
 | `npm run lint` | Type-check |
 | `npm run build` / `npm start` | Production build / run it |
+| `npm run installer` | Build `release/ClipForge-Setup-<date>-<commit>.exe` to share (see [Share ClipForge with others](#share-clipforge-with-others-windows)) |
+| `npm run portable` / `npm run portable:ai` | Build the no-install portable version / its AI pack |
 
 ### Where your files live
 
@@ -365,20 +367,54 @@ The director skill drives the running app through `node .claude/skills/clipforge
 
 ---
 
-## Share a portable copy (Windows)
+## Share ClipForge with others (Windows)
 
-**Easiest: an installer.** `npm run installer` builds `release/ClipForge-Setup-<date>-<commit>.exe` (~470 MB, needs Inno Setup: `winget install -e --id JRSoftware.InnoSetup`). Your friend double-clicks it, presses Next and Install, and gets a desktop and Start-menu shortcut. Setup checks the PC and downloads Ollama and the AI model if missing (needs internet); every start re-checks and fixes anything missing. Projects are kept in `%LOCALAPPDATA%\ClipForge\data`, so updates and uninstalling never delete them. After a code change, run `npm run installer` again and send the new setup; it updates in place.
+Give ClipForge to someone with no tech set-up: they need no Node, npm or terminal.
 
-**Or a portable folder (no install):**
+### What to share
 
-Give ClipForge to someone with no tech set-up: no Node, npm or installs needed on their PC.
+One file: **`release\ClipForge-Setup-<date>-<commit>.exe`** (~470 MB). It is too big for email, so send it with Google Drive, OneDrive, WeTransfer or a pen drive.
 
-```powershell
-npm run portable      # the app: release/ClipForge-Portable-<date>-<commit>.exe (~450 MB). Run again after every change.
-npm run portable:ai   # AI pack: Ollama + OLLAMA_MODEL (default qwen2.5:3b), ~2.7 GB. Build once; rebuild only if you change the model.
-```
+Your friend double-clicks it, presses **Next** and **Install**, and gets a desktop and Start-menu shortcut. Setup checks the PC and downloads Ollama and the AI model if they are missing (needs internet, about 3 GB). Every start re-checks and fixes anything missing. Projects are kept in `%LOCALAPPDATA%\ClipForge\data`, so updates and uninstalling never delete them.
 
-They put both .exe files in one folder, double-click each and press **Extract** (same folder for both), then double-click `ClipForge-PortableStart ClipForge.cmd`. Bundled: Node, FFmpeg, all packages, Remotion's headless Chrome, and Whisper when `whisper-cli` is installed on your PC. Never bundled: your `data/`, your `.env`, or Stable Diffusion (they can add it with *Install AI engines (optional).cmd*). Needs 7-Zip on your PC.
+Tell them two things:
+
+1. If Windows says "Windows protected your PC", click **More info**, then **Run anyway** (the setup is not code-signed).
+2. Keep the black ClipForge window open while using it. Closing it stops ClipForge.
+
+### Build a new version
+
+After you change the code:
+
+1. Check your changes with `npm run dev` as usual.
+2. Commit them. The file name includes the commit code, so without a commit the new build gets the old name.
+3. Optional: raise `"version"` in `package.json` (for example `0.1.0` → `0.2.0`). This is the version shown in the installer and in Windows Settings.
+4. Build (about 5 minutes):
+
+   ```powershell
+   npm run installer
+   ```
+
+5. Share the new `ClipForge-Setup-<date>-<commit>.exe`. Your friend runs it over the old install. Their projects stay.
+
+First time only, install Inno Setup on your PC: `winget install -e --id JRSoftware.InnoSetup`.
+
+### All build commands
+
+| Command | Builds | When to use |
+|---|---|---|
+| `npm run installer` | `ClipForge-Setup-....exe` | **Every new version (use this)** |
+| `npm run portable` | `ClipForge-Portable-....exe` (~450 MB) | Only for someone with no internet. No install, just extract and run. |
+| `npm run portable:ai` | `ClipForge-AI-Pack-....exe` (~2.7 GB) | Only with the portable version, and only when you change the AI model (`OLLAMA_MODEL` in `.env`) |
+
+Portable version: your friend puts both .exe files in one folder, double-clicks each and presses **Extract** (same folder for both), then double-clicks `ClipForge-Portable\Start ClipForge.cmd`. Needs 7-Zip on your PC to build.
+
+### What is inside
+
+- **Bundled:** Node, FFmpeg, all packages, Remotion's headless Chrome, and Whisper with its Visual C++ runtime (when `whisper-cli` is installed on your PC).
+- **Never bundled:** your `data/` folder, your `.env`, or Stable Diffusion (too big; your friend can add it later with *Install AI engines (optional).cmd* in the portable version or `npm run setup`).
+- **Don't share** anything else in `release\`: the `ClipForge-Portable\` folder and `.log` files are build leftovers.
+- `.exe` files never go into git: GitHub rejects files over 100 MB, and `release/` is in `.gitignore`.
 
 ## Use it
 
