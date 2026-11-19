@@ -1,6 +1,8 @@
 export type AspectRatio = '9:16' | '1:1' | '16:9';
 export type Framing = 'fill' | 'fit';
-export type CaptionStyle = 'off' | 'clean' | 'highlight' | 'karaoke' | 'pop';
+export type CaptionStyle = 'off' | 'clean' | 'highlight' | 'karaoke' | 'pop' | 'creator' | 'chalk' | 'cleantech';
+/** Caption styles drawn in the Nafay looks (Creator Motion Graphics, Chalk Talk, Clean Tech). */
+export const STYLED_CAPTIONS: readonly CaptionStyle[] = ['creator', 'chalk', 'cleantech'];
 export type ClipLengthPreset = 'auto' | 'short' | 'medium' | 'long';
 export type AppTab = 'home' | 'studio' | 'script' | 'writer' | 'editor' | 'library' | 'architecture' | 'docs';
 
@@ -88,6 +90,8 @@ export interface ClipCandidate {
   captionStyle: CaptionStyle;
   hookTitle?: boolean; // animated title banner over the opening seconds (HyperFrames)
   voiceIntro?: boolean; // spoken title card before the clip (TTS)
+  styleCards?: boolean; // intro + outro cards drawn in the caption's style (creator / chalk / cleantech)
+  outroText?: string; // end-card line, default "Follow for more"
   voice?: string;
   exportedFiles?: ExportedClipFile[];
 }

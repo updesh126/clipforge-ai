@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0",
+  "kind": "style",
+  "icon": "film",
+  "cover": "cover.jpg",
+  "needs": { "en": "Node 22+, FFmpeg, Chrome or Edge, puppeteer-core", "zh-CN": "Node 22+、FFmpeg、Chrome 或 Edge、puppeteer-core", "ja": "Node 22 以上、FFmpeg、Chrome または Edge、puppeteer-core", "ko": "Node 22 이상, FFmpeg, Chrome 또는 Edge, puppeteer-core", "es": "Node 22+, FFmpeg, Chrome o Edge, puppeteer-core" },
+  "title": { "en": "Nafay motion styles", "zh-CN": "Nafay 动态风格", "ja": "Nafay モーションスタイル", "ko": "Nafay 모션 스타일", "es": "Estilos de movimiento Nafay" },
+  "summary": {
+    "en": "Code-drawn animated shorts in three looks: Creator kinetic type, Chalk Talk and Clean Tech.",
+    "zh-CN": "三种代码绘制的动画短片风格：创作者动态字幕、黑板讲解和简洁科技。",
+    "ja": "コードで描くアニメーション短編。クリエイター風キネティック文字、黒板講義、クリーンテックの3種類。",
+    "ko": "코드로 그린 애니메이션 숏폼: 크리에이터 키네틱 타입, 칠판 강의, 클린 테크.",
+    "es": "Cortos animados dibujados con código en tres estilos: tipografía cinética, pizarra y tecnología limpia."
+  },
+  "details": {
+    "en": "Best for: 15–40 s reels, lessons and product explainers without footage.\nWhat it does: storyboard first, then an HTML player with synthesised sound and an MP4.",
+    "zh-CN": "适合：15–40 秒、无需素材的短视频、讲解和产品介绍。\n它会：先出分镜，再做带合成音效的 HTML 播放页和 MP4。",
+    "ja": "向いている用途：素材なしの 15〜40 秒のリール、講義、製品紹介。\nすること：まず絵コンテ、次に合成音付きの HTML プレーヤーと MP4。",
+    "ko": "적합한 용도: 촬영 소스 없는 15–40초 릴, 강의, 제품 설명.\n하는 일: 스토리보드 먼저, 그다음 합성 사운드가 있는 HTML 플레이어와 MP4.",
+    "es": "Ideal para: reels, lecciones y explicaciones de producto de 15–40 s sin metraje.\nQué hace: primero un guion gráfico, luego un reproductor HTML con sonido sintetizado y un MP4."
+  }
+}

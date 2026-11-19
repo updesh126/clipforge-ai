@@ -13,6 +13,7 @@ import * as maps from './renderers/maps.tsx';
 import * as ann from './renderers/annotate.tsx';
 import * as lay from './renderers/layouts.tsx';
 import * as fx from './renderers/fx.tsx';
+import * as nafay from './renderers/nafay.tsx';
 
 export const RENDERERS: Record<BaseId, (m: Motion) => ReactElement> = {
   textReveal: typo.textReveal,
@@ -77,6 +78,11 @@ export const RENDERERS: Record<BaseId, (m: Motion) => ReactElement> = {
   look: fx.look,
   transition: fx.transition,
   audioViz: fx.audioViz,
+  nafayText: nafay.nafayText,
+  nafayCounter: nafay.nafayCounter,
+  nafayWrong: nafay.nafayWrong,
+  nafayBars: nafay.nafayBars,
+  nafayList: nafay.nafayList,
 };
 
 function EffectView({ id, props }: { id: string; props: Props }) {

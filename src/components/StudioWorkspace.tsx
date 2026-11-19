@@ -18,6 +18,7 @@ import {
   Type,
   Layers,
   Clapperboard,
+  Film,
 } from 'lucide-react';
 import type {
   AspectRatio,
@@ -30,6 +31,8 @@ import type {
   TranscriptSegment,
   WordTiming,
 } from '../types.ts';
+import { STYLED_CAPTIONS } from '../types.ts';
+import { StyledCaptionPreview } from './StyledCaptionPreview.tsx';
 import { formatTimecode } from '../utils/format.ts';
 import { postJson, withProgress } from '../utils/api.ts';
 
@@ -57,7 +60,11 @@ const CAPTION_OPTIONS: Array<{ id: CaptionStyle; label: string; motion?: boolean
   { id: 'highlight', label: 'Bold', hint: 'Bold yellow subtitles' },
   { id: 'karaoke', label: 'Karaoke', motion: true, hint: 'Word-by-word highlight (HyperFrames)' },
   { id: 'pop', label: 'Pop', motion: true, hint: 'Words pop in as they are spoken (HyperFrames)' },
+  { id: 'creator', label: 'Creator', motion: true, hint: 'Creator Motion Graphics: caps slam in, yellow swipe on the key word, punch zoom' },
+  { id: 'chalk', label: 'Chalk', motion: true, hint: 'Chalk Talk: words chalked on a slate plate, pink key word' },
+  { id: 'cleantech', label: 'Clean Tech', motion: true, hint: 'Clean Tech: words rise into a white card, blue pill on the key word' },
 ];
+const isStyled = (s: CaptionStyle | undefined) => Boolean(s && STYLED_CAPTIONS.includes(s));
 
 /** Word timings for a segment; re-times evenly when the text was edited (mirrors the server). */
 function segmentWords(seg: TranscriptSegment): WordTiming[] {
@@ -182,7 +189,7 @@ export function StudioWorkspace({
   // Word-level caption page for the live preview (karaoke / pop)
   const activeWords = useMemo(() => {
     if (!activeCaption || !selectedClip) return null;
-    if (selectedClip.captionStyle !== 'karaoke' && selectedClip.captionStyle !== 'pop') return null;
+    if (selectedClip.captionStyle !== 'karaoke' && selectedClip.captionStyle !== 'pop' && !isStyled(selectedClip.captionStyle)) return null;
     const words = segmentWords(activeCaption);
     const portrait = selectedClip.aspectRatio === '9:16';
     const per = portrait ? 3 : 6;
@@ -453,6 +460,8 @@ export function StudioWorkspace({
           hookTitle: Boolean(clip.hookTitle),
           voiceIntro: Boolean(clip.voiceIntro),
           voice: clip.voice,
+          styleCards: isStyled(clip.captionStyle) && Boolean(clip.styleCards),
+          outroText: clip.outroText ?? '',
         }),
       setExportProgress
     );
@@ -652,7 +661,7 @@ export function StudioWorkspace({
                       Exported
                     </span>
                   )}
-                  {(clip.captionStyle === 'karaoke' || clip.captionStyle === 'pop' || clip.hookTitle || clip.voiceIntro) && (
+                  {(clip.captionStyle === 'karaoke' || clip.captionStyle === 'pop' || isStyled(clip.captionStyle) || clip.hookTitle || clip.voiceIntro) && (
                     <span className="inline-flex items-center gap-1 rounded bg-lavender/10 px-1.5 py-0.5 text-[10.5px] text-lavender">
                       <Sparkles className="h-3 w-3" />
                       Motion
@@ -900,8 +909,18 @@ export function StudioWorkspace({
                 </div>
               )}
 
+              {/* Styled caption preview (creator / chalk / cleantech) */}
+              {activeWords && isStyled(selectedClip.captionStyle) && (
+                <StyledCaptionPreview
+                  look={selectedClip.captionStyle as 'creator' | 'chalk' | 'cleantech'}
+                  words={activeWords.words}
+                  current={activeWords.current}
+                  portrait={selectedClip.aspectRatio === '9:16'}
+                />
+              )}
+
               {/* Animated caption preview (karaoke / pop) */}
-              {activeWords && (
+              {activeWords && !isStyled(selectedClip.captionStyle) && (
                 <div className={`pointer-events-none absolute inset-x-3 flex justify-center ${selectedClip.aspectRatio === '9:16' ? 'bottom-[22%]' : 'bottom-6'}`}>
                   <p
                     style={{ fontFamily: '"Arial Black", "Segoe UI", Arial, sans-serif' }}
@@ -1299,6 +1318,40 @@ export function StudioWorkspace({
                 </button>
               );
             })}
+            {isStyled(selectedClip.captionStyle) && (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={Boolean(selectedClip.styleCards)}
+                onClick={() => updateSelectedClip({ styleCards: !selectedClip.styleCards })}
+                className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors cursor-pointer ${
+                  selectedClip.styleCards ? 'border-accent/40 bg-accent/5' : 'border-zinc-900 bg-black hover:border-zinc-800'
+                }`}
+              >
+                <Film className={`h-4 w-4 shrink-0 ${selectedClip.styleCards ? 'text-accent' : 'text-zinc-500'}`} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-medium text-white">Style cards</span>
+                  <span className="block text-[11px] text-zinc-500">Intro card (title) and end card, drawn in the caption's look</span>
+                </span>
+                <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${selectedClip.styleCards ? 'bg-accent' : 'bg-zinc-800'}`}>
+                  <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-black transition-all ${selectedClip.styleCards ? 'left-3.5' : 'left-0.5 bg-zinc-400'}`} />
+                </span>
+              </button>
+            )}
+            {isStyled(selectedClip.captionStyle) && selectedClip.styleCards && (
+              <label className="flex items-center justify-between gap-2 text-xs text-zinc-400">
+                End card
+                <input
+                  id="outro-text"
+                  type="text"
+                  maxLength={60}
+                  value={selectedClip.outroText ?? ''}
+                  placeholder="Follow for more"
+                  onChange={(e) => updateSelectedClip({ outroText: e.target.value })}
+                  className="min-w-0 flex-1 rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-200 focus:outline-none focus:border-accent"
+                />
+              </label>
+            )}
             {selectedClip.voiceIntro && (engines?.voices?.length ?? 0) > 0 && (
               <label className="flex items-center justify-between gap-2 text-xs text-zinc-400">
                 Voice

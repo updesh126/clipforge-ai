@@ -5,7 +5,9 @@
  *   India now has 900 million internet users. [bigStat value=900 suffix=" million" label="India now has" text="internet users"]
  *   The storm hits the village. [rainFx] [shake] [transition: paperTearTransition]
  *
- * Forms:   [name]   [name key=value key="two words"]   [kind: name …]   [move]   [still]   [title: My headline]
+ * Forms:   [name]   [name key=value key="two words"]   [name value "two words" …]   [kind: name …]   [move]   [still]   [title: My headline]
+ *          bare values fill the effect's settings in order (argsFor in src/motion/catalog.ts; a sequence's own fields):
+ *          [creatorCounter 200 "real leads"] = [creatorCounter value=200 text="real leads"]; key=value can follow.
  *          [place: old brick street in Kolkata]  (setting; carries on to later scenes until changed)
  *          [scene: a hand paying with a phone at a tea stall]  (exactly what this scene's picture shows)
  *          [time: night]  (day | sunset | night | dawn; carries on)
@@ -13,7 +15,7 @@
  * Names match ids or display names, ignoring case, spaces and dashes ("Big statistic reveal" = bigStat).
  * Full list: docs/site/script-tags.md (npm run tags-doc).
  */
-import { EFFECTS_LIB } from '../src/motion/catalog.ts';
+import { argsFor, EFFECTS_LIB } from '../src/motion/catalog.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
 import { EFFECTS } from '../src/editor/catalog.ts';
 
@@ -87,11 +89,38 @@ export function parseTag(body: string): Directive | null {
   const kind = raw.match(/^(motion|effect|graphic|sequence|camera|transition|atmosphere)\s*:\s*/i);
   const rest = kind ? raw.slice(kind[0].length) : raw;
   const firstParam = rest.search(/\s[A-Za-z][\w]*\s*=/);
-  const name = (firstParam >= 0 ? rest.slice(0, firstParam) : rest).trim();
+  const head = (firstParam >= 0 ? rest.slice(0, firstParam) : rest).trim();
   const params = firstParam >= 0 ? parseParams(rest.slice(firstParam)) : {};
-  const hit = lookup().get(norm(name));
+  let hit = lookup().get(norm(head));
+  let values: string[] = [];
+  if (!hit) {
+    // [name value "two words" …]: the longest run of unquoted leading words that names something, then values
+    const toks = [...head.matchAll(/"([^"]*)"|“([^”]*)”|'([^']*)'|(\S+)/g)].map((m) => ({ v: m[1] ?? m[2] ?? m[3] ?? m[4] ?? '', quoted: m[4] === undefined }));
+    for (let n = toks.length - 1; n >= 1 && !hit; n--) {
+      if (toks.slice(0, n).some((x) => x.quoted)) continue;
+      const h = lookup().get(norm(toks.slice(0, n).map((x) => x.v).join(' ')));
+      if (h) {
+        hit = h;
+        values = toks.slice(n).map((x) => x.v);
+      }
+    }
+  }
   if (!hit) return null;
+  if (values.length) {
+    const keys = positionalKeys(hit);
+    values.forEach((v, i) => {
+      const k = keys[i];
+      if (k && params[k] === undefined) params[k] = /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
+    });
+  }
   return { kind: hit.kind, id: hit.id, params, raw };
+}
+
+/** Setting keys that bare values fill, in order: the effect's argument list, or a sequence's own fields. */
+export function positionalKeys(e: { kind: DirectiveKind; id: string }): string[] {
+  if (e.kind === 'sequence') return (SEQUENCES[e.id]?.fields ?? []).filter((f) => f.type === 'text' || f.type === 'number').map((f) => f.key);
+  if (e.kind === 'camera' || (e.kind === 'transition' && !EFFECTS_LIB[e.id])) return ['intensity'];
+  return argsFor(e.id);
 }
 
 const OPEN = '';

@@ -500,7 +500,8 @@ function carryPlaceAndTime(story: StoryPlan[], dirs: Directive[][]): StoryPlan[]
 /** A motion-library overlay (graphic or atmosphere) from a tag; text effects default to the scene's words. */
 function directedOverlay(d: Directive, text: string, from: number, dur: number, style: string, track: number, fullScene: boolean): EditItem {
   const fx = EFFECTS_LIB[d.id];
-  const wantsText = fx && BASE_FIELDS[fx.base]?.some((f) => f.key === 'text');
+  // counters keep "text" for their own caption; everything else that shows text falls back to the scene's words
+  const wantsText = fx && fx.base !== 'nafayCounter' && BASE_FIELDS[fx.base]?.some((f) => f.key === 'text');
   const props: Record<string, string | number> = { fx: d.id, accent: STYLE_ACCENT[style] ?? '#B5E2DD', ...(wantsText && d.params.text === undefined ? { text: firstWords(text, 8) } : {}), ...d.params };
   const start = fullScene ? from : from + 0.3;
   const len = fullScene ? dur : Math.max(1.5, Math.min((fx?.duration ?? 3) + 1, dur - 0.3));
@@ -523,7 +524,17 @@ export function directedTransition(d: Directive, cut: number, style: string): Ed
 export function directedExtras(d: Directive[], text: string, from: number, dur: number, style: string): EditItem[] {
   const out: EditItem[] = [];
   for (const x of d) {
-    if (x.kind === 'graphic') out.push(directedOverlay(x, text, from, dur, style, 5, false));
+    if (x.kind === 'graphic') {
+      const fx = EFFECTS_LIB[x.id];
+      // Creator / Chalk / Clean Tech graphics bring their own backdrop, so they fill the whole scene
+      const styled = fx?.category === 'styles' && x.params.backdrop !== 'none';
+      if (fx?.base === 'nafayCounter' && x.params.value === undefined) {
+        const n = text.match(/-?\d[\d,]*(\.\d+)?/);
+        if (!n) continue; // numbers only come from the tag or the scene's words
+        x.params.value = Number(n[0].replace(/,/g, ''));
+      }
+      out.push(directedOverlay(x, text, from, dur, style, styled ? 6 : 5, styled));
+    }
     else if (x.kind === 'camera' && !PLANNED_CAMERAS.includes(x.id) && x.id in EFFECTS) {
       const e = EFFECTS[x.id as EffectId];
       out.push({ id: newId('cam'), kind: 'effect', name: `${e.label} (script)`, track: 1, from: round(from + 0.3), duration: round(Math.min(e.duration, dur)), effect: x.id as EffectId, intensity: Number(x.params.intensity) || 1 });

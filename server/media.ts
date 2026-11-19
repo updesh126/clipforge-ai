@@ -4,6 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import type { AspectRatio, CaptionStyle, Framing, TranscriptSegment, VideoMetadata } from './types.ts';
 import { buildCompositionHtml, frameSize, hyperframesInstalled, renderComposition, segmentWords, wordPages } from './hyperframes.ts';
+import { buildStyledCompositionHtml, isStyledLook } from './styledCaptions.ts';
 import type { ProgressFn } from './progress.ts';
 import { audioDuration, speak } from './tts.ts';
 import { EXPORTS_DIR, TEMP_DIR } from './store.ts';
@@ -163,7 +164,8 @@ export function buildAssContent(
   resY: number,
   captionStyle: CaptionStyle
 ): string {
-  const animated = captionStyle === 'karaoke' || captionStyle === 'pop';
+  // the styled looks (creator / chalk / cleantech) fall back to word-by-word pop captions here
+  const animated = captionStyle === 'karaoke' || captionStyle === 'pop' || isStyledLook(captionStyle);
   const bold = captionStyle !== 'clean';
   const portrait = resY > resX;
   const fontSize = portrait ? (animated ? 76 : 58) : resX === resY ? 56 : 46;
@@ -307,6 +309,8 @@ export interface ExportParams {
   hookTitle?: boolean;
   voiceIntro?: boolean;
   voice?: string;
+  styleCards?: boolean; // intro + outro cards in the caption's look (creator / chalk / cleantech only)
+  outroText?: string;
   transcript: TranscriptSegment[];
   onProgress?: ProgressFn;
 }
@@ -335,8 +339,9 @@ export async function exportClipWithFfmpeg(params: ExportParams): Promise<Export
   // Always write a standalone SRT file
   fs.writeFileSync(path.join(EXPORTS_DIR, srtFileName), buildSrtContent(transcript, start, end), 'utf-8');
 
-  const animatedCaps = burnCaptions && (captionStyle === 'karaoke' || captionStyle === 'pop');
-  const wantsHyperframes = animatedCaps || Boolean(params.hookTitle) || Boolean(params.voiceIntro);
+  const styled = isStyledLook(captionStyle);
+  const animatedCaps = burnCaptions && (captionStyle === 'karaoke' || captionStyle === 'pop' || styled);
+  const wantsHyperframes = animatedCaps || Boolean(params.hookTitle) || Boolean(params.voiceIntro) || (styled && Boolean(params.styleCards));
   let warning: string | undefined;
 
   if (wantsHyperframes && hyperframesInstalled()) {
@@ -348,7 +353,7 @@ export async function exportClipWithFfmpeg(params: ExportParams): Promise<Export
       console.warn('[clipforge]', warning);
     }
   } else if (wantsHyperframes) {
-    warning = 'HyperFrames not installed — exported with FFmpeg captions (no hook title / voice intro).';
+    warning = 'HyperFrames not installed — exported with FFmpeg captions (no hook title / voice intro / style cards).';
   }
 
   progress('encode', 'Encoding with FFmpeg', 20);
@@ -415,6 +420,13 @@ async function exportWithHyperframes(params: ExportParams, mp4OutPath: string, s
       introWav = path.join(dir, 'intro.wav');
       await speak(params.title, introWav, params.voice);
       introDuration = Math.min(8, (await audioDuration(introWav)) + 0.5);
+    }
+    // Styled looks: a silent intro card (unless the voice intro already made one) and an end card
+    const look = isStyledLook(captionStyle) ? captionStyle : null;
+    const cards = Boolean(look && params.styleCards);
+    if (cards && !introWav) introDuration = 1.8;
+    const outroDuration = cards ? 2.0 : 0;
+    if (introDuration > 0) {
       await execFileAsync('ffmpeg', ['-y', '-ss', '0.5', '-i', base, '-frames:v', '1', '-q:v', '3', path.join(dir, 'intro_bg.jpg')]).catch(() => {});
       hasIntroBg = fs.existsSync(path.join(dir, 'intro_bg.jpg'));
     }
@@ -429,28 +441,44 @@ async function exportWithHyperframes(params: ExportParams, mp4OutPath: string, s
             .filter((w) => w.end > start && w.start < end)
             .map((w) => ({ text: w.text, start: Math.max(0, w.start - start), end: Math.min(clipDuration, w.end - start) }))
         : [];
-    const html = buildCompositionHtml({
-      width: W,
-      height: H,
-      clipDuration,
-      introDuration,
-      words,
-      captionStyle: burnCaptions ? captionStyle : 'off',
-      title: params.title || '',
-      hookTitle: Boolean(params.hookTitle),
-      hasIntroBg,
-    });
+    const html = look
+      ? buildStyledCompositionHtml({
+          width: W,
+          height: H,
+          clipDuration,
+          introDuration,
+          outroDuration,
+          words,
+          look,
+          title: params.title || '',
+          outroText: params.outroText || '',
+          hookTitle: Boolean(params.hookTitle),
+          hasIntroBg,
+        })
+      : buildCompositionHtml({
+          width: W,
+          height: H,
+          clipDuration,
+          introDuration,
+          words,
+          captionStyle: burnCaptions ? captionStyle : 'off',
+          title: params.title || '',
+          hookTitle: Boolean(params.hookTitle),
+          hasIntroBg,
+        });
     const rendered = path.join(dir, 'rendered.mp4');
     await renderComposition(dir, html, rendered);
 
     // 4. FFmpeg: put the original-quality audio back (+ intro voice), copy the rendered video
     progress('mux', 'Mixing audio with FFmpeg', 90);
-    const total = introDuration + clipDuration;
+    const total = introDuration + clipDuration + outroDuration;
     const args = ['-y', '-i', rendered, '-i', base];
     if (introWav) args.push('-i', introWav);
     const delayMs = Math.round(introDuration * 1000);
     if (metadata.hasAudio && introWav) {
       args.push('-filter_complex', `[1:a]adelay=${delayMs}:all=1[m];[2:a]aresample=48000[v];[v][m]amix=inputs=2:duration=longest:normalize=0[a]`, '-map', '0:v', '-map', '[a]');
+    } else if (metadata.hasAudio && delayMs > 0) {
+      args.push('-filter_complex', `[1:a]adelay=${delayMs}:all=1[a]`, '-map', '0:v', '-map', '[a]');
     } else if (metadata.hasAudio) {
       args.push('-map', '0:v', '-map', '1:a');
     } else if (introWav) {

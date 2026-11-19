@@ -71,7 +71,9 @@ export function editFromClip(project: ClipProject, clip: ClipCandidate): EditPro
     .filter((w) => w.end > clip.start && w.start < clip.end)
     .map((w) => ({ text: w.text, start: round(Math.max(0, w.start - clip.start)), end: round(Math.min(len, w.end - clip.start)) }));
 
-  const look: CaptionLook = clip.captionStyle === 'pop' ? 'pop' : clip.captionStyle === 'clean' ? 'clean' : clip.captionStyle === 'highlight' ? 'bold' : 'karaoke';
+  // the styled clip looks have no editor twin yet: creator → pop, chalk → clean, cleantech → bold
+  const cs = clip.captionStyle;
+  const look: CaptionLook = cs === 'pop' || cs === 'creator' ? 'pop' : cs === 'clean' || cs === 'chalk' ? 'clean' : cs === 'highlight' || cs === 'cleantech' ? 'bold' : 'karaoke';
   const items: EditItem[] = [
     {
       id: newId('v'),

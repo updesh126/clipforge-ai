@@ -605,6 +605,8 @@ app.post('/api/projects/:id/clips/:clipId/export', async (req, res) => {
   const hookTitle = typeof req.body?.hookTitle === 'boolean' ? req.body.hookTitle : Boolean(clip.hookTitle);
   const voiceIntro = typeof req.body?.voiceIntro === 'boolean' ? req.body.voiceIntro : Boolean(clip.voiceIntro);
   const voice = typeof req.body?.voice === 'string' && /^[a-z]{2}_[a-z]+$/.test(req.body.voice) ? req.body.voice : clip.voice;
+  const styleCards = typeof req.body?.styleCards === 'boolean' ? req.body.styleCards : Boolean(clip.styleCards);
+  const outroText = (typeof req.body?.outroText === 'string' ? req.body.outroText : clip.outroText ?? '').trim().slice(0, 60);
 
   try {
     const { mp4FileName, srtFileName, burned, engine, warning } = await exportClipWithFfmpeg({
@@ -615,6 +617,8 @@ app.post('/api/projects/:id/clips/:clipId/export', async (req, res) => {
       hookTitle,
       voiceIntro,
       voice,
+      styleCards,
+      outroText,
       onProgress: progressFor(req.body?.jobId),
       start,
       end,
@@ -651,6 +655,8 @@ app.post('/api/projects/:id/clips/:clipId/export', async (req, res) => {
       hookTitle,
       voiceIntro,
       voice,
+      styleCards,
+      outroText,
       exportedFiles: [exportRecord, ...(clip.exportedFiles ?? [])].slice(0, 6),
     };
 

@@ -9,7 +9,7 @@
  */
 import type { FieldDef } from '../editor/catalog.ts';
 
-export type Category = 'sequences' | 'typography' | 'data' | 'maps' | 'annotations' | 'shapes' | 'layouts' | 'timelines' | 'diagrams' | 'science' | 'finance' | 'atmosphere' | 'transitions' | 'audio';
+export type Category = 'sequences' | 'typography' | 'data' | 'maps' | 'annotations' | 'shapes' | 'layouts' | 'timelines' | 'diagrams' | 'science' | 'finance' | 'atmosphere' | 'transitions' | 'audio' | 'styles';
 
 export const CATEGORIES: { id: Category; label: string; blurb: string }[] = [
   { id: 'sequences', label: 'Sequences', blurb: 'Ready-made storytelling combinations' },
@@ -26,6 +26,7 @@ export const CATEGORIES: { id: Category; label: string; blurb: string }[] = [
   { id: 'atmosphere', label: 'Atmosphere', blurb: 'Particles, grain, glow, light rays, film looks' },
   { id: 'transitions', label: 'Transitions', blurb: 'Wipes, iris, shutters, paper tear, grids' },
   { id: 'audio', label: 'Audio reactive', blurb: 'Waveforms, beat pulses, narration progress' },
+  { id: 'styles', label: 'Creator · Chalk · Clean Tech', blurb: 'Nafay looks: slammed statements, counters, wrong-idea strikes, bar charts and checklists' },
 ];
 
 // ---------------------------------------------------------------- field helpers
@@ -37,6 +38,7 @@ const FONT = s('font', 'Font', ['sans', 'serif', 'condensed', 'impact', 'marker'
 const ANIM = s('anim', 'Animation', ['up', 'fade', 'down', 'left', 'right', 'scale', 'pop', 'blur', 'wipe', 'mask', 'rotate', 'flip', 'drop', 'tracking', 'typewriter', 'scramble', 'bounce', 'none']);
 const XY = [n('x', 'X %', 0, 100), n('y', 'Y %', 0, 100)];
 const DATA = t('data', 'Data (Label:value, …)');
+const LOOK = [s('look', 'Look', ['creator', 'chalk', 'cleantech']), s('backdrop', 'Backdrop', ['full', 'none'])];
 const TITLE = t('title', 'Title');
 const NUMFMT = [s('format', 'Format', ['number', 'percent', 'currency', 'decimal']), t('prefix', 'Prefix'), t('suffix', 'Suffix'), s('grouping', 'Grouping', ['intl', 'indian', 'none'])];
 const YES = (key: string, label: string) => s(key, label, ['true', 'false']);
@@ -61,7 +63,8 @@ export type BaseId =
   | 'split' | 'cards' | 'browser' | 'search' | 'chat' | 'socialPost' | 'newspaper' | 'evidenceBoard' | 'mythFact'
   | 'timeline' | 'flow' | 'network' | 'causeEffect' | 'tree'
   | 'science' | 'coins' | 'currency' | 'moneyFlow'
-  | 'particles' | 'look' | 'transition' | 'audioViz';
+  | 'particles' | 'look' | 'transition' | 'audioViz'
+  | 'nafayText' | 'nafayCounter' | 'nafayWrong' | 'nafayBars' | 'nafayList';
 
 /** Parameter schema per base renderer (what the Inspector shows). */
 export const BASE_FIELDS: Record<BaseId, FieldDef[]> = {
@@ -127,6 +130,11 @@ export const BASE_FIELDS: Record<BaseId, FieldDef[]> = {
   look: [s('kind', 'Look', ['lightSweep', 'rays', 'grain', 'vignette', 'lightLeak', 'filmBurn', 'vhs', 'glitch', 'spotlight', 'fog', 'gradient', 'pattern', 'colorWash', 'glow']), n('amount', 'Amount', 0, 1, 0.05), ...XY, n('radius', 'Radius', 5, 80), c('accent2', 'Second colour'), s('pattern', 'Pattern', ['dots', 'grid', 'stripes'])],
   transition: [s('kind', 'Kind', ['wipe', 'dip', 'iris', 'radial', 'shutter', 'blinds', 'split', 'grid', 'pixel', 'paperTear', 'lineWipe']), s('direction', 'Direction', ['left', 'right', 'up', 'down']), c('accent2', 'Second colour'), t('text', 'Text on wipe')],
   audioViz: [s('kind', 'Kind', ['bars', 'line', 'circle', 'beat', 'progress', 'speaker']), n('bpm', 'BPM', 40, 200), t('text', 'Speaker name'), ...XY],
+  nafayText: [t('text', 'Statement (*word* = key word)'), t('sub', 'Small line under it'), t('label', 'Small label above'), n('size', 'Size', 4, 25, 0.5), n('stagger', 'Per word (s)', 0.05, 0.6, 0.01), ...LOOK],
+  nafayCounter: [n('value', 'Value', -1e12, 1e12, 0.01), t('label', 'Label above'), t('text', 'Text below'), t('prefix', 'Prefix'), t('suffix', 'Suffix'), n('decimals', 'Decimals', 0, 4), s('grouping', 'Grouping', ['intl', 'indian', 'none']), n('countDur', 'Count time (s)', 0.3, 6, 0.1), n('size', 'Size', 8, 40, 0.5), ...LOOK],
+  nafayWrong: [t('text', 'The wrong idea'), t('sub', 'What to do instead'), t('stamp', 'Stamp (creator look)'), n('size', 'Size', 4, 20, 0.5), ...LOOK],
+  nafayBars: [DATA, TITLE, t('suffix', 'Value suffix'), t('highlight', 'Highlight label (default: biggest)'), ...LOOK],
+  nafayList: [t('items', 'Items (a; b; c)'), TITLE, n('stagger', 'Per item (s)', 0.2, 2, 0.05), ...LOOK],
 };
 
 export interface FxDef {
@@ -358,6 +366,19 @@ const ROWS: Row[] = [
   ['beatPulse', 'audioViz', 'audio', 'Beat pulse', 'A disc pulsing to a BPM', 5, { kind: 'beat' }],
   ['narrationProgress', 'audioViz', 'audio', 'Narration progress line', 'A glowing line fills as the story plays', 10, { kind: 'progress' }],
   ['speakerIndicator', 'audioViz', 'audio', 'Speaker indicator', 'Name tag with a talking glow', 5, { kind: 'speaker' }],
+  // ---- Nafay styles (Creator Motion Graphics · Chalk Talk · Clean Tech)
+  ['creatorSlam', 'nafayText', 'styles', 'Creator statement slam', 'Huge caps slam in word by word; the *key* word gets a yellow highlighter swipe and a punch zoom', 3, { look: 'creator', text: 'YOU NEED *REPS*' }],
+  ['creatorCounter', 'nafayCounter', 'styles', 'Creator money counter', 'Green number rolls up and locks with a white flash and spark streaks', 3.5, { look: 'creator', value: 200, text: 'real leads' }],
+  ['creatorWrong', 'nafayWrong', 'styles', 'Creator wrong idea', 'The wrong idea slams in, gets a red strike-through and a NO. stamp', 3, { look: 'creator', text: 'WAITING UNTIL YOU ARE READY?', stamp: 'NO.' }],
+  ['creatorBars', 'nafayBars', 'styles', 'Creator bar chart', 'Green bars punch up to scale on near-black, the biggest one glows', 3.5, { look: 'creator', data: 'Jan:20, Feb:45, Mar:80' }],
+  ['chalkWrite', 'nafayText', 'styles', 'Chalk statement', 'A sentence is chalked on a green board letter by letter; the *key* word in pink, underlined in yellow', 3.5, { look: 'chalk', text: 'Small wins *compound*.' }],
+  ['chalkCounter', 'nafayCounter', 'styles', 'Chalk counter', 'A pink number is re-chalked as it counts, then ringed', 3.5, { look: 'chalk', value: 30, suffix: '%', label: 'can lose up to', text: 'of its data' }],
+  ['chalkChart', 'nafayBars', 'styles', 'Chalk bar chart', 'Axes and bars chalked to scale, the key bar in yellow', 4, { look: 'chalk', data: 'L:7, M:15, Q:25, H:30', suffix: '%' }],
+  ['chalkList', 'nafayList', 'styles', 'Chalk checklist', 'Points chalked one by one, each ticked in yellow', 4, { look: 'chalk', items: 'Plan; Practise; Repeat' }],
+  ['cleanStatement', 'nafayText', 'styles', 'Clean Tech statement', 'Words rise into place on off-white; a blue pill grows behind the *key* word', 3, { look: 'cleantech', text: 'Good bots *check.*' }],
+  ['cleanCounter', 'nafayCounter', 'styles', 'Clean Tech counter', 'A big blue number climbs under a mono label', 3, { look: 'cleantech', value: 1240, label: 'PAGES SEARCHED', text: 'for one question' }],
+  ['cleanChecklist', 'nafayList', 'styles', 'Clean Tech task list', 'A white card of tasks, each ticked off with a green check', 4, { look: 'cleantech', title: 'TASKS', items: 'Search the docs; Find the policy; Quote the line' }],
+  ['cleanBars', 'nafayBars', 'styles', 'Clean Tech bar chart', 'Rounded blue bars grow in a white card with mono labels', 3.5, { look: 'cleantech', data: 'Q1:12, Q2:18, Q3:27' }],
 ];
 
 export const EFFECTS_LIB: Record<string, FxDef> = Object.fromEntries(
@@ -368,4 +389,35 @@ export const EFFECTS_LIB: Record<string, FxDef> = Object.fromEntries(
 export function fieldsFor(id: string): FieldDef[] {
   const fx = EFFECTS_LIB[id];
   return fx ? [...BASE_FIELDS[fx.base], ...COMMON_FIELDS] : COMMON_FIELDS;
+}
+
+/**
+ * The order bare values fill an effect's settings in a script tag: [creatorCounter 200 "real leads"] sets
+ * value=200 and text="real leads". Per base renderer; key=value settings can still be mixed in.
+ */
+export const BASE_ARGS: Partial<Record<BaseId, string[]>> = {
+  textReveal: ['text', 'subtitle'], paperTitle: ['text', 'kicker'], marker: ['text'], quoteCard: ['text', 'source', 'highlight'],
+  lowerThird: ['text', 'subtitle'], kinetic: ['text'], scroller: ['text', 'label'], chapter: ['number', 'text', 'subtitle'],
+  textSwap: ['text', 'text2'], circularText: ['text', 'center'], counter: ['value', 'text', 'label', 'suffix'],
+  bars: ['data', 'title'], lineChart: ['data', 'title'], pie: ['data', 'title'], gauge: ['value', 'label'],
+  pictogram: ['value', 'total', 'text'], compare: ['labelA', 'valueA', 'labelB', 'valueB'], ranking: ['data', 'title'],
+  funnel: ['data', 'title'], bubbles: ['data', 'title'], heatmap: ['data', 'title'], waterfall: ['data', 'title'],
+  worldMap: ['country', 'label'], globe: ['country', 'label'], aiNote: ['aiNote'], scribble: ['shape', 'label'], arrow: ['label'],
+  connector: ['text', 'subtitle'], bracket: ['label'], magnifier: ['text', 'label'], stamp: ['text'], redact: ['text'],
+  sticky: ['text'], bubble: ['text'], numbered: ['labels'], documentCard: ['title', 'text', 'highlight'], cursor: ['label'],
+  shape: ['shape'], burst: ['count'], gridReveal: ['cols'], split: ['labelA', 'textA', 'labelB', 'textB'], cards: ['items', 'title'],
+  browser: ['url', 'text'], search: ['query', 'results'], chat: ['messages'], socialPost: ['name', 'handle', 'text'],
+  newspaper: ['text', 'masthead'], evidenceBoard: ['items'], mythFact: ['textA', 'textB'], timeline: ['events'], flow: ['steps'],
+  network: ['nodes'], causeEffect: ['steps'], tree: ['tree'], science: ['kind', 'label'], coins: ['data'],
+  currency: ['value', 'rate', 'from', 'to'], moneyFlow: ['from', 'to', 'value'], particles: ['kind'], look: ['kind'],
+  transition: ['kind', 'direction'], audioViz: ['kind'],
+  nafayText: ['text', 'sub'], nafayCounter: ['value', 'text', 'label', 'suffix', 'prefix'], nafayWrong: ['text', 'sub', 'stamp'],
+  nafayBars: ['data', 'title', 'suffix'], nafayList: ['items', 'title'],
+};
+
+/** Setting keys that bare values fill, in order, for an effect id (empty when it takes none). */
+export function argsFor(id: string): string[] {
+  const fx = EFFECTS_LIB[id];
+  if (!fx) return [];
+  return BASE_ARGS[fx.base] ?? BASE_FIELDS[fx.base].filter((f) => f.type === 'text' || f.type === 'number').map((f) => f.key).filter((k) => k !== 'x' && k !== 'y').slice(0, 3);
 }

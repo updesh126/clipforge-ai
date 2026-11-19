@@ -4,7 +4,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { BASE_FIELDS, CATEGORIES, COMMON_FIELDS, EFFECTS_LIB } from '../src/motion/catalog.ts';
+import { argsFor, BASE_FIELDS, CATEGORIES, COMMON_FIELDS, EFFECTS_LIB } from '../src/motion/catalog.ts';
 import { SEQUENCES } from '../src/motion/sequences.ts';
 import { EFFECTS } from '../src/editor/catalog.ts';
 import { PLANNED_CAMERAS } from '../server/directives.ts';
@@ -13,6 +13,20 @@ const esc = (s: string) => s.replace(/\|/g, '\\|');
 const CUTS = ['whipPan', 'irisWipe', 'flash', 'fadeIn', 'fadeOut'];
 const fieldList = (keys: string[]) => (keys.length ? keys.map((k) => `\`${k}\``).join(', ') : '—');
 const exampleValue = (v: string | number) => (typeof v === 'number' ? String(v) : /\s|;/.test(v) ? `"${v}"` : v);
+
+const STYLES_NOTE = `
+
+These fill the whole scene with their own background (\`backdrop=none\` lays them over the picture instead). Write the key word in \`*stars*\`; without stars the longest word is used. Counters take their number from the tag or the scene's words and are skipped when neither has one.
+
+\`\`\`text
+Most booths hand out free pens nobody keeps. [creatorWrong "FREE PENS FOR EVERYONE?" "Design a reward instead"]
+Five hundred visitors, forty percent play: two hundred real leads. [creatorCounter 200 "real leads"]
+Level H can lose up to thirty percent of its data. [chalkCounter 30 "of its data" "can lose up to" %]
+Here is how error correction compares. [chalkChart "L:7, M:15, Q:25, H:30" "Data it can lose" %]
+The bot searches, reads, then quotes the exact line. [cleanChecklist "Search the docs; Find the policy; Quote the line"]
+Good bots check. [cleanStatement "Good bots *check.*"]
+\`\`\`
+`;
 
 const out: string[] = [];
 out.push(`# Script tags
@@ -39,6 +53,7 @@ By evening, millions of small payments have moved quietly across the country. [t
 |---|---|---|
 | \`[name]\` | \`[rainFx]\` | Use this effect in this scene |
 | \`[name key=value …]\` | \`[bigStat value=900 suffix=" million"]\` | …with these settings (quote values that have spaces) |
+| \`[name value value …]\` | \`[creatorCounter 200 "real leads"]\` | Values only: they fill the settings in the order listed under **Values in order** (here \`value\`, then \`text\`). Mix in \`key=value\` for anything else. |
 | \`[kind: name]\` | \`[transition: irisWipe]\` | Same, saying what it is (optional — the name already tells ClipForge) |
 
 ## Scene direction tags — what the picture shows
@@ -145,14 +160,15 @@ Settings: \`count\` and \`colors\` for particles; \`amount\` (0–1) for looks, 
 
 Full storytelling beats (a big stat, a timeline, a map…). Settings marked **number** must come from the tag or the scene's words.
 
-| Tag | What it shows | Settings | Example |
-|---|---|---|---|
+| Tag | What it shows | Settings | Values in order | Example |
+|---|---|---|---|---|
 ${Object.values(SEQUENCES)
   .map((s) => {
     const keys = Object.keys(s.params).filter((k) => k !== 'bg');
     const nums = keys.filter((k) => typeof s.params[k] === 'number');
     const example = `[${s.id}${keys.map((k) => ` ${k}=${exampleValue(s.params[k])}`).join('')}]`;
-    return `| \`[${s.id}]\` | ${esc(s.description)} | ${keys.map((k) => (nums.includes(k) ? `\`${k}\` (number)` : `\`${k}\``)).join(', ') || '—'} | \`${esc(example)}\` |`;
+    const order = s.fields.filter((f) => f.type === 'text' || f.type === 'number').map((f) => f.key);
+    return `| \`[${s.id}]\` | ${esc(s.description)} | ${keys.map((k) => (nums.includes(k) ? `\`${k}\` (number)` : `\`${k}\``)).join(', ') || '—'} | ${fieldList(order)} | \`${esc(example)}\` |`;
   })
   .join('\n')}
 
@@ -169,9 +185,9 @@ for (const cat of CATEGORIES) {
 
 ${cat.blurb}.
 
-| Tag | What it does | Settings |
-|---|---|---|
-${list.map((f) => `| \`[${f.id}]\` | ${esc(f.description)} | ${fieldList(BASE_FIELDS[f.base].map((x) => x.key))} |`).join('\n')}
+| Tag | What it does | Settings | Values in order |
+|---|---|---|---|
+${list.map((f) => `| \`[${f.id}]\` | ${esc(f.description)} | ${fieldList(BASE_FIELDS[f.base].map((x) => x.key))} | ${fieldList(argsFor(f.id))} |`).join('\n')}${cat.id === 'styles' ? STYLES_NOTE : ''}
 `);
 }
 
