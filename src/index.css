@@ -13,6 +13,32 @@
   --color-peach: #FBDFCB;
   --color-surface: #070709;
   --color-panel: #0C0C0F;
+  /* Studio editor (OpenFilm-style layout in ClipForge colours): panes separated by 1px black lines */
+  --color-studio-app: #0b0b0e;
+  --color-studio-bar: #17171b;
+  --color-studio-panel: #111114;
+  --color-studio-raised: #1b1b20;
+  --color-studio-viewer: #0e0e11;
+  --color-studio-field: rgba(255, 255, 255, 0.07);
+  --color-studio-hover: rgba(255, 255, 255, 0.06);
+  --color-studio-border: rgba(240, 240, 255, 0.075);
+  --color-studio-border-strong: rgba(240, 240, 255, 0.15);
+  --color-studio-text: #e6e6e6;
+  --color-studio-muted: #a3a3a3;
+  --color-studio-faint: #717177;
+  --color-studio-ink: #ebebed;
+  /* clip colours by kind (timeline) */
+  --color-tl-video: #354f6a;
+  --color-tl-image: #2e5363;
+  --color-tl-text: #7f4d28;
+  --color-tl-captions: #504472;
+  --color-tl-effect: #74365f;
+  --color-tl-audio: #1c5757;
+  /* what the user points at: moment, stretch, area, clip */
+  --color-ref-moment: #4b8bd6;
+  --color-ref-range: #d6a04b;
+  --color-ref-region: #9a6bd6;
+  --color-ref-clip: #4cc27a;
   --animate-shimmer: shimmer 1.6s linear infinite;
   @keyframes shimmer {
     0% { background-position: -200% 0; }

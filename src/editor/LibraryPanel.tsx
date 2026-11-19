@@ -7,6 +7,10 @@ import type { EffectId, TemplateId } from './types.ts';
 import { ART_STYLE_LABELS, ART_STYLE_OPTIONS, TEMPLATES } from './catalog.ts';
 
 const ART_SWATCH: Record<string, string[]> = {
+  storybook: ['#F3E3C3', '#E07A5F', '#81B29A', '#3D405B'],
+  cartoon: ['#FFE14D', '#FF6B6B', '#4ECDC4', '#1D1B1F'],
+  flatVector: ['#264653', '#2A9D8F', '#E9C46A', '#F4A261'],
+  handDrawn: ['#2A2622', '#FBF7EF', '#A3C4BC', '#E8B4A0'],
   madhubani: ['#C1272D', '#F4B400', '#2E7D32', '#F6E7C1'],
   inkWash: ['#141414', '#5E5E5A', '#EFEAE0', '#B3261E'],
   shadowPuppet: ['#1B0E05', '#FFB347', '#FFE2A8', '#5A230A'],
@@ -96,7 +100,7 @@ export function LibraryPanel({ projects, onAddTemplate, onAddEffect, onAddMotion
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-white">{ART_STYLE_LABELS[style]}</span>
                 <span className="flex overflow-hidden rounded">
-                  {ART_SWATCH[style].map((c, i) => (
+                  {(ART_SWATCH[style] ?? []).map((c, i) => (
                     <span key={i} className="h-3 w-3" style={{ background: c }} />
                   ))}
                 </span>

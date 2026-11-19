@@ -1,3 +1,4 @@
+import { LottieThumb } from './LottieThumb.tsx';
 import { useEffect, useState } from 'react';
 import { Search, Loader2, Wand2, Upload, AlertCircle } from 'lucide-react';
 import type { AssetEntry, AssetType } from '../assetkit/types.ts';
@@ -143,7 +144,7 @@ export function AssetsPanel({ onAdd }: Props) {
                 className="block w-full cursor-pointer"
               >
                 {a.animated ? (
-                  <span className="grid aspect-square w-full place-items-center bg-lavender/10 text-[10px] font-semibold text-lavender">▶ Lottie</span>
+                  <LottieThumb url={a.url} name={a.name} />
                 ) : (
                   <img src={a.url} alt={a.name} loading="lazy" className="aspect-square w-full object-contain" />
                 )}

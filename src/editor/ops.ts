@@ -8,13 +8,13 @@ import type { EffectId, TemplateId } from './types.ts';
 export const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 export const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export const KIND_STYLE: Record<ItemKind, { label: string; bar: string; text: string }> = {
-  video: { label: 'Video', bar: 'bg-sky-500/25 border-sky-400/60', text: 'text-sky-200' },
-  audio: { label: 'Audio', bar: 'bg-emerald-500/25 border-emerald-400/60', text: 'text-emerald-200' },
-  image: { label: 'Image', bar: 'bg-amber-500/25 border-amber-400/60', text: 'text-amber-200' },
-  text: { label: 'Graphic', bar: 'bg-lavender/25 border-lavender/70', text: 'text-lavender' },
-  captions: { label: 'Captions', bar: 'bg-accent/20 border-accent/70', text: 'text-accent' },
-  effect: { label: 'Effect', bar: 'bg-pink/20 border-pink/70', text: 'text-pink' },
+export const KIND_STYLE: Record<ItemKind, { label: string; bar: string; text: string; solid: string }> = {
+  video: { label: 'Video', bar: 'bg-sky-500/25 border-sky-400/60', text: 'text-sky-200', solid: 'bg-tl-video' },
+  audio: { label: 'Audio', bar: 'bg-emerald-500/25 border-emerald-400/60', text: 'text-emerald-200', solid: 'bg-tl-audio' },
+  image: { label: 'Image', bar: 'bg-amber-500/25 border-amber-400/60', text: 'text-amber-200', solid: 'bg-tl-image' },
+  text: { label: 'Graphic', bar: 'bg-lavender/25 border-lavender/70', text: 'text-lavender', solid: 'bg-tl-text' },
+  captions: { label: 'Captions', bar: 'bg-accent/20 border-accent/70', text: 'text-accent', solid: 'bg-tl-captions' },
+  effect: { label: 'Effect', bar: 'bg-pink/20 border-pink/70', text: 'text-pink', solid: 'bg-tl-effect' },
 };
 
 export function itemLabel(i: EditItem): string {

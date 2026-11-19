@@ -145,7 +145,80 @@ export function normaliseOps(rawOps: unknown[], words: EditWord[], total: number
   return out;
 }
 
-export async function editWithAI(edit: EditProject, instruction: string): Promise<{ edit: EditProject; reply: string; applied: number }> {
+/** Something the user pointed at in the Studio (a moment, a stretch, part of the frame, a clip), numbered as in the chat. */
+export interface StudioRef {
+  n: number;
+  kind: 'moment' | 'range' | 'region' | 'clip';
+  t?: number; // moment, region (the frame the box was drawn on)
+  t0?: number; // range
+  t1?: number;
+  box?: { x: number; y: number; w: number; h: number }; // region, 0-100 % of the frame
+  itemId?: string; // clip
+}
+
+/** Clean up refs coming from the browser. */
+export function parseRefs(raw: unknown): StudioRef[] {
+  if (!Array.isArray(raw)) return [];
+  const num = (v: unknown) => (Number.isFinite(Number(v)) ? Math.round(Number(v) * 100) / 100 : undefined);
+  return raw.slice(0, 12).flatMap((r): StudioRef[] => {
+    if (!r || typeof r !== 'object') return [];
+    const o = r as Record<string, unknown>;
+    const kind = o.kind;
+    if (kind !== 'moment' && kind !== 'range' && kind !== 'region' && kind !== 'clip') return [];
+    const b = o.box as Record<string, unknown> | undefined;
+    return [{
+      n: Math.max(1, Math.min(99, Number(o.n) || 1)),
+      kind,
+      t: num(o.t), t0: num(o.t0), t1: num(o.t1),
+      box: b ? { x: num(b.x) ?? 0, y: num(b.y) ?? 0, w: num(b.w) ?? 0, h: num(b.h) ?? 0 } : undefined,
+      itemId: typeof o.itemId === 'string' ? o.itemId.slice(0, 60) : undefined,
+    }];
+  });
+}
+
+/** What each reference points at, in words the model can act on (item ids, times, areas). */
+function refsForPrompt(edit: EditProject, refs: StudioRef[]): string {
+  const desc = (i: EditProject['items'][number]) => `${i.id} (${i.kind}${i.name ? ` "${i.name}"` : ''}, ${i.from.toFixed(2)}–${(i.from + i.duration).toFixed(2)}s, track ${i.track})`;
+  const at = (t: number) => edit.items.filter((i) => t >= i.from && t < i.from + i.duration);
+  const lines = refs.map((r) => {
+    if (r.kind === 'moment' && r.t !== undefined) return `[${r.n}] the moment ${r.t.toFixed(2)}s — on screen then: ${at(r.t).map(desc).join('; ') || 'nothing'}`;
+    if (r.kind === 'range' && r.t0 !== undefined && r.t1 !== undefined) {
+      const over = edit.items.filter((i) => i.from < r.t1! && i.from + i.duration > r.t0!);
+      return `[${r.n}] the stretch ${r.t0.toFixed(2)}s–${r.t1.toFixed(2)}s (${(r.t1 - r.t0).toFixed(2)}s) — overlapping: ${over.map(desc).join('; ') || 'nothing'}`;
+    }
+    if (r.kind === 'region' && r.box && r.t !== undefined) {
+      const b = r.box;
+      return `[${r.n}] an area of the frame at ${r.t.toFixed(2)}s: x ${b.x.toFixed(0)}–${(b.x + b.w).toFixed(0)}%, y ${b.y.toFixed(0)}–${(b.y + b.h).toFixed(0)}% (centre x=${(b.x + b.w / 2).toFixed(0)}, y=${(b.y + b.h / 2).toFixed(0)}) — on screen then: ${at(r.t).map(desc).join('; ') || 'nothing'}`;
+    }
+    if (r.kind === 'clip' && r.itemId) {
+      const i = edit.items.find((x) => x.id === r.itemId);
+      return i ? `[${r.n}] the clip ${desc(i)}` : '';
+    }
+    return '';
+  }).filter(Boolean);
+  if (!lines.length) return '';
+  return `\nTHE USER POINTED AT (the numbers [n] in the request refer to these):\n${lines.join('\n')}\nFor a moment or stretch, place new items with "from":<seconds> (and "duration" for a stretch). For an area, use its centre as the item's x / y props. For a clip, change that id.\n`;
+}
+
+/** One plain sentence per operation, for the chat's activity rows. */
+function describeOps(edit: EditProject, ops: EditOp[]): string[] {
+  const name = (id: string) => {
+    const i = edit.items.find((x) => x.id === id);
+    return i ? `"${i.name || i.kind}"` : id;
+  };
+  return ops.slice(0, 40).map((op) => {
+    if (op.op === 'add') {
+      const it = op.item as Record<string, unknown>;
+      const what = String((it.props as Record<string, unknown> | undefined)?.fx ?? it.fx ?? it.template ?? it.effect ?? it.kind ?? 'item');
+      return `Added ${what} at ${Number(it.from ?? 0).toFixed(1)}s`;
+    }
+    if (op.op === 'update') return `Changed ${name(op.id)} (${Object.keys(op.patch ?? {}).join(', ') || 'settings'})`;
+    if (op.op === 'delete') return `Removed ${name(op.id)}`;
+    return `Renamed the edit to "${op.name}"`;
+  });
+}
+
+export async function editWithAI(edit: EditProject, instruction: string, refs: StudioRef[] = []): Promise<{ edit: EditProject; reply: string; applied: number; steps: string[] }> {
   const words = timelineWords(edit);
   const total = Math.max(...edit.items.map((i) => i.from + i.duration), 1);
   const templates = Object.entries(TEMPLATES)
@@ -187,6 +260,7 @@ remove:     {"op":"delete","id":"<id from the timeline>"}
 rename:     {"op":"setName","name":"<name>"}
 "at" = words copied exactly from the transcript; the item starts when they are spoken. Use "from":<seconds> instead only if no words fit.
 
+${refsForPrompt(edit, refs)}
 USER REQUEST: ${instruction}
 
 Do exactly what the user asked and nothing more: one operation per requested change, no extra items, values taken from the request and the transcript.
@@ -222,7 +296,7 @@ Reply with ONLY JSON: {"reply":"<one short sentence of what you changed>","ops":
   const reply = applied
     ? String(parsed.reply || `Applied ${applied} change${applied === 1 ? '' : 's'}.`).slice(0, 300)
     : 'I could not turn that into a timeline change — try being more specific (what, where, when).';
-  return { edit: next, reply, applied };
+  return { edit: next, reply, applied, steps: applied ? describeOps(edit, ops) : [] };
 }
 
 /** Compact, fixed catalogue for prompts: sequences with their parameters, effect ids grouped by category. */

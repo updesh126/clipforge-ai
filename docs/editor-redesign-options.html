@@ -1,0 +1,368 @@
+<title>ClipForge Studio Layout</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a review sheet — three editor layouts drawn at true proportions, then phases and the decision. Single dark look, like the editor itself. */
+:root {
+  color-scheme: dark;
+  --app: #141414; --bar: #202020; --panel: #181818; --raised: #202020; --line: #000; --field: rgba(255,255,255,.08);
+  --text: #e6e6e6; --muted: #a3a3a3; --faint: #717177; --border: rgba(240,240,255,.075); --border-strong: rgba(240,240,255,.15);
+  --teal: #00c1cd; --mint: #B5E2DD; --pink: #F4C7D6; --lavender: #D8CCE8; --peach: #FBDFCB;
+  --ui: "Inter", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, monospace;
+}
+html, body { height: auto; }
+body { background: #0b0b0d; color: var(--text); font: 14px/1.55 var(--ui); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 28px; }
+h1 { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.15; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 6px; letter-spacing: -0.01em; }
+p { margin: 0; max-width: 72ch; color: var(--muted); }
+.lede { display: grid; gap: 10px; }
+.eyebrow { font: 700 11px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tabs button { font: 600 13px var(--ui); color: var(--muted); background: transparent; border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 12px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.tabs button[aria-selected="true"] { color: var(--text); background: var(--field); border-color: var(--muted); }
+.tabs button:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+.rec { font: 700 10px var(--mono); letter-spacing: .1em; color: #0b0b0d; background: var(--mint); border-radius: 4px; padding: 2px 5px; }
+
+.opt { display: grid; gap: 14px; }
+.opt[hidden] { display: none !important; }
+.opt-head { display: grid; gap: 6px; }
+
+/* the mock window */
+.frame-scroll { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-strong); }
+.win { --acc: var(--teal); --accSoft: rgba(0,193,205,.16); width: 1120px; height: 640px; background: var(--app); display: grid; grid-template-rows: 32px 1fr; font: 11px/1.3 var(--ui); color: var(--text); }
+.win.brand { --acc: var(--mint); --accSoft: rgba(181,226,221,.16); --app: #0c0c0f; --panel: #111114; --bar: #18181c; --raised: #18181c; }
+.top { background: var(--bar); display: flex; align-items: center; gap: 0; border-bottom: 1px solid var(--line); }
+.top .menu { width: 34px; display: grid; place-items: center; color: var(--muted); }
+.ptab { height: 32px; min-width: 120px; max-width: 200px; padding: 0 12px; display: flex; align-items: center; gap: 6px; border-right: 1px solid var(--border-strong); color: var(--muted); }
+.ptab.on { background: var(--panel); color: var(--text); }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--acc); }
+.top .sp { flex: 1; }
+.tbtn { height: 22px; padding: 0 9px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; color: var(--muted); margin-right: 6px; }
+.switch { background: rgba(255,255,255,.06); color: var(--text); font-weight: 500; }
+.ink { background: #ebebed; color: #0a0a0c; font-weight: 600; }
+.body { display: grid; gap: 1px; background: var(--line); min-height: 0; }
+.pane { background: var(--panel); min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.pbar { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 8px; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); flex: none; }
+.pbar b { color: var(--text); font-weight: 600; }
+.pbar .r { margin-left: auto; display: flex; gap: 4px; }
+.ic { width: 18px; height: 18px; border-radius: 5px; background: rgba(255,255,255,.05); }
+
+/* chat */
+.chat .thread { flex: 1; padding: 12px; display: grid; align-content: start; gap: 10px; }
+.msg-u { justify-self: end; max-width: 88%; background: var(--field); border: 1px solid var(--border); border-radius: 10px; padding: 7px 9px; }
+.act { color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.act::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--acc); flex: none; }
+.changes { border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; color: var(--muted); background: var(--raised); }
+.composer { margin: 10px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--raised); padding: 8px; display: grid; gap: 6px; }
+.pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.pill { height: 18px; padding: 0 6px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text); border: 1px solid; }
+.pill.t { background: color-mix(in srgb, #4b8bd6 14%, var(--raised)); border-color: color-mix(in srgb, #4b8bd6 40%, transparent); }
+.pill.r { background: color-mix(in srgb, #d6a04b 14%, var(--raised)); border-color: color-mix(in srgb, #d6a04b 40%, transparent); }
+.pill.c { background: color-mix(in srgb, #9a6bd6 14%, var(--raised)); border-color: color-mix(in srgb, #9a6bd6 40%, transparent); }
+.ph { color: var(--faint); }
+.crow { display: flex; justify-content: space-between; color: var(--faint); }
+.send { width: 20px; height: 20px; border-radius: 6px; background: #ebebed; }
+
+/* viewer */
+.viewer { background: #0e0e10; }
+.vstage { flex: 1; display: grid; place-items: center; position: relative; }
+.pic { aspect-ratio: 16/9; width: 78%; max-height: 92%; background: linear-gradient(135deg, #1d2a3a, #3a2a45 55%, #4a3326); border-radius: 2px; position: relative; overflow: hidden; display: grid; place-items: end center; }
+.pic .cap { font: 800 15px var(--ui); color: #fff; margin-bottom: 10%; text-shadow: 0 2px 6px #000; }
+.box { position: absolute; left: 56%; top: 18%; width: 26%; height: 36%; border: 1.5px dashed #9a6bd6; border-radius: 4px; }
+.box::after { content: "3"; position: absolute; top: -9px; left: -9px; width: 16px; height: 16px; border-radius: 50%; background: #9a6bd6; color: #fff; font: 700 9px/16px var(--ui); text-align: center; }
+.vbar { height: 34px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 10px; border-top: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 10px; flex: none; }
+.vbar .play { width: 22px; height: 22px; border-radius: 50%; background: #ebebed; }
+.vbar .rt { justify-self: end; display: flex; gap: 6px; font-family: var(--ui); }
+
+/* inspector */
+.itabs { display: flex; gap: 10px; padding: 0 10px; height: 32px; align-items: center; border-bottom: 1px solid var(--border); color: var(--muted); flex: none; }
+.itabs .on { color: var(--acc); font-weight: 600; }
+.sec { margin: 0 8px; padding: 10px 4px; border-bottom: 1px solid var(--border); display: grid; gap: 6px; }
+.sec h4 { margin: 0; font-size: 11px; font-weight: 600; }
+.f { display: grid; grid-template-columns: 70px 1fr; gap: 6px; align-items: center; color: var(--muted); }
+.fv { height: 20px; border-radius: 5px; background: var(--field); }
+
+/* timeline */
+.tl .tbar { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-bottom: 1px solid var(--border); color: var(--muted); flex: none; }
+.zoom { width: 70px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--acc) 45%, rgba(255,255,255,.15) 45%); }
+.ruler { height: 18px; margin-left: 96px; border-bottom: 1px solid var(--border); background: repeating-linear-gradient(90deg, rgba(255,255,255,.12) 0 1px, transparent 1px 60px); flex: none; position: relative; }
+.mk { position: absolute; top: 2px; width: 12px; height: 12px; border-radius: 3px; font: 700 8px/12px var(--ui); text-align: center; color: #fff; }
+.mk.t { left: 140px; background: #4b8bd6; }
+.mk.r { left: 260px; width: 120px; background: rgba(214,160,75,.55); }
+.tracks { flex: 1; display: grid; align-content: start; gap: 2px; padding: 4px 0; position: relative; }
+.trk { display: grid; grid-template-columns: 96px 1fr; height: 22px; }
+.trk.main { height: 44px; }
+.th { color: var(--faint); padding-left: 10px; display: flex; align-items: center; }
+.lane { position: relative; background: rgba(240,240,255,.035); }
+.clip { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; color: #fff; padding: 2px 6px; font-size: 10px; overflow: hidden; white-space: nowrap; }
+.v { background: #354f6a; } .tx { background: #7f4d28; } .fx { background: #74365f; } .au { background: #1c5757; } .st { background: #24603e; }
+.clip.sel { outline: 1.5px solid #fff; }
+.playhead { position: absolute; top: 0; bottom: 0; left: 400px; width: 1.5px; background: #fff; }
+
+/* library list */
+.lib .cats { display: flex; gap: 8px; padding: 6px 10px; color: var(--muted); border-bottom: 1px solid var(--border); flex-wrap: wrap; flex: none; }
+.lib .cats .on { color: var(--acc); font-weight: 600; }
+.grid4 { padding: 8px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.thumb { aspect-ratio: 16/10; border-radius: 6px; background: linear-gradient(135deg, #22303f, #3b2b3f); position: relative; }
+.thumb span { position: absolute; left: 5px; bottom: 4px; font-size: 9px; color: #fff; }
+.callout { position: absolute; font: 600 10px var(--ui); color: #0b0b0d; background: var(--peach); border-radius: 6px; padding: 3px 6px; box-shadow: 0 6px 20px rgba(0,0,0,.4); white-space: nowrap; }
+
+/* option layouts */
+.A .body { grid-template-columns: 340px 1fr 300px; grid-template-rows: 1fr 210px; grid-template-areas: "chat view insp" "chat tl tl"; }
+.C .body { grid-template-columns: 250px 1fr 340px; grid-template-rows: 1fr 210px; grid-template-areas: "lib view side" "tl tl side"; }
+.a-chat { grid-area: chat; } .a-view { grid-area: view; } .a-insp { grid-area: insp; } .a-tl { grid-area: tl; } .a-lib { grid-area: lib; } .a-side { grid-area: side; }
+
+/* notes and tables */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.note { background: #131316; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.note h3 { margin: 0; font-size: 14px; }
+.note ul { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 3px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font: 700 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); background: #131316; }
+td { color: var(--muted); } td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.size { font-family: var(--mono); font-size: 12px; color: var(--peach); white-space: nowrap; }
+.ask { border: 1px solid var(--mint); border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; background: rgba(181,226,221,.05); }
+.ask ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+@media (prefers-reduced-motion: no-preference) { .opt { animation: in .25s ease-out; } @keyframes in { from { opacity: .4; } } }
+</style>
+
+<div class="wrap">
+  <header class="lede">
+    <span class="eyebrow">ClipForge editor · redesign proposal</span>
+    <h1>Three ways to make the editor work like OpenFilm Studio</h1>
+    <p>OpenFilm puts the AI agent in a full-height chat column beside the film. You switch between editors (Screening, Edit, Canvas, Color) over one project, and you can point at a moment, a stretch of time or a part of the frame to tell the agent what to change. The mocks below are drawn at the real panel sizes from OpenFilm's source, using a ClipForge project.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Layout options">
+    <button role="tab" id="tab-b" aria-selected="true" aria-controls="opt-b">B · Studio in ClipForge colours <span class="rec">RECOMMENDED</span></button>
+    <button role="tab" id="tab-a" aria-selected="false" aria-controls="opt-a">A · Studio, OpenFilm colours</button>
+    <button role="tab" id="tab-c" aria-selected="false" aria-controls="opt-c">C · Keep today's layout, add Studio features</button>
+  </div>
+
+  <!-- ===== Option B (and A share the layout) ===== -->
+  <section class="opt" id="opt-b" role="tabpanel" aria-labelledby="tab-b">
+    <div class="opt-head">
+      <h2>B · Studio layout in ClipForge's own colours</h2>
+      <p>OpenFilm's layout, sizes and density, with ClipForge's mint as the accent on near-black. The accent only marks what is selected or current, and the main buttons are light grey ("ink"), as in OpenFilm.</p>
+    </div>
+    <div class="frame-scroll"><div class="win A brand" aria-label="Mock of option B">
+      <div class="top">
+        <span class="menu">≡</span>
+        <span class="ptab on"><span class="dot"></span>How Big Is the Universe?</span>
+        <span class="ptab">Steal a Car</span>
+        <span class="ptab" style="min-width:32px;border:0">+</span>
+        <span class="sp"></span>
+        <span class="tbtn">Layout ▾</span><span class="tbtn">History</span>
+        <span class="tbtn switch">▣ Edit ▾</span>
+        <span class="tbtn ink">Export</span>
+      </div>
+      <div class="body">
+        <div class="pane chat a-chat">
+          <div class="pbar"><b>Make the hook punchier</b><span class="r"><span class="ic"></span><span class="ic"></span></span></div>
+          <div class="thread">
+            <div class="msg-u">Make the text at <u>[1] 0:12</u> bigger, and add a counter over <u>[2] 0:18–0:24</u>. Replace the planet in <u>[3]</u> with Saturn.</div>
+            <div class="act">Read the timeline and transcript</div>
+            <div class="act">Resized "THE UNIVERSE" title to 140%</div>
+            <div class="act">Added Creator money counter at 0:18</div>
+            <div class="changes">3 changes · Undo all</div>
+          </div>
+          <div class="composer">
+            <div class="pills"><span class="pill t">1 · 0:12</span><span class="pill r">2 · 0:18–0:24</span><span class="pill c">3 · frame area</span></div>
+            <span class="ph">Say what to change. Type @ for a clip, a moment or what you selected</span>
+            <div class="crow"><span>+ &nbsp; Llama 3.1 · local ▾</span><span class="send"></span></div>
+          </div>
+        </div>
+        <div class="pane viewer a-view">
+          <div class="pbar"><span>Viewer</span><span class="r"><span>Fit ▾</span><span class="ic"></span></span></div>
+          <div class="vstage"><div class="pic"><div class="box"></div><span class="cap">THE UNIVERSE IS EXPANDING</span></div></div>
+          <div class="vbar"><span>00:00:12:08</span><span class="play"></span><span class="rt"><span>1×</span><span>⛶</span></span></div>
+        </div>
+        <div class="pane a-insp">
+          <div class="itabs"><span>Text</span><span>Motion</span><span class="on">Properties</span><span>Adjust</span><span>Effects</span><span>Audio</span></div>
+          <div class="sec"><h4>Transform</h4><div class="f">Position<span class="fv"></span></div><div class="f">Scale<span class="fv"></span></div><div class="f">Rotation<span class="fv"></span></div></div>
+          <div class="sec"><h4>Animation</h4><div class="f">In<span class="fv"></span></div><div class="f">Out<span class="fv"></span></div></div>
+          <div class="sec"><h4>Fades</h4><div class="f">Fade in<span class="fv"></span></div></div>
+        </div>
+        <div class="pane tl a-tl">
+          <div class="tbar"><span>Select ▾</span><span>↶ ↷</span><span>◆ Marker</span><span>✂ Split</span><span style="margin-left:auto">Snap · Magnet</span><span class="zoom"></span></div>
+          <div class="ruler"><span class="mk t">1</span><span class="mk r">2</span></div>
+          <div class="tracks">
+            <div class="trk"><span class="th">Captions</span><div class="lane"><span class="clip tx" style="left:20px;width:520px">karaoke captions</span></div></div>
+            <div class="trk"><span class="th">Graphics</span><div class="lane"><span class="clip st sel" style="left:250px;width:110px">Creator counter</span><span class="clip fx" style="left:420px;width:90px">whip pan</span></div></div>
+            <div class="trk main"><span class="th">Video</span><div class="lane"><span class="clip v" style="left:0;width:330px">scene 1 · nebula</span><span class="clip v" style="left:332px;width:300px">scene 2 · galaxies</span></div></div>
+            <div class="trk"><span class="th">Voice</span><div class="lane"><span class="clip au" style="left:0;width:640px">narration</span></div></div>
+            <span class="playhead"></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <div class="note"><h3>What changes</h3><ul>
+        <li>A 32px top bar with project tabs and one editor switcher (Screening · Edit · Canvas · Color, Alt+1…4) replaces the big nav inside the editor.</li>
+        <li>The AI chat becomes a full-height column (420px, drag to 340–800, Ctrl+Shift+L to hide), with each step the AI takes and an "Undo all".</li>
+        <li>The library opens inside the chat column by default, or docks left, right or bottom.</li>
+        <li>The inspector gets a tab strip (Text, Motion, Properties, Adjust, Effects, Audio) instead of one long form.</li>
+        <li>Named tracks with colour by kind, markers, snap, and a zoom slider.</li>
+      </ul></div>
+      <div class="note"><h3>Point at anything</h3><ul>
+        <li><b>1</b> a moment: press M or click the ruler.</li>
+        <li><b>2</b> a stretch: drag along the ruler.</li>
+        <li><b>3</b> part of the frame: drag a box on the paused picture.</li>
+        <li>A selected clip or caption becomes a pill too (Ctrl+L).</li>
+        <li>The pills travel with your message, so the AI knows exactly which clip, time and area you mean.</li>
+      </ul></div>
+      <div class="note"><h3>Why B</h3><ul>
+        <li>Same workflow as OpenFilm, but it still looks like ClipForge and BuzyBug (mint, pink, lavender, peach on near-black).</li>
+        <li>OpenFilm's teal would clash with the mint already used across the Clip, Script and Home pages.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ===== Option A ===== -->
+  <section class="opt" id="opt-a" role="tabpanel" aria-labelledby="tab-a" hidden>
+    <div class="opt-head">
+      <h2>A · Studio, matched to OpenFilm's colours too</h2>
+      <p>The same layout as B with OpenFilm's own tokens: #141414 background, teal accent, Inter. It is the closest match, but the editor would then look different from the rest of ClipForge unless every page is re-coloured.</p>
+    </div>
+    <div class="frame-scroll"><div class="win A" aria-label="Mock of option A">
+      <div class="top">
+        <span class="menu">≡</span>
+        <span class="ptab on"><span class="dot"></span>How Big Is the Universe?</span>
+        <span class="ptab">Steal a Car</span>
+        <span class="ptab" style="min-width:32px;border:0">+</span>
+        <span class="sp"></span>
+        <span class="tbtn">Layout ▾</span><span class="tbtn">History</span>
+        <span class="tbtn switch">▣ Edit ▾</span>
+        <span class="tbtn ink">Export</span>
+      </div>
+      <div class="body">
+        <div class="pane chat a-chat">
+          <div class="pbar"><b>Make the hook punchier</b><span class="r"><span class="ic"></span><span class="ic"></span></span></div>
+          <div class="thread">
+            <div class="msg-u">Make the text at <u>[1] 0:12</u> bigger, and add a counter over <u>[2] 0:18–0:24</u>.</div>
+            <div class="act">Resized "THE UNIVERSE" title to 140%</div>
+            <div class="act">Added Creator money counter at 0:18</div>
+            <div class="changes">2 changes · Undo all</div>
+          </div>
+          <div class="composer">
+            <div class="pills"><span class="pill t">1 · 0:12</span><span class="pill r">2 · 0:18–0:24</span></div>
+            <span class="ph">Say what to change. Type @ for a clip, a moment or what you selected</span>
+            <div class="crow"><span>+ &nbsp; Llama 3.1 · local ▾</span><span class="send"></span></div>
+          </div>
+        </div>
+        <div class="pane viewer a-view">
+          <div class="pbar"><span>Viewer</span><span class="r"><span>Fit ▾</span></span></div>
+          <div class="vstage"><div class="pic"><span class="cap">THE UNIVERSE IS EXPANDING</span></div></div>
+          <div class="vbar"><span>00:00:12:08</span><span class="play"></span><span class="rt"><span>1×</span><span>⛶</span></span></div>
+        </div>
+        <div class="pane a-insp">
+          <div class="itabs"><span>Text</span><span>Motion</span><span class="on">Properties</span><span>Adjust</span><span>Effects</span></div>
+          <div class="sec"><h4>Transform</h4><div class="f">Position<span class="fv"></span></div><div class="f">Scale<span class="fv"></span></div></div>
+          <div class="sec"><h4>Animation</h4><div class="f">In<span class="fv"></span></div><div class="f">Out<span class="fv"></span></div></div>
+        </div>
+        <div class="pane tl a-tl">
+          <div class="tbar"><span>Select ▾</span><span>↶ ↷</span><span>◆ Marker</span><span>✂ Split</span><span style="margin-left:auto">Snap · Magnet</span><span class="zoom"></span></div>
+          <div class="ruler"><span class="mk t">1</span><span class="mk r">2</span></div>
+          <div class="tracks">
+            <div class="trk"><span class="th">Captions</span><div class="lane"><span class="clip tx" style="left:20px;width:520px">karaoke captions</span></div></div>
+            <div class="trk"><span class="th">Graphics</span><div class="lane"><span class="clip st sel" style="left:250px;width:110px">Creator counter</span></div></div>
+            <div class="trk main"><span class="th">Video</span><div class="lane"><span class="clip v" style="left:0;width:330px">scene 1</span><span class="clip v" style="left:332px;width:300px">scene 2</span></div></div>
+            <div class="trk"><span class="th">Voice</span><div class="lane"><span class="clip au" style="left:0;width:640px">narration</span></div></div>
+            <span class="playhead"></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <div class="note"><h3>Trade-off</h3><ul>
+        <li>Closest to OpenFilm, down to the colours.</li>
+        <li>Needs the Home, Clip, Script and Library pages re-coloured as well, or the app looks like two products.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ===== Option C ===== -->
+  <section class="opt" id="opt-c" role="tabpanel" aria-labelledby="tab-c" hidden>
+    <div class="opt-head">
+      <h2>C · Keep today's layout, add Studio's features</h2>
+      <p>The library stays on the left and the AI stays on the right, sharing a column with the inspector as it does now. You get the editor switcher, pointing, resizable panes and the new timeline, but not the chat-first column. It is the least relearning for people who already use ClipForge.</p>
+    </div>
+    <div class="frame-scroll"><div class="win C brand" aria-label="Mock of option C">
+      <div class="top">
+        <span class="menu">≡</span>
+        <span class="ptab on"><span class="dot"></span>How Big Is the Universe?</span>
+        <span class="sp"></span>
+        <span class="tbtn switch">▣ Edit ▾</span>
+        <span class="tbtn ink">Export</span>
+      </div>
+      <div class="body">
+        <div class="pane lib a-lib">
+          <div class="pbar"><b>Library</b></div>
+          <div class="cats"><span class="on">Motion</span><span>Styles</span><span>Titles</span><span>Media</span><span>Music</span></div>
+          <div class="grid4"><div class="thumb"><span>Creator slam</span></div><div class="thumb"><span>Chalk chart</span></div><div class="thumb"><span>Big stat</span></div><div class="thumb"><span>Map zoom</span></div></div>
+        </div>
+        <div class="pane viewer a-view">
+          <div class="pbar"><span>Viewer</span></div>
+          <div class="vstage"><div class="pic"><div class="box"></div><span class="cap">THE UNIVERSE IS EXPANDING</span></div></div>
+          <div class="vbar"><span>00:00:12:08</span><span class="play"></span><span class="rt"><span>1×</span></span></div>
+        </div>
+        <div class="pane chat a-side">
+          <div class="itabs"><span class="on">AI</span><span>Inspector</span></div>
+          <div class="thread"><div class="msg-u">Replace the planet in <u>[3]</u> with Saturn.</div><div class="act">Repainting scene 2 (frame area)</div></div>
+          <div class="composer"><div class="pills"><span class="pill c">3 · frame area</span></div><span class="ph">Say what to change…</span><div class="crow"><span>+</span><span class="send"></span></div></div>
+        </div>
+        <div class="pane tl a-tl">
+          <div class="tbar"><span>↶ ↷</span><span>◆ Marker</span><span>✂ Split</span><span style="margin-left:auto">Snap</span><span class="zoom"></span></div>
+          <div class="ruler"><span class="mk t">1</span></div>
+          <div class="tracks">
+            <div class="trk"><span class="th">Captions</span><div class="lane"><span class="clip tx" style="left:20px;width:520px">karaoke captions</span></div></div>
+            <div class="trk main"><span class="th">Video</span><div class="lane"><span class="clip v" style="left:0;width:330px">scene 1</span><span class="clip v" style="left:332px;width:300px">scene 2</span></div></div>
+            <div class="trk"><span class="th">Voice</span><div class="lane"><span class="clip au" style="left:0;width:640px">narration</span></div></div>
+            <span class="playhead" style="left:330px"></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <div class="note"><h3>Trade-off</h3><ul>
+        <li>Smallest change, quickest to ship.</li>
+        <li>The AI and the inspector compete for one column, so you can't watch the AI work while you adjust a clip.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:12px">
+    <h2>What gets built, in order</h2>
+    <p>Each phase ships on its own and leaves the editor working. The size of each phase is my estimate of the work, from reading the current code.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Phase</th><th>What you get</th><th>What changes underneath</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Studio shell + Edit</td><td>Top bar with project tabs and editor switcher; resizable, collapsible panes with saved layouts (Standard, Library, Detail, Focus); chat column; inspector tabs; new timeline toolbar, named tracks, markers, snap, zoom slider; transport under the viewer.</td><td>New layout and theme tokens in <code>src/editor</code>; <code>EditorView</code> split into dockable panes. Same edit data and API.</td><td class="size">large</td></tr>
+        <tr><td>2 · Point at anything</td><td>Moments, stretches, frame boxes and selected clips become numbered pills in the chat; hovering a pill lights its mark; the AI acts on exactly that.</td><td><code>/api/edits/:id/ai</code> takes references; <code>server/editAI.ts</code> uses them; chat history saved with the edit.</td><td class="size">medium</td></tr>
+        <tr><td>3 · Screening</td><td>The film full size with a strip of frames under it, built for watching and pointing.</td><td>A new editor view over the same edit.</td><td class="size">small</td></tr>
+        <tr><td>4 · Canvas</td><td>A dotted board for notes, images, clips and voices; "Add to the timeline" or wire clips into a Cut node and send them in order.</td><td>Board data saved with the project; a new view.</td><td class="size">medium</td></tr>
+        <tr><td>5 · Color</td><td>Per-clip grading: basic sliders, colour wheels, curves, LUTs, and waveform and vectorscope scopes.</td><td>A grade on each clip, applied in the Remotion render and in the preview.</td><td class="size">large</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="ask">
+    <h2>What I need from you</h2>
+    <ol>
+      <li>Which layout: <b>B</b> (recommended), A or C?</li>
+      <li>Which phases to build now. My suggestion is 1 and 2 first, then look at it together before Screening, Canvas and Color.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  tabs.forEach((t) => t.addEventListener('click', () => {
+    tabs.forEach((x) => { x.setAttribute('aria-selected', String(x === t)); document.getElementById(x.getAttribute('aria-controls')).hidden = x !== t; });
+  }));
+</script>

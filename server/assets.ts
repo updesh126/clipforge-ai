@@ -206,6 +206,21 @@ export function processInbox(): AssetEntry[] {
   return listAssets(false).filter((a) => moved.some((m) => a.url.endsWith(m.split('/').map(encodeURIComponent).join('/'))));
 }
 
+/** isLottie, remembered per file until it changes (the library is listed often). */
+const lottieCache = new Map<string, { mtime: number; ok: boolean }>();
+function isLottieCached(p: string): boolean {
+  try {
+    const mtime = fs.statSync(p).mtimeMs;
+    const hit = lottieCache.get(p);
+    if (hit && hit.mtime === mtime) return hit.ok;
+    const ok = isLottie(p);
+    lottieCache.set(p, { mtime, ok });
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Every asset: indexed generated ones + any PNG found on disk (user drops). */
 export function listAssets(checkInbox = true): AssetEntry[] {
   ensureAssetDirs();
@@ -220,7 +235,8 @@ export function listAssets(checkInbox = true): AssetEntry[] {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) {
         if (e.name !== 'generated' && e.name !== 'inbox') walk(p);
-      } else if (/\.(png|svg|json)$/i.test(e.name) && e.name !== 'index.json' && e.name !== 'licences.json') {
+      } else if (/\.(png|svg|json)$/i.test(e.name) && e.name !== 'index.json' && e.name !== 'licences.json' && (!/\.json$/i.test(e.name) || isLottieCached(p))) {
+        // other .json files (character cast specs, settings) are not pictures
         const url = urlFor(p);
         if (known.has(url)) continue;
         const folder = path.relative(ASSETS_DIR, p).split(path.sep)[0];

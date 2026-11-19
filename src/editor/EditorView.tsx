@@ -16,6 +16,22 @@ import {
   AlertCircle,
   Check,
   Scissors,
+  ChevronDown,
+  Crosshair,
+  Diamond,
+  Maximize2,
+  Repeat,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  LayoutPanelLeft,
+  ZoomIn,
+  ZoomOut,
+  Film,
+  MonitorPlay,
+  LayoutGrid,
+  Palette,
+  Info,
 } from 'lucide-react';
 import type { CompositionProps, EditItem, EditProject, EffectId, TemplateId } from './types.ts';
 import { FRAME_SIZES, editDuration } from './types.ts';
@@ -23,7 +39,12 @@ import { EditorComposition } from '../remotion/EditorComposition.tsx';
 import { Timeline } from './Timeline.tsx';
 import { Inspector } from './Inspector.tsx';
 import { LibraryPanel } from './LibraryPanel.tsx';
-import { AiPanel, type ChatMsg } from './AiPanel.tsx';
+import { ChatColumn, type ChatMsg } from './studio/ChatColumn.tsx';
+import { nextN, refTime, type StudioRef } from './studio/refs.ts';
+import { PRESETS, DEFAULT_LAYOUT, useStudioLayout } from './studio/layout.ts';
+import { Splitter } from './studio/Splitter.tsx';
+import { PointStrip, RegionOverlay } from './studio/Pointing.tsx';
+import { KIND_STYLE, itemLabel } from './ops.ts';
 import { newEffectItem, newMotionItem, newTemplateItem, r2, splitItem, topTrack, uid } from './ops.ts';
 import { createEdit, listEdits, loadEdit, saveEditRemote, type EditSummary } from './api.ts';
 import type { ClipProject, JobProgress, TranscriptSegment } from '../types.ts';
@@ -233,9 +254,31 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [rightTab, setRightTab] = useState<'inspect' | 'ai'>('ai');
+  const [inspTab, setInspTab] = useState<'properties' | 'info'>('properties');
+  const { layout, set: setLayout, reset: resetLayout } = useStudioLayout();
+  const [refs, setRefs] = useState<StudioRef[]>([]); // pointed at, waiting to go with the next message
+  const [hot, setHot] = useState<number | null>(null); // reference under the mouse
+  const [pointMode, setPointMode] = useState(false);
+  const [pps, setPps] = useState(40);
+  const [loop, setLoop] = useState(false);
+  const [rate, setRate] = useState(1);
+  const [menu, setMenu] = useState<null | 'layout' | 'editor'>(null);
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [chat, setChat] = useState<ChatMsg[]>([]);
+  const chatKey = `clipforge.chat.${initial.id}`;
+  const [chat, setChat] = useState<ChatMsg[]>(() => {
+    try {
+      return (JSON.parse(localStorage.getItem(chatKey) || '[]') as ChatMsg[]).slice(-60);
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(chatKey, JSON.stringify(chat.slice(-60)));
+    } catch {
+      /* storage blocked: chat lasts until the page closes */
+    }
+  }, [chat, chatKey]);
   const [aiBusy, setAiBusy] = useState(false);
   const [render, setRender] = useState<{ busy: boolean; progress: JobProgress | null; url?: string; error?: string }>({ busy: false, progress: null });
   const [exportFormat, setExportFormat] = useState<'mp4' | 'webm' | 'gif' | 'still'>('mp4');
@@ -328,7 +371,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
   const addItem = (item: EditItem) => {
     apply((e) => ({ ...e, items: [...e.items, item] }));
     setSelectedId(item.id);
-    setRightTab('inspect');
+    setInspTab('properties');
   };
   const addTemplate = (t: TemplateId, props?: Record<string, string | number>) => {
     const item = newTemplateItem(t, time, Math.max(6, topTrack(edit) + 1));
@@ -413,14 +456,35 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
     setSelectedId(items[0].id);
   };
 
+  const addRef = (r: Omit<StudioRef, 'n'>) => {
+    setRefs((cur) => [...cur, { ...r, n: nextN([...cur, ...chat.flatMap((m) => m.refs ?? [])]) }]);
+    setLayout({ chat: true, library: false });
+  };
+  const addMoment = (t = time) => addRef({ kind: 'moment', t: r2(t) });
+  const addRange = (t0: number, t1: number) => addRef({ kind: 'range', t0: r2(t0), t1: r2(t1) });
+  const addRegion = (box: { x: number; y: number; w: number; h: number }) => {
+    addRef({ kind: 'region', t: r2(time), box: { x: r2(box.x), y: r2(box.y), w: r2(box.w), h: r2(box.h) } });
+    setPointMode(false);
+  };
+  const addClipRef = () => {
+    if (selected) addRef({ kind: 'clip', itemId: selected.id, label: itemLabel(selected), t: r2(selected.from) });
+  };
+  const jumpRef = (r: StudioRef) => {
+    seek(refTime(r));
+    if (r.kind === 'clip' && r.itemId) setSelectedId(r.itemId);
+  };
+  const allRefs = [...chat.flatMap((m) => m.refs ?? []), ...refs];
+
   const sendAi = async (instruction: string) => {
-    setChat((c) => [...c, { role: 'user', text: instruction }]);
+    const sent = refs;
+    setRefs([]);
+    setChat((c) => [...c, { role: 'user', text: instruction, refs: sent.length ? sent : undefined }]);
     setAiBusy(true);
     try {
       // make sure the server has the latest timeline first
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
       await saveEditRemote(edit);
-      const data = await postJson<{ edit: EditProject; reply: string; applied: number }>(`/api/edits/${edit.id}/ai`, { instruction });
+      const data = await postJson<{ edit: EditProject; reply: string; applied: number; steps?: string[] }>(`/api/edits/${edit.id}/ai`, { instruction, refs: sent });
       if (data.applied) {
         past.current.push(edit);
         future.current = [];
@@ -428,7 +492,7 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
         setSaveState('saved');
         force((n) => n + 1);
       }
-      setChat((c) => [...c, { role: 'ai', text: data.reply + (data.applied ? '  (Ctrl+Z to undo)' : '') }]);
+      setChat((c) => [...c, { role: 'ai', text: data.reply, steps: data.steps, applied: data.applied }]);
     } catch (err) {
       setChat((c) => [...c, { role: 'error', text: err instanceof Error ? err.message : 'AI edit failed.' }]);
     } finally {
@@ -463,7 +527,17 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key.toLowerCase() === 'z') {
+      if (mod && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        setLayout({ chat: !layout.chat });
+      } else if (mod && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        addClipRef();
+      } else if (!mod && e.key.toLowerCase() === 'm') {
+        addMoment();
+      } else if (e.key === '`') {
+        playerRef.current?.requestFullscreen();
+      } else if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) redo();
         else undo();
@@ -487,7 +561,9 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       } else if (e.key === 'Home') {
         seek(0);
       } else if (e.key === 'Escape') {
-        setSelectedId(null);
+        if (pointMode) setPointMode(false);
+        else if (menu) setMenu(null);
+        else setSelectedId(null);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -496,72 +572,105 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
 
   const inputProps = useMemo<CompositionProps>(() => ({ edit, assetBase: '', preview: true }), [edit]);
   const aspect = `${edit.width} / ${edit.height}`;
+  const tb = 'inline-flex h-[26px] min-w-[26px] items-center justify-center gap-1.5 rounded-md px-1.5 text-[12px] text-studio-muted hover:bg-studio-hover hover:text-studio-text disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer';
+  const sel = 'h-[26px] rounded-md border border-studio-border bg-studio-field px-1.5 text-[12px] text-studio-text focus:outline-none focus:border-accent';
+  const EDITORS: Array<{ id: string; label: string; icon: typeof Film; key: string; ready: boolean }> = [
+    { id: 'screening', label: 'Screening', icon: MonitorPlay, key: 'Alt+1', ready: false },
+    { id: 'edit', label: 'Edit', icon: Film, key: 'Alt+2', ready: true },
+    { id: 'canvas', label: 'Canvas', icon: LayoutGrid, key: 'Alt+3', ready: false },
+    { id: 'color', label: 'Color', icon: Palette, key: 'Alt+4', ready: false },
+  ];
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-black">
-      {/* Editor toolbar */}
-      <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-zinc-900 bg-surface px-3 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <button type="button" onClick={onClose} title="All edits" className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-white cursor-pointer">
-            <ArrowLeft className="h-4 w-4" />
-          </button>
+    <div className="flex-1 min-h-0 flex flex-col bg-studio-app text-studio-text [color-scheme:dark]" onClick={() => menu && setMenu(null)}>
+      {/* Studio bar: project tab on the left, layout / editor / export on the right */}
+      <div className="relative z-40 flex h-8 shrink-0 items-center border-b border-black bg-studio-bar">
+        <button type="button" onClick={onClose} title="All edits" className="grid h-8 w-9 place-items-center text-studio-muted hover:bg-studio-hover hover:text-studio-text cursor-pointer">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex h-8 min-w-[140px] max-w-[280px] items-center gap-2 border-x border-studio-border-strong bg-studio-panel px-3">
+          <span className={`h-[5px] w-[5px] shrink-0 rounded-full ${aiBusy ? 'bg-peach' : saveState === 'error' ? 'bg-red-400' : 'bg-accent'}`} title={aiBusy ? 'The AI is working' : saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Not saved' : 'Saved'} />
           <input
+            aria-label="Edit name"
             value={edit.name}
             onChange={(e) => apply((x) => ({ ...x, name: e.target.value }), false)}
-            className="min-w-0 w-44 sm:w-64 bg-transparent text-sm font-semibold text-white focus:outline-none focus:bg-black rounded px-1"
+            className="min-w-0 flex-1 bg-transparent text-[12.5px] font-medium text-studio-text focus:outline-none"
           />
-          <span className="hidden sm:inline font-mono text-[11px] text-zinc-500">
-            {edit.width}×{edit.height} · {formatTimecode(duration)}
-          </span>
-          <span className={`text-[11px] ${saveState === 'error' ? 'text-red-400' : 'text-zinc-600'}`}>
-            {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Not saved' : 'Saved'}
-          </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={undo} disabled={!past.current.length} title="Undo (Ctrl+Z)" className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-white disabled:opacity-30 cursor-pointer">
-            <Undo2 className="h-4 w-4" />
-          </button>
-          <button type="button" onClick={redo} disabled={!future.current.length} title="Redo (Ctrl+Shift+Z)" className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-900 hover:text-white disabled:opacity-30 cursor-pointer">
-            <Redo2 className="h-4 w-4" />
-          </button>
+        <span className="hidden px-3 font-mono text-[11px] text-studio-faint md:inline">
+          {edit.width}×{edit.height} · {formatTimecode(duration)} · {saveState === 'saving' ? 'saving…' : saveState === 'error' ? <span className="text-red-400">not saved</span> : 'saved'}
+        </span>
+        <div className="ml-auto flex items-center gap-1 pr-2">
+          {!layout.chat && (
+            <button type="button" onClick={() => setLayout({ chat: true })} className={tb} title="Show chat (Ctrl+Shift+L)">
+              <PanelLeftOpen className="h-4 w-4" /> Chat
+            </button>
+          )}
+          <div className="relative">
+            <button type="button" onClick={(e) => { e.stopPropagation(); setMenu(menu === 'layout' ? null : 'layout'); }} aria-expanded={menu === 'layout'} className={tb} title="Layout">
+              <LayoutPanelLeft className="h-4 w-4" /> <span className="hidden lg:inline">Layout</span>
+            </button>
+            {menu === 'layout' && (
+              <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-8 w-60 rounded-[10px] border border-studio-border-strong bg-studio-raised p-1 shadow-[0_16px_40px_rgba(0,0,0,.5)]">
+                {PRESETS.map((pr) => (
+                  <button key={pr.id} type="button" onClick={() => { setLayout(pr.apply(layout)); setMenu(null); }} className="block w-full rounded-md px-2.5 py-1.5 text-left hover:bg-studio-hover cursor-pointer">
+                    <span className="block text-[12.5px] text-studio-text">{pr.label}</span>
+                    <span className="block text-[11px] text-studio-faint">{pr.hint}</span>
+                  </button>
+                ))}
+                <div className="my-1 h-px bg-studio-border" />
+                <button type="button" onClick={() => { resetLayout(); setMenu(null); }} className="block w-full rounded-md px-2.5 py-1.5 text-left text-[12.5px] text-studio-muted hover:bg-studio-hover hover:text-studio-text cursor-pointer">
+                  Reset sizes
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button type="button" onClick={(e) => { e.stopPropagation(); setMenu(menu === 'editor' ? null : 'editor'); }} aria-expanded={menu === 'editor'} className="inline-flex h-[26px] items-center gap-1.5 rounded-md bg-studio-hover px-2.5 text-[12.5px] font-medium text-studio-text hover:bg-studio-field cursor-pointer">
+              <Film className="h-3.5 w-3.5" /> Edit <ChevronDown className="h-3 w-3 text-studio-muted" />
+            </button>
+            {menu === 'editor' && (
+              <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-8 w-[200px] rounded-[10px] border border-studio-border-strong bg-studio-raised p-1 shadow-[0_16px_40px_rgba(0,0,0,.5)]">
+                {EDITORS.map((ed) => {
+                  const I = ed.icon;
+                  return (
+                    <button key={ed.id} type="button" disabled={!ed.ready} onClick={() => setMenu(null)} className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-studio-hover disabled:hover:bg-transparent cursor-pointer disabled:cursor-default ${ed.id === 'edit' ? 'text-accent' : ed.ready ? 'text-studio-text' : 'text-studio-faint'}`}>
+                      <I className="h-3.5 w-3.5" />
+                      <span className="flex-1">{ed.label}</span>
+                      <span className="font-mono text-[10.5px] text-studio-faint">{ed.ready ? ed.key : 'soon'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <select
             value={Object.entries(FRAME_SIZES).find(([, s]) => s[0] === edit.width && s[1] === edit.height)?.[0] ?? '9:16'}
             onChange={(e) => {
               const [w, h] = FRAME_SIZES[e.target.value];
               apply((x) => ({ ...x, width: w, height: h }));
             }}
-            className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-300 focus:outline-none"
+            className={sel}
             title="Frame size"
+            aria-label="Frame size"
           >
             {Object.keys(FRAME_SIZES).map((a) => (
               <option key={a}>{a}</option>
             ))}
           </select>
           {render.url && !render.busy && (
-            <a href={`/api/download/${render.url.split('/').pop()}`} className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10">
-              <Check className="h-3.5 w-3.5" /> Download {render.url.split('.').pop()?.toUpperCase()}
+            <a href={`/api/download/${render.url.split('/').pop()}`} className="inline-flex h-[26px] items-center gap-1.5 rounded-md border border-accent/40 px-2.5 text-[12px] font-medium text-accent hover:bg-accent/10">
+              <Check className="h-3.5 w-3.5" /> {render.url.split('.').pop()?.toUpperCase()}
             </a>
           )}
-          <select
-            value={exportFormat}
-            onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)}
-            className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-300 focus:outline-none"
-            title="Export format"
-            aria-label="Export format"
-          >
+          <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)} className={`${sel} hidden sm:block`} title="Export format" aria-label="Export format">
             <option value="mp4">MP4 (H.264)</option>
             <option value="webm">WebM (VP9)</option>
             <option value="gif">GIF</option>
             <option value="still">Still (PNG at playhead)</option>
           </select>
           {exportFormat !== 'still' && exportFormat !== 'gif' && (
-            <select
-              value={exportQuality}
-              onChange={(e) => setExportQuality(e.target.value as typeof exportQuality)}
-              className="rounded-md border border-zinc-800 bg-black px-2 py-1 text-xs text-zinc-300 focus:outline-none"
-              title="Quality (Draft renders at half size)"
-              aria-label="Export quality"
-            >
+            <select value={exportQuality} onChange={(e) => setExportQuality(e.target.value as typeof exportQuality)} className={`${sel} hidden lg:block`} title="Quality (Draft renders at half size)" aria-label="Export quality">
               <option value="high">High</option>
               <option value="standard">Standard</option>
               <option value="draft">Draft (½ size)</option>
@@ -571,50 +680,39 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
             type="button"
             onClick={() => void startRender()}
             disabled={render.busy}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-accent-strong disabled:opacity-70 cursor-pointer"
+            className="inline-flex h-[26px] items-center gap-1.5 rounded-md bg-studio-ink px-3 text-[12px] font-semibold text-black hover:bg-white disabled:opacity-70 cursor-pointer"
           >
             {render.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            {render.busy ? `${render.progress?.pct ?? 0}%` : exportFormat === 'still' ? 'Save still' : `Render ${exportFormat.toUpperCase()}`}
+            {render.busy ? `${render.progress?.pct ?? 0}%` : exportFormat === 'still' ? 'Save still' : 'Export'}
           </button>
         </div>
       </div>
+
       {licenceWarn.length > 0 && !render.busy && (
-        <div className="shrink-0 flex items-start gap-2 border-b border-zinc-900 bg-peach/10 px-4 py-2 text-xs text-peach">
+        <div className="shrink-0 flex items-start gap-2 border-b border-black bg-peach/10 px-4 py-2 text-xs text-peach">
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span className="flex-1">
             Check before using this video commercially — {licenceWarn.length} of your PNG{licenceWarn.length === 1 ? '' : 's'} {licenceWarn.length === 1 ? 'is' : 'are'} not cleared:{' '}
-            {licenceWarn.map((w) => `${w.name} (${w.status === 'restricted' ? `restricted: ${w.licence}` : 'licence not checked'})`).join(', ')}. Record licences in Assets → click the ? badge.
+            {licenceWarn.map((w) => `${w.name} (${w.status === 'restricted' ? `restricted: ${w.licence}` : 'licence not checked'})`).join(', ')}. Record licences in Library → Assets → click the ? badge.
           </span>
-          <button type="button" onClick={() => setLicenceWarn([])} className="text-peach/70 hover:text-peach cursor-pointer">
-            Dismiss
-          </button>
+          <button type="button" onClick={() => setLicenceWarn([])} className="text-peach/70 hover:text-peach cursor-pointer">Dismiss</button>
         </div>
       )}
       {credits.length > 0 && !render.busy && (
-        <div className="shrink-0 flex items-start gap-2 border-b border-zinc-900 bg-lavender/10 px-4 py-2 text-xs text-lavender">
-          <span className="flex-1">
-            <b>Credits required</b> — add to your post description: {credits.join(' · ')}
-          </span>
-          <button
-            type="button"
-            onClick={() => void navigator.clipboard?.writeText(`Credits:\n${credits.join('\n')}`)}
-            className="rounded border border-lavender/40 px-2 py-0.5 hover:bg-lavender/10 cursor-pointer"
-          >
-            Copy
-          </button>
-          <button type="button" onClick={() => setCredits([])} className="text-lavender/70 hover:text-lavender cursor-pointer">
-            Dismiss
-          </button>
+        <div className="shrink-0 flex items-start gap-2 border-b border-black bg-lavender/10 px-4 py-2 text-xs text-lavender">
+          <span className="flex-1"><b>Credits required</b> — add to your post description: {credits.join(' · ')}</span>
+          <button type="button" onClick={() => void navigator.clipboard?.writeText(`Credits:\n${credits.join('\n')}`).catch(() => {})} className="rounded border border-lavender/40 px-2 py-0.5 hover:bg-lavender/10 cursor-pointer">Copy</button>
+          <button type="button" onClick={() => setCredits([])} className="text-lavender/70 hover:text-lavender cursor-pointer">Dismiss</button>
         </div>
       )}
       {(render.busy || render.error) && (
-        <div className={`shrink-0 px-4 py-1.5 text-xs border-b border-zinc-900 ${render.error ? 'bg-red-950/30 text-red-200' : 'bg-surface text-zinc-300'}`}>
+        <div className={`shrink-0 px-4 py-1.5 text-xs border-b border-black ${render.error ? 'bg-red-950/30 text-red-200' : 'bg-studio-bar text-studio-muted'}`}>
           {render.error ? (
             <span className="flex items-center gap-2"><AlertCircle className="h-3.5 w-3.5" /> {render.error}</span>
           ) : (
             <div className="flex items-center gap-3">
               <span className="shrink-0">{render.progress?.label || 'Starting Remotion…'}</span>
-              <div className="h-1 flex-1 rounded-full bg-zinc-900 overflow-hidden">
+              <div className="h-1 flex-1 rounded-full bg-studio-field overflow-hidden">
                 <div className="h-full bg-brand-gradient animate-shimmer transition-[width] duration-500" style={{ width: `${Math.max(2, render.progress?.pct ?? 2)}%` }} />
               </div>
             </div>
@@ -623,104 +721,201 @@ function Workspace({ initial, projects, onClose }: { initial: EditProject; proje
       )}
 
       <div className="flex-1 min-h-0 flex">
-        {/* Left: library */}
-        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-zinc-900 bg-surface">
-          <LibraryPanel projects={projects} onAddTemplate={addTemplate} onAddEffect={addEffect} onAddMotion={addMotion} aspect={{ width: edit.width, height: edit.height }} onAddFile={addFromDisk} onAddProjectVideo={addProjectVideo} onAddAsset={addAsset} />
-        </aside>
+        {/* Chat column (the library opens inside it) */}
+        {layout.chat && (
+          <>
+            <div className="hidden md:block shrink-0 min-h-0" style={{ width: layout.chatW }}>
+              <ChatColumn
+                messages={chat}
+                busy={aiBusy}
+                draft={refs}
+                hasSelection={Boolean(selected)}
+                pointMode={pointMode}
+                library={layout.library}
+                libraryPanel={<LibraryPanel projects={projects} onAddTemplate={addTemplate} onAddEffect={addEffect} onAddMotion={addMotion} aspect={{ width: edit.width, height: edit.height }} onAddFile={addFromDisk} onAddProjectVideo={addProjectVideo} onAddAsset={addAsset} />}
+                onSend={(t) => void sendAi(t)}
+                onRemoveRef={(n) => setRefs((cur) => cur.filter((r) => r.n !== n))}
+                onHoverRef={setHot}
+                onJumpRef={jumpRef}
+                onAddMoment={() => addMoment()}
+                onAddClip={addClipRef}
+                onTogglePoint={() => setPointMode((v) => !v)}
+                onToggleLibrary={(open) => setLayout({ library: open })}
+                onHide={() => setLayout({ chat: false })}
+                onUndo={undo}
+                canUndo={past.current.length > 0}
+              />
+            </div>
+            <div className="hidden md:flex">
+              <Splitter dir="x" value={layout.chatW} onChange={(v) => setLayout({ chatW: v })} onReset={() => setLayout({ chatW: DEFAULT_LAYOUT.chatW })} label="Resize chat" />
+            </div>
+          </>
+        )}
 
-        {/* Centre: preview + timeline */}
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex-1 min-h-0 flex items-center justify-center p-4 bg-[radial-gradient(circle_at_center,#0d0d10,#000)]">
-            <div className="relative h-full max-h-full max-w-full overflow-hidden rounded-lg border border-zinc-800 shadow-2xl" style={{ aspectRatio: aspect }}>
-              <Player
-                ref={playerRef}
-                component={EditorComposition}
-                inputProps={inputProps}
-                durationInFrames={durationInFrames}
-                compositionWidth={edit.width}
-                compositionHeight={edit.height}
-                fps={fps}
-                style={{ width: '100%', height: '100%' }}
-                clickToPlay
-                acknowledgeRemotionLicense
+          <div className="flex-1 min-h-0 flex">
+            {/* Viewer */}
+            <div className="flex-1 min-w-0 flex flex-col bg-studio-viewer">
+              <div className="flex h-10 shrink-0 items-center gap-1 border-b border-studio-border px-2">
+                <span className="px-1 text-[12px] font-medium text-studio-muted">Viewer</span>
+                <button type="button" onClick={() => setPointMode((v) => !v)} aria-pressed={pointMode} title="Point at part of the picture" className={`${tb} ${pointMode ? '!bg-accent/15 !text-accent' : ''}`}>
+                  <Crosshair className="h-4 w-4" /> <span className="hidden xl:inline">Point</span>
+                </button>
+                <button type="button" onClick={() => addMoment()} title="Point at this moment (M)" className={tb}>
+                  <Diamond className="h-3.5 w-3.5" />
+                </button>
+                <span className="ml-auto" />
+                <button type="button" onClick={() => setLayout({ inspector: !layout.inspector })} title={layout.inspector ? 'Hide inspector' : 'Show inspector'} className={`${tb} hidden lg:inline-flex`}>
+                  {layout.inspector ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 flex items-center justify-center p-4">
+                <div className="relative h-full max-h-full max-w-full overflow-hidden rounded-[3px] shadow-[0_16px_40px_rgba(0,0,0,.5)]" style={{ aspectRatio: aspect }}>
+                  <Player
+                    ref={playerRef}
+                    component={EditorComposition}
+                    inputProps={inputProps}
+                    durationInFrames={durationInFrames}
+                    compositionWidth={edit.width}
+                    compositionHeight={edit.height}
+                    fps={fps}
+                    loop={loop}
+                    playbackRate={rate}
+                    style={{ width: '100%', height: '100%' }}
+                    clickToPlay={!pointMode}
+                    acknowledgeRemotionLicense
+                  />
+                  <RegionOverlay active={pointMode} refs={allRefs} hot={hot} time={time} onRegion={addRegion} />
+                </div>
+              </div>
+              <PointStrip duration={duration} time={time} refs={allRefs} hot={hot} onSeek={seek} onMoment={addMoment} onRange={addRange} />
+              <div className="grid h-10 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-t border-studio-border px-3">
+                <span className="font-mono text-[12px] tabular-nums text-studio-text">
+                  {formatTimecode(time, true)} <span className="text-studio-faint">/ {formatTimecode(duration, true)}</span>
+                </span>
+                <button type="button" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'} className="grid h-7 w-7 place-items-center rounded-full bg-studio-ink text-black hover:bg-white cursor-pointer">
+                  {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 translate-x-px" />}
+                </button>
+                <div className="flex items-center justify-end gap-1">
+                  <button type="button" onClick={() => setLoop((v) => !v)} aria-pressed={loop} title="Loop" className={`${tb} ${loop ? '!text-accent' : ''}`}>
+                    <Repeat className="h-3.5 w-3.5" />
+                  </button>
+                  <select value={rate} onChange={(e) => setRate(Number(e.target.value))} className={`${sel} w-[58px]`} aria-label="Playback speed" title="Playback speed">
+                    {[0.5, 1, 1.5, 2].map((r) => <option key={r} value={r}>{r}×</option>)}
+                  </select>
+                  <button type="button" onClick={() => playerRef.current?.requestFullscreen()} title="Full screen (`)" className={tb}>
+                    <Maximize2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Inspector */}
+            {layout.inspector && (
+              <>
+                <div className="hidden lg:flex">
+                  <Splitter dir="x" value={layout.inspW} sign={-1} onChange={(v) => setLayout({ inspW: v })} onReset={() => setLayout({ inspW: DEFAULT_LAYOUT.inspW })} label="Resize inspector" />
+                </div>
+                <aside className="hidden lg:flex shrink-0 flex-col bg-studio-panel" style={{ width: layout.inspW }}>
+                  <div className="flex h-10 shrink-0 items-center gap-4 border-b border-studio-border px-3 text-[11.5px]">
+                    {([
+                      ['properties', 'Properties'],
+                      ['info', 'Info'],
+                    ] as const).map(([id, label]) => (
+                      <button key={id} type="button" onClick={() => setInspTab(id)} aria-pressed={inspTab === id} className={`h-full cursor-pointer ${inspTab === id ? 'font-semibold text-accent' : 'text-studio-muted hover:text-studio-text'}`}>
+                        {label}
+                      </button>
+                    ))}
+                    {selected && (
+                      <button type="button" onClick={addClipRef} title="Point at this clip in the chat (Ctrl+L)" className="ml-auto inline-flex items-center gap-1 text-studio-muted hover:text-studio-text cursor-pointer">
+                        <Crosshair className="h-3.5 w-3.5" /> Ask AI
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto">
+                    {!selected ? (
+                      <div className="space-y-2 p-4 text-[12px] text-studio-muted">
+                        <p>Select a clip on the timeline to change it here.</p>
+                        <p className="text-studio-faint">Space play · S split · Del delete · Ctrl+D duplicate · Ctrl+Z undo · ←/→ frame (Shift = 1 s) · M point at this moment · Ctrl+L point at the clip · Ctrl+Shift+L chat</p>
+                      </div>
+                    ) : inspTab === 'properties' ? (
+                      <Inspector
+                        item={selected}
+                        onChange={(patch, commit) => {
+                          if (commit === false && !dragBase.current) dragBase.current = edit; // slider drag: undo returns to the start value
+                          patchItem(selected.id, patch, commit !== false);
+                        }}
+                        onDelete={deleteSelected}
+                        onDuplicate={duplicateSelected}
+                        onSplit={splitSelected}
+                      />
+                    ) : (
+                      <dl className="grid grid-cols-[90px_1fr] gap-x-3 gap-y-2 p-4 text-[12px]">
+                        {([
+                          ['Name', itemLabel(selected)],
+                          ['Kind', KIND_STYLE[selected.kind].label],
+                          ['Starts', formatTimecode(selected.from, true)],
+                          ['Ends', formatTimecode(selected.from + selected.duration, true)],
+                          ['Length', `${selected.duration.toFixed(2)} s`],
+                          ['Track', String(selected.track + 1)],
+                          ['Id', selected.id],
+                        ] as const).map(([k, v]) => (
+                          <div key={k} className="contents">
+                            <dt className="text-studio-faint">{k}</dt>
+                            <dd className="min-w-0 truncate font-mono text-studio-text">{v}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                  </div>
+                </aside>
+              </>
+            )}
+          </div>
+
+          {/* Timeline */}
+          <Splitter dir="y" value={layout.tlH} sign={-1} onChange={(v) => setLayout({ tlH: v })} onReset={() => setLayout({ tlH: DEFAULT_LAYOUT.tlH })} label="Resize timeline" />
+          <div className="shrink-0 flex flex-col bg-studio-panel" style={{ height: layout.tlH }}>
+            <div className="flex h-9 shrink-0 items-center gap-0.5 border-b border-studio-border px-2">
+              <button type="button" onClick={undo} disabled={!past.current.length} title="Undo (Ctrl+Z)" className={tb}><Undo2 className="h-4 w-4" /></button>
+              <button type="button" onClick={redo} disabled={!future.current.length} title="Redo (Ctrl+Shift+Z)" className={tb}><Redo2 className="h-4 w-4" /></button>
+              <span className="mx-1 h-4 w-px bg-studio-border-strong" />
+              <button type="button" onClick={() => addMoment()} title="Point at this moment (M)" className={tb}><Diamond className="h-3.5 w-3.5" /> <span className="hidden xl:inline">Marker</span></button>
+              <button type="button" onClick={splitSelected} disabled={!selected} title="Split the selected clip at the playhead (S)" className={tb}><Scissors className="h-3.5 w-3.5" /> <span className="hidden xl:inline">Split</span></button>
+              <button type="button" onClick={() => addTemplate('title')} title="Add a title at the playhead" className={tb}><Plus className="h-3.5 w-3.5" /> <span className="hidden xl:inline">Text</span></button>
+              <span className="mx-auto truncate px-2 text-[11px] text-studio-faint">
+                {selected ? `${itemLabel(selected)} · ${formatTimecode(selected.from, true)} → ${formatTimecode(selected.from + selected.duration, true)}` : `${edit.items.length} clips · ${formatTimecode(duration)}`}
+              </span>
+              <button type="button" onClick={() => setPps((v) => Math.max(6, v / 1.4))} title="Zoom out" className={tb}><ZoomOut className="h-3.5 w-3.5" /></button>
+              <input type="range" min={6} max={240} value={pps} onChange={(e) => setPps(Number(e.target.value))} aria-label="Timeline zoom" className="h-[3px] w-24 cursor-pointer accent-[var(--color-accent)]" />
+              <button type="button" onClick={() => setPps((v) => Math.min(240, v * 1.4))} title="Zoom in" className={tb}><ZoomIn className="h-3.5 w-3.5" /></button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <Timeline
+                bare
+                pps={pps}
+                marks={allRefs}
+                hot={hot}
+                edit={edit}
+                duration={duration}
+                time={time}
+                selectedId={selectedId}
+                onSeek={seek}
+                onSelect={(id) => {
+                  setSelectedId(id);
+                  if (id) setInspTab('properties');
+                }}
+                onDrag={(id, patch) => {
+                  if (!dragBase.current) dragBase.current = edit;
+                  patchItem(id, patch, false);
+                }}
+                onDragEnd={() => apply((e) => e, true)}
               />
             </div>
           </div>
-          <div className="shrink-0 flex items-center gap-3 border-t border-zinc-900 bg-surface px-3 py-1.5">
-            <button type="button" onClick={togglePlay} className="inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-2.5 py-1 text-xs text-white hover:bg-zinc-800 cursor-pointer">
-              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-              {playing ? 'Pause' : 'Play'}
-            </button>
-            <span className="font-mono text-xs text-zinc-300">
-              {formatTimecode(time, true)} <span className="text-zinc-600">/</span> {formatTimecode(duration, true)}
-            </span>
-            <button type="button" onClick={splitSelected} disabled={!selected} title="Split selected at playhead (S)" className="ml-auto inline-flex items-center gap-1 rounded-md border border-zinc-800 px-2 py-1 text-[11px] text-zinc-300 hover:text-white disabled:opacity-30 cursor-pointer">
-              <Scissors className="h-3 w-3" /> Split
-            </button>
-            <button type="button" onClick={() => addTemplate('title')} title="Add a title at the playhead" className="inline-flex items-center gap-1 rounded-md border border-zinc-800 px-2 py-1 text-[11px] text-zinc-300 hover:text-white cursor-pointer">
-              <Plus className="h-3 w-3" /> Text
-            </button>
-          </div>
-          <div className="h-[34%] min-h-[170px] max-h-[320px]">
-            <Timeline
-              edit={edit}
-              duration={duration}
-              time={time}
-              selectedId={selectedId}
-              onSeek={seek}
-              onSelect={(id) => {
-                setSelectedId(id);
-                if (id) setRightTab('inspect');
-              }}
-              onDrag={(id, patch) => {
-                if (!dragBase.current) dragBase.current = edit;
-                patchItem(id, patch, false);
-              }}
-              onDragEnd={() => apply((e) => e, true)}
-            />
-          </div>
         </div>
-
-        {/* Right: inspector / AI */}
-        <aside className="w-full max-w-[320px] shrink-0 hidden sm:flex flex-col border-l border-zinc-900 bg-surface">
-          <div className="grid grid-cols-2 border-b border-zinc-900">
-            {([
-              ['ai', 'Edit with AI', Sparkles],
-              ['inspect', 'Inspector', SlidersHorizontal],
-            ] as const).map(([id, label, I]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setRightTab(id)}
-                className={`flex items-center justify-center gap-1.5 py-2.5 text-xs cursor-pointer ${rightTab === id ? 'text-white shadow-[inset_0_-2px_0_var(--color-accent)]' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                <I className="h-3.5 w-3.5" /> {label}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {rightTab === 'ai' ? (
-              <AiPanel messages={chat} busy={aiBusy} onSend={(t) => void sendAi(t)} />
-            ) : selected ? (
-              <Inspector
-                item={selected}
-                onChange={(patch, commit) => {
-                  if (commit === false && !dragBase.current) dragBase.current = edit; // slider drag: undo returns to the start value
-                  patchItem(selected.id, patch, commit !== false);
-                }}
-                onDelete={deleteSelected}
-                onDuplicate={duplicateSelected}
-                onSplit={splitSelected}
-              />
-            ) : (
-              <div className="p-4 text-xs text-zinc-500 space-y-2">
-                <p>Select a layer on the timeline to edit it.</p>
-                <p className="text-zinc-600">Shortcuts: Space play · S split · Del delete · Ctrl+D duplicate · Ctrl+Z undo · ←/→ frame (Shift = 1 s)</p>
-              </div>
-            )}
-          </div>
-        </aside>
       </div>
     </div>
   );
+
 }

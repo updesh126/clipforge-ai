@@ -32,7 +32,7 @@ import {
 import type { AspectRatio, CaptionStyle, Framing, ClipLengthPreset, ClipProject } from './server/types.ts';
 import { cancelJob, finishJob, getJob, isCancelled, progressFor } from './server/progress.ts';
 import { blankEdit, deleteEdit, editFromClip, getEdit, linkMediaFile, readEdits, saveEdit } from './server/edits.ts';
-import { editWithAI } from './server/editAI.ts';
+import { editWithAI, parseRefs } from './server/editAI.ts';
 import { renderEdit } from './server/remotion.ts';
 import { scriptToVideo, voiceFilesOf } from './server/scriptVideo.ts';
 import { storyboard } from './server/storyboard.ts';
@@ -1093,9 +1093,9 @@ app.post('/api/edits/:id/ai', async (req, res) => {
     return;
   }
   try {
-    const result = await editWithAI(edit, instruction);
+    const result = await editWithAI(edit, instruction, parseRefs(req.body?.refs));
     const saved = result.applied ? saveEdit(result.edit) : edit;
-    res.json({ edit: saved, reply: result.reply, applied: result.applied });
+    res.json({ edit: saved, reply: result.reply, applied: result.applied, steps: result.steps });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'AI edit failed.' });
   }
