@@ -367,6 +367,10 @@ The director skill drives the running app through `node .claude/skills/clipforge
 
 ## Share a portable copy (Windows)
 
+**Easiest: an installer.** `npm run installer` builds `release/ClipForge-Setup-<date>-<commit>.exe` (~470 MB, needs Inno Setup: `winget install -e --id JRSoftware.InnoSetup`). Your friend double-clicks it, presses Next and Install, and gets a desktop and Start-menu shortcut. Setup checks the PC and downloads Ollama and the AI model if missing (needs internet); every start re-checks and fixes anything missing. Projects are kept in `%LOCALAPPDATA%\ClipForge\data`, so updates and uninstalling never delete them. After a code change, run `npm run installer` again and send the new setup; it updates in place.
+
+**Or a portable folder (no install):**
+
 Give ClipForge to someone with no tech set-up: no Node, npm or installs needed on their PC.
 
 ```powershell

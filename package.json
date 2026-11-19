@@ -28,7 +28,8 @@
     "theme-thumbs": "tsx scripts/gen-theme-thumbs.ts",
     "motion-sheet": "tsx scripts/motion-sheet.ts",
     "portable": "node scripts/build-portable.mjs",
-    "portable:ai": "node scripts/build-portable.mjs --ai"
+    "portable:ai": "node scripts/build-portable.mjs --ai",
+    "installer": "node scripts/build-portable.mjs --installer"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.543",

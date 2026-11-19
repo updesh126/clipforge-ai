@@ -29,6 +29,7 @@ const ROOT = process.cwd();
 const RELEASE = path.join(ROOT, 'release');
 const SEVEN_DIR = process.env.SEVENZIP_DIR || 'C:\\Program Files\\7-Zip';
 const AI = process.argv.includes('--ai');
+const INSTALLER = process.argv.includes('--installer'); // npm run installer → ClipForge-Setup-<date>-<commit>.exe
 // Windows will not start an .exe of 4 GB or more — stay clearly below it
 const MAX_EXE = 3.9 * 1024 ** 3;
 
@@ -150,6 +151,12 @@ function buildApp() {
   const whisperModel = path.join(ROOT, 'data', 'models', `ggml-${whisperName}.bin`);
   if (whisperCli && fs.existsSync(whisperModel)) {
     robocopy(path.dirname(whisperCli), path.join(RUNTIME, 'whisper')); // the exe and its DLLs
+    // whisper.cpp needs the Visual C++ runtime, which many PCs lack — Microsoft allows shipping these DLLs beside the exe
+    for (const dll of ['msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'vcomp140.dll']) {
+      const src = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', dll);
+      if (fs.existsSync(src)) copyFile(src, path.join(RUNTIME, 'whisper', dll));
+      else console.log(`  \x1b[33m${dll} not found\x1b[0m — install the Visual C++ Redistributable on this PC first`);
+    }
     copyFile(whisperModel, path.join(APP, 'data', 'models', path.basename(whisperModel)));
     env = env.replace(/^WHISPER_BIN=.*$/m, 'WHISPER_BIN=whisper-cli');
     console.log(`  bundled ${path.basename(whisperCli)} + ggml-${whisperName}.bin`);
@@ -236,13 +243,43 @@ function buildApp() {
   } catch {
     /* not a git checkout */
   }
-  const exe = path.join(RELEASE, `ClipForge-Portable-${new Date().toISOString().slice(0, 10)}-${commit}.exe`);
+  const stamp = `${new Date().toISOString().slice(0, 10)}-${commit}`;
+  if (INSTALLER) return buildInstaller(OUT, stamp);
+  const exe = path.join(RELEASE, `ClipForge-Portable-${stamp}.exe`);
   packExe(RELEASE, 'ClipForge-Portable', exe);
 
   console.log(`\n\x1b[32m✔ Done.\x1b[0m`);
   console.log(`  Share this file:  ${exe}  (${mb(exe)})`);
   console.log(`  Test folder:      ${OUT}  → double-click "Start ClipForge.cmd"`);
   console.log(`  AI pack (build once): npm run portable:ai`);
+}
+
+// ==================================================================== the installer (setup.exe)
+/** Inno Setup installer from the staged app: installs per user, adds shortcuts, downloads Ollama + model on the PC. */
+function buildInstaller(stage, stamp) {
+  const iscc = [
+    process.env.ISCC,
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Inno Setup 6', 'ISCC.exe'),
+    'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe',
+    'C:\\Program Files\\Inno Setup 6\\ISCC.exe',
+  ].find((p) => p && fs.existsSync(p));
+  if (!iscc) fail('Inno Setup not found — install it: winget install -e --id JRSoftware.InnoSetup');
+
+  const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version || '0.1.0';
+  const modelsDir = path.join(stage, 'app', 'data', 'models');
+  const whisperModel = fs.existsSync(modelsDir) ? fs.readdirSync(modelsDir, { withFileTypes: true }).find((e) => e.name.endsWith('.bin')) : undefined;
+  const outName = `ClipForge-Setup-${stamp}`;
+  const defines = [`/DStage=${stage}`, `/DOutDir=${RELEASE}`, `/DAppVer=${version}`, `/DOutName=${outName}`];
+  if (whisperModel) defines.push(`/DWhisperModel=${path.join(stage, 'app', 'data', 'models', whisperModel.name)}`);
+
+  step('Compiling the installer (Inno Setup) — takes a few minutes');
+  const r = spawnSync(iscc, ['/Q', ...defines, path.join(ROOT, 'scripts', 'installer', 'clipforge.iss')], { stdio: 'inherit' });
+  if (r.status !== 0) fail('Inno Setup failed (see above).');
+
+  const exe = path.join(RELEASE, `${outName}.exe`);
+  console.log(`\n\x1b[32m✔ Done.\x1b[0m`);
+  console.log(`  Share this file:  ${exe}  (${mb(exe)})`);
+  console.log('  Your friend double-clicks it → Next → Install. It downloads Ollama + the AI model itself (needs internet).');
 }
 
 // ==================================================================== the AI pack (Ollama + one model)
