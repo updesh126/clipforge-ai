@@ -26,7 +26,9 @@
     "describe-assets": "tsx scripts/describe-assets.ts",
     "vector-demo": "tsx scripts/vector-demo.ts",
     "theme-thumbs": "tsx scripts/gen-theme-thumbs.ts",
-    "motion-sheet": "tsx scripts/motion-sheet.ts"
+    "motion-sheet": "tsx scripts/motion-sheet.ts",
+    "portable": "node scripts/build-portable.mjs",
+    "portable:ai": "node scripts/build-portable.mjs --ai"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.543",

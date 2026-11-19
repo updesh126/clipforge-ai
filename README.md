@@ -365,6 +365,17 @@ The director skill drives the running app through `node .claude/skills/clipforge
 
 ---
 
+## Share a portable copy (Windows)
+
+Give ClipForge to someone with no tech set-up: no Node, npm or installs needed on their PC.
+
+```powershell
+npm run portable      # the app: release/ClipForge-Portable-<date>-<commit>.exe (~450 MB). Run again after every change.
+npm run portable:ai   # AI pack: Ollama + OLLAMA_MODEL (default qwen2.5:3b), ~2.7 GB. Build once; rebuild only if you change the model.
+```
+
+They put both .exe files in one folder, double-click each and press **Extract** (same folder for both), then double-click `ClipForge-PortableStart ClipForge.cmd`. Bundled: Node, FFmpeg, all packages, Remotion's headless Chrome, and Whisper when `whisper-cli` is installed on your PC. Never bundled: your `data/`, your `.env`, or Stable Diffusion (they can add it with *Install AI engines (optional).cmd*). Needs 7-Zip on your PC.
+
 ## Use it
 
 1. **Select Local Video** → choose a file in your computer's file picker (it may open behind the browser — check the Dock/taskbar). The file is used in place, never copied.
