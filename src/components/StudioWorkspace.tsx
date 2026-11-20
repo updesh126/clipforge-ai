@@ -35,6 +35,7 @@ import { STYLED_CAPTIONS } from '../types.ts';
 import { StyledCaptionPreview } from './StyledCaptionPreview.tsx';
 import { formatTimecode } from '../utils/format.ts';
 import { postJson, withProgress } from '../utils/api.ts';
+import { kokoroInstallCommand } from '../utils/kokoro.ts';
 
 interface StudioWorkspaceProps {
   project: ClipProject;
@@ -1371,7 +1372,7 @@ export function StudioWorkspace({
             )}
             {selectedClip.voiceIntro && engines && !engines.tts && (
               <p className="text-[11px] text-zinc-500">
-                For natural AI voices run <code className="font-mono text-zinc-400">pip install kokoro-onnx soundfile</code>.
+                For natural AI voices run <code className="font-mono text-zinc-400">{kokoroInstallCommand()}</code>.
               </p>
             )}
           </div>

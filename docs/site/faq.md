@@ -9,7 +9,7 @@
 | "Ollama unavailable, using heuristic" | Start Ollama (the Ollama app, `ollama serve`, or `brew services start ollama`) |
 | Captions not burned into the video | Install the full FFmpeg: `brew install ffmpeg-full` (macOS) |
 | File picker doesn't appear | It may be behind the browser window. Check the taskbar or Dock |
-| Voice sounds robotic | That's the system voice. Install Kokoro: `pip install kokoro-onnx soundfile` |
+| Voice sounds robotic | That's the system voice. Install Python 3.12 and Kokoro; see [installation](#/docs/installation) |
 | *Edit with AI* ignores what I asked | Use a bigger model (`OLLAMA_EDIT_MODEL=qwen2.5:7b`) and name the exact words spoken |
 | First editor render is slow | Remotion bundles the graphics and fetches headless Chrome once; later renders are faster |
 | *AI painting* says Stable Diffusion is not running | `npm run comfy`, then read `data/comfyui.log`. A `c10.dll` error needs the [VC++ redistributable](https://aka.ms/vc14/vc_redist.x64.exe); otherwise update the NVIDIA driver |

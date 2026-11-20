@@ -6,6 +6,7 @@ import type { EditProject } from './types.ts';
 import { StylePicker } from './StylePicker.tsx';
 import { VIDEO_TYPES, VIDEO_TYPE_IDS, type VideoType } from '../videotypes.ts';
 import { newJobId, postJson } from '../utils/api.ts';
+import { kokoroInstallCommand } from '../utils/kokoro.ts';
 
 interface Props {
   engines: EngineStatus | null;
@@ -560,7 +561,7 @@ export function ScriptView({ engines, onCreated }: Props) {
             )}
             {language === 'hi' && !langVoices.length ? (
               <p className="rounded-lg border border-zinc-800 bg-surface px-3 py-2 text-[11px] leading-relaxed text-zinc-400">
-                No Hindi voice yet. Natural Hindi AI voices: <code className="font-mono text-zinc-300">pip install kokoro-onnx soundfile</code> — or add the free Windows voice: Settings → Time &amp; language → Speech → Add voices → Hindi (India). Then reload this page.
+                No Hindi voice yet. Natural Hindi AI voices: <code className="font-mono text-zinc-300">{kokoroInstallCommand()}</code> — or add the free Windows voice: Settings → Time &amp; language → Speech → Add voices → Hindi (India). Then reload this page.
               </p>
             ) : langVoices.length ? (
               <select value={voice} onChange={(e) => setVoice(e.target.value)} className="w-full rounded-lg border border-zinc-800 bg-surface px-2 py-2 text-xs text-zinc-200 focus:outline-none focus:border-accent">
@@ -572,7 +573,7 @@ export function ScriptView({ engines, onCreated }: Props) {
               </select>
             ) : (
               <p className="rounded-lg border border-zinc-800 bg-surface px-3 py-2 text-[11px] text-zinc-400">
-                Using your system voice. For natural AI voices: <code className="font-mono text-zinc-300">pip install kokoro-onnx soundfile</code>
+                Using your system voice. For natural AI voices: <code className="font-mono text-zinc-300">{kokoroInstallCommand()}</code>
               </p>
             )}
           </section>

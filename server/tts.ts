@@ -1,6 +1,6 @@
 /**
  * Text-to-speech, all local:
- *   1. Kokoro-82M via HyperFrames (natural; English + Hindi voices) — needs `pip install kokoro-onnx soundfile`
+ *   1. Kokoro-82M via HyperFrames (natural; English + Hindi voices) — needs Python 3.12 with `kokoro-onnx` and `soundfile`
  *   2. OS voice: Windows (SAPI desktop voices, or OneCore voices such as Hindi "Kalpana"/"Hemant" through WinRT),
  *      macOS `say`, Linux espeak-ng.
  * Always returns a WAV file.
@@ -102,9 +102,12 @@ async function windowsOneCoreSpeak(text: string, wav: string, language: VoiceLan
   const voices = await windowsVoices();
   const pick = voiceName ? voices.find((v) => v.name === voiceName) : voices.find((v) => v.language.toLowerCase().startsWith(language === 'hi' ? 'hi' : 'en'));
   if (!pick) {
+    const installCommand = process.platform === 'win32'
+      ? 'py -3.12 -m pip install --user kokoro-onnx soundfile'
+      : 'python3.12 -m pip install --user kokoro-onnx soundfile';
     throw new Error(
       language === 'hi'
-        ? 'No Hindi voice found. Either install the Hindi Kokoro voices (pip install kokoro-onnx soundfile) or add the Windows Hindi voice: Settings → Time & language → Speech → Add voices → Hindi (India).'
+        ? `No Hindi voice found. Install Kokoro with \`${installCommand}\`, or add the Windows Hindi voice: Settings → Time & language → Speech → Add voices → Hindi (India).`
         : `Voice "${voiceName}" is not installed.`
     );
   }

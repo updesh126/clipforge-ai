@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Plus, Cpu, RefreshCw, Download } from 'lucide-react';
 import { ModelManager } from './ModelManager.tsx';
 import type { AppTab, EngineStatus } from '../types.ts';
+import { kokoroInstallCommand } from '../utils/kokoro.ts';
 
 interface TopBarProps {
   activeTab: AppTab;
@@ -39,7 +40,7 @@ function engineRows(e: EngineStatus | null): Array<{ name: string; detail: strin
       name: 'Voice (TTS)',
       detail: e.tts ? 'Kokoro-82M via HyperFrames' : 'Using system voice',
       level: e.tts ? 'ok' : 'warn',
-      fix: e.tts ? undefined : 'pip install kokoro-onnx soundfile',
+      fix: e.tts ? undefined : kokoroInstallCommand(),
     },
     {
       name: 'Ollama',

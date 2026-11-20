@@ -314,15 +314,31 @@ async function stepOllama() {
 }
 
 function findPython() {
-  for (const py of [process.env.HYPERFRAMES_PYTHON, 'python', 'python3', 'py'].filter(Boolean)) {
+  const candidates = [
+    ...(process.env.HYPERFRAMES_PYTHON ? [{ command: process.env.HYPERFRAMES_PYTHON, args: [] }] : []),
+    ...(PLATFORM === 'win32' ? [12, 13, 11, 10].map((version) => ({ command: 'py', args: [`-3.${version}`] })) : []),
+    ...[12, 13, 11, 10].map((version) => ({ command: `python3.${version}`, args: [] })),
+    { command: 'python', args: [] },
+    { command: 'python3', args: [] },
+  ];
+  for (const py of candidates) {
     try {
-      const v = execFileSync(py, ['--version'], { encoding: 'utf8', timeout: 8000, windowsHide: true });
-      if (/Python 3\./.test(v)) return py;
+      const info = execFileSync(py.command, [...py.args, '-c', 'import sys; print(".".join(map(str, sys.version_info[:3]))); print(sys.executable)'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 8000,
+        windowsHide: true,
+      }).trim().split(/\r?\n/);
+      if (/^3\.(?:10|11|12|13)\.\d+$/.test(info[0]) && info[1]) return { ...py, executable: info[1] };
     } catch {
       /* next */
     }
   }
   return null;
+}
+
+function configureKokoroPython(py) {
+  if (!CHECK_ONLY) setEnv('HYPERFRAMES_PYTHON', py.executable);
 }
 
 async function stepVoices() {
@@ -331,19 +347,21 @@ async function stepVoices() {
   let py = findPython();
   const kokoroOk = (p) => {
     try {
-      execFileSync(p, ['-c', 'import kokoro_onnx, soundfile'], { stdio: 'ignore', timeout: 20000, windowsHide: true });
+      execFileSync(p.command, [...p.args, '-c', 'import kokoro_onnx, soundfile'], { stdio: 'ignore', timeout: 20000, windowsHide: true });
       return true;
     } catch {
       return false;
     }
   };
   if (py && kokoroOk(py)) {
-    console.log(`  ${OK} Kokoro TTS installed (${py})`);
+    configureKokoroPython(py);
+    console.log(`  ${OK} Kokoro TTS installed (${py.command} ${py.args.join(' ')})`);
+    if (!CHECK_ONLY) console.log(`  ${OK} HyperFrames will use ${py.executable}`);
     return report('Kokoro voices', 'ok');
   }
   if (!py) {
-    console.log(`  ${OPT} Python 3 not found`);
-    if (await ask('Install Python 3.12 (needed for Kokoro voices)?', false)) {
+    console.log(`  ${OPT} compatible Python not found (Kokoro needs Python 3.10–3.13; 3.12 recommended)`);
+    if (await ask('Install Python 3.12 for Kokoro voices?', false)) {
       pkgInstall({ winget: 'Python.Python.3.12', brew: 'python@3.12', apt: 'python3 python3-pip' });
       refresh();
       py = findPython();
@@ -351,9 +369,11 @@ async function stepVoices() {
     if (!py) return report('Kokoro voices', 'optional', 'system voice');
   }
   console.log(`  ${OPT} Kokoro not installed`);
-  if (await ask('Install Kokoro voices with pip (~350 MB)?')) run(py, ['-m', 'pip', 'install', '--user', 'kokoro-onnx', 'soundfile']);
+  if (await ask('Install Kokoro voices with pip (~350 MB)?')) run(py.command, [...py.args, '-m', 'pip', 'install', '--user', 'kokoro-onnx', 'soundfile']);
   const ok = kokoroOk(py);
+  if (ok) configureKokoroPython(py);
   console.log(ok ? `  ${OK} Kokoro ready` : `  ${OPT} using the system voice`);
+  if (ok && !CHECK_ONLY) console.log(`  ${OK} HyperFrames will use ${py.executable}`);
   report('Kokoro voices', ok ? 'ok' : 'optional', ok ? '' : 'system voice');
 }
 

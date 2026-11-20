@@ -63,7 +63,7 @@ export async function listVoices(): Promise<Voice[]> {
 }
 
 let ttsReady: boolean | null = null;
-/** True when Kokoro can actually speak (needs `pip install kokoro-onnx soundfile`). Probed once. */
+/** True when Kokoro can actually speak (needs Python 3.12 with `kokoro-onnx` and `soundfile`). Probed once. */
 export async function ttsAvailable(): Promise<boolean> {
   if (ttsReady !== null) return ttsReady;
   if (!hyperframesInstalled()) return (ttsReady = false);

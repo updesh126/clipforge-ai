@@ -125,17 +125,23 @@ If a tool was just installed but the wizard still can't find it, open a **new te
 | **FFmpeg** | Cutting, framing, encoding | Required | ~100 MB | winget `Gyan.FFmpeg` · brew `ffmpeg-full` · apt `ffmpeg` |
 | **Whisper** (whisper.cpp) + speech model | Speech-to-text with word timings | Required | ~10 MB + 140 MB model on first use | Windows: downloads `whisper-bin-x64.zip` into `tools/whisper` and sets `WHISPER_BIN` · macOS: brew · Linux: build guide |
 | **Ollama** + `qwen2.5:3b` | Picks highlights, plans scenes, *Edit with AI* | Strongly recommended | ~1.9 GB | winget / brew / install script, then `ollama pull` |
-| **Kokoro voices** (Python) | Natural narration | Optional — system voice otherwise | ~350 MB | Python 3.12 if needed, then `pip install kokoro-onnx soundfile` |
+| **Kokoro voices** (Python 3.12) | Natural narration | Optional — system voice otherwise | ~350 MB | Python 3.12; use the platform-specific pip command below |
 | **ComfyUI + SDXL** | AI-painted scenes and style thumbnails | Optional — needs NVIDIA 8 GB+ | ~9 GB | 7-Zip if needed, then `npm run comfy:setup` |
 | **Motion model** (in ComfyUI) — you pick | **Motion**: painted scenes that move | Optional — needs ComfyUI | **Fast**: LTX-Video 2B, 11.5 GB · **Best**: Wan 2.2 5B, 18.2 GB · Both: 29.7 GB | The wizard asks which; or `npm run comfy:setup -- -Motion ltx` / `wan` / `both` |
 | **Satellite maps** | Maps on a real satellite photo of Earth | Optional | 22 MB (32.5 MB download) | The wizard asks; or `npm run maps:setup` |
 
 ### Optional extras by hand
 
-**Natural voices (Kokoro).** Install Python 3, then:
+**Natural voices (Kokoro).** Install Python 3.12, then use its pip (Python 3.15 and other unsupported versions may not have an `onnxruntime` wheel):
+
+```powershell
+py -3.12 -m pip install --user kokoro-onnx soundfile
+```
+
+On macOS or Linux:
 
 ```bash
-pip install kokoro-onnx soundfile
+python3.12 -m pip install --user kokoro-onnx soundfile
 ```
 
 **AI painting (Stable Diffusion via ComfyUI).** Windows, needs [7-Zip](https://www.7-zip.org/) (`winget install 7zip.7zip`):
@@ -339,7 +345,7 @@ The wizard creates `.env` from `.env.example`. Change what you need and restart 
 | "Ollama unavailable, using heuristic" | Start Ollama (the Ollama app, `ollama serve`, or `brew services start ollama`) |
 | Captions not burned into the video | Install the full FFmpeg: `brew install ffmpeg-full` (macOS) |
 | File picker doesn't appear | It may be behind the browser window. Check the taskbar or Dock |
-| Voice sounds robotic | That's the system voice. Install Kokoro: `pip install kokoro-onnx soundfile` |
+| Voice sounds robotic | That's the system voice. Install Python 3.12 and Kokoro; see [Natural voices](#optional-extras-by-hand) |
 | *Edit with AI* ignores what I asked | Use a bigger model (`OLLAMA_EDIT_MODEL=qwen2.5:7b`) and name the exact words spoken |
 | First editor render is slow | Remotion bundles the graphics and fetches headless Chrome once; later renders are faster |
 | *AI painting* says Stable Diffusion is not running | `npm run comfy`, then read `data/comfyui.log`. A `c10.dll` error needs the [VC++ redistributable](https://aka.ms/vc14/vc_redist.x64.exe); otherwise update the NVIDIA driver |
